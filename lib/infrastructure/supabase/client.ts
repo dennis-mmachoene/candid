@@ -1,5 +1,7 @@
 import { createBrowserClient } from '@supabase/ssr';
 
+import type { Database } from '@/lib/database.types';
+
 /**
  * Browser client. Uses the publishable key, which is safe to ship to a browser
  * precisely because Row-Level Security applies to it.
@@ -10,7 +12,7 @@ import { createBrowserClient } from '@supabase/ssr';
  * by the time this runs.
  */
 export function createClient() {
-  return createBrowserClient(
+  return createBrowserClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
   );

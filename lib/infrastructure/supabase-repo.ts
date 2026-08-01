@@ -2,6 +2,14 @@ import 'server-only';
 
 import { createClient } from './supabase/server';
 import { decryptIdentityHeader, encryptIdentityHeader } from './crypto';
+import {
+  persistedDraftSchema,
+  persistedReportSchema,
+  readApprovals,
+  readDraft,
+  readReport,
+  toJson,
+} from './persisted-schemas';
 import type {
   CvFormat,
   ResumeRepository,
@@ -199,8 +207,8 @@ export class SupabaseResumeRepository implements ResumeRepository {
       .insert({
         resume_id: input.resumeId,
         job_description_id: input.jobDescriptionId,
-        draft: input.draft,
-        report: input.report,
+        draft: toJson(input.draft),
+        report: toJson(input.report),
         status: 'review',
       })
       .select('id, resume_id, created_at, status, draft, report, approved_claims')
@@ -213,10 +221,10 @@ export class SupabaseResumeRepository implements ResumeRepository {
       resumeId: data.resume_id,
       createdAt: new Date(data.created_at),
       status: data.status,
-      draft: data.draft,
-      report: data.report,
-      approvedClaims: data.approved_claims ?? [],
-      gaps: data.draft?.gaps ?? [],
+      draft: readDraft(data.draft),
+      report: readReport(data.report),
+      approvedClaims: readApprovals(data.approved_claims),
+      gaps: readDraft(data.draft).gaps,
     };
   }
 
@@ -227,7 +235,7 @@ export class SupabaseResumeRepository implements ResumeRepository {
     const supabase = await createClient();
     const { error } = await supabase
       .from('tailored_resumes')
-      .update({ approved_claims: canonicalKeys, status: 'approved' })
+      .update({ approved_claims: toJson(canonicalKeys), status: 'approved' })
       .eq('id', tailoringId);
 
     if (error) fail('setApprovedClaims', error);
@@ -254,6 +262,12 @@ export class SupabaseResumeRepository implements ResumeRepository {
         ? row.job_descriptions[0]
         : row.job_descriptions;
 
+      // A single corrupt row must not take out the whole history page. Counts
+      // fall back to zero and the row still renders with its date and advert,
+      // which is more useful to the user than an error screen.
+      const draft = persistedDraftSchema.safeParse(row.draft);
+      const report = persistedReportSchema.safeParse(row.report);
+
       return {
         id: row.id,
         resumeId: row.resume_id,
@@ -263,11 +277,11 @@ export class SupabaseResumeRepository implements ResumeRepository {
         // A short excerpt only. The full advert is not needed to list history,
         // and shipping it to the browser for fifty rows would be waste.
         advertExcerpt: (advert?.content ?? '').slice(0, 160),
-        acceptedCount: row.report?.accepted?.length ?? 0,
-        borderlineCount: row.report?.borderline?.length ?? 0,
-        blockedCount: row.report?.blocked?.length ?? 0,
-        approvedCount: row.approved_claims?.length ?? 0,
-        gapCount: row.draft?.gaps?.length ?? 0,
+        acceptedCount: report.success ? report.data.accepted.length : 0,
+        borderlineCount: report.success ? report.data.borderline.length : 0,
+        blockedCount: report.success ? report.data.blocked.length : 0,
+        approvedCount: readApprovals(row.approved_claims).length,
+        gapCount: draft.success ? draft.data.gaps.length : 0,
       };
     });
   }
@@ -297,15 +311,19 @@ export class SupabaseResumeRepository implements ResumeRepository {
     if (error) fail('getTailoring', error);
     if (!data) return null;
 
+    // Validated, not cast. A malformed report must not read as "nothing was
+    // blocked" on the page where blocked claims are the whole point.
+    const draft = readDraft(data.draft);
+
     return {
       id: data.id,
       resumeId: data.resume_id,
       createdAt: new Date(data.created_at),
       status: data.status,
-      draft: data.draft,
-      report: data.report,
-      approvedClaims: data.approved_claims ?? [],
-      gaps: data.draft?.gaps ?? [],
+      draft,
+      report: readReport(data.report),
+      approvedClaims: readApprovals(data.approved_claims),
+      gaps: draft.gaps,
     };
   }
 

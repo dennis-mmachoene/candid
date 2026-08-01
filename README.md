@@ -20,7 +20,7 @@ See [`PLAN.md`](./PLAN.md) for the phased build plan and the audit gates.
 
 ---
 
-## Current state — Phase 5 complete
+## Current state — all six phases built
 
 | Phase | Status |
 |---|---|
@@ -29,10 +29,24 @@ See [`PLAN.md`](./PLAN.md) for the phased build plan and the audit gates.
 | 3 — Tailoring and review UI (M3, M4) | **Done, awaiting audit** |
 | 4 — Templates and ATS export (M5) | **Done, awaiting audit** |
 | 5 — History, retention, hardening (M6, M7) | **Done, awaiting audit** |
-| 6 — Tests, E2E and CI (M8) | Not started |
+| 6 — Tests, E2E and CI (M8) | **Done, awaiting audit** |
+
+**The full flow has never run end to end.** Everything is built and 125 tests
+pass, but no CV has been uploaded to a running instance against real Supabase
+and real Anthropic. That is the largest outstanding risk and no amount of unit
+testing substitutes for it. See `AUDIT-PHASE-6.md` for an honest assessment
+against the spec's definition of done.
 
 Account erasure shipped early, in Phase 4, because a settings page in a POPIA
 product without a delete button is not a settings page.
+
+### The tests gate the build, and that was tested
+
+Breaking a guarantee turns the suite red. Demonstrated three ways — letting a
+blocked claim through the assembler, removing the residual identity scrub, and
+flipping the validator's fallthrough from `blocked` to `accepted`. Each was
+reverted immediately. The transcript is in `AUDIT-PHASE-6.md`; reproduce it
+rather than trusting it.
 
 ---
 

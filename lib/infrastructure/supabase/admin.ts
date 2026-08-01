@@ -3,6 +3,7 @@ import 'server-only';
 import { createClient } from '@supabase/supabase-js';
 
 import { adminEnv, publicEnv } from '../env';
+import type { Database } from '@/lib/database.types';
 
 /**
  * The admin client. It bypasses Row-Level Security entirely.
@@ -25,7 +26,7 @@ export function createAdminClient() {
   const { SUPABASE_SECRET_KEY } = adminEnv();
   const { NEXT_PUBLIC_SUPABASE_URL } = publicEnv();
 
-  return createClient(NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SECRET_KEY, {
+  return createClient<Database>(NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SECRET_KEY, {
     auth: {
       // No session persistence and no refresh: this client is not a user, and
       // a privileged client that quietly holds a session is a liability.

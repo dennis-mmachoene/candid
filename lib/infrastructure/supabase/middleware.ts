@@ -2,6 +2,7 @@ import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
 import { NOINDEX_HEADER, buildCsp } from '../security-headers';
+import type { Database } from '@/lib/database.types';
 
 /**
  * Session refresh, security headers, and optimistic redirects only.
@@ -47,7 +48,7 @@ export async function updateSession(
 
   let response = NextResponse.next({ request: { headers: requestHeaders } });
 
-  const supabase = createServerClient(
+  const supabase = createServerClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
     {

@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation';
 
 import { requireUser } from '@/lib/dal';
 import { OPERATORS, POLICY_VERSION } from '@/lib/domain/consent';
+import { toJson } from '@/lib/infrastructure/persisted-schemas';
 import { createClient } from '@/lib/infrastructure/supabase/server';
 
 /**
@@ -24,7 +25,7 @@ export async function acceptConsent(): Promise<void> {
 
   const { error } = await supabase.from('consent_records').insert({
     policy_version: POLICY_VERSION,
-    operators: OPERATORS,
+    operators: toJson(OPERATORS),
   });
 
   if (error) {
