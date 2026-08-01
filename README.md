@@ -20,23 +20,23 @@ See [`PLAN.md`](./PLAN.md) for the phased build plan and the audit gates.
 
 ---
 
-## Current state — Phase 1 complete
+## Current state — Phase 2 complete
 
 | Phase | Status |
 |---|---|
-| 1 — Foundation and the two guarantees | **Done, awaiting audit** |
-| 2 — Auth, consent, data layer (M1, M2) | Not started — needs Supabase |
+| 1 — Foundation and the two guarantees | **Audited, passed** |
+| 2 — Auth, consent, data layer (M1, M2) | **Done, awaiting audit** |
 | 3 — Tailoring and review UI (M3, M4) | Not started — needs Anthropic |
 | 4 — Templates and ATS export (M5) | Not started |
 | 5 — Lifecycle and hardening (M6, M7) | Not started |
 | 6 — Tests, E2E and CI (M8) | Not started |
 
-Phase 1 has no credentials and makes no network calls. The landing page is
-static and the sign-in button is deliberately disabled.
-
 ---
 
 ## Running it
+
+First time on Phase 2, follow [`SETUP-PHASE-2.md`](./SETUP-PHASE-2.md): run the
+migration, set up Google sign-in, and fill in `.env.local`.
 
 ```bash
 npm install
@@ -50,8 +50,6 @@ npm test           # vitest — the guarantee proofs
 npm run build      # production build
 ```
 
-No `.env.local` is needed yet. Copy `.env.example` when you reach Phase 2.
-
 ---
 
 ## Architecture
@@ -61,9 +59,14 @@ vendor SDK, which is what makes the ethical rules testable in isolation and the
 AI provider swappable.
 
 ```
-app/                     Next.js App Router
+app/
+  actions/               Server Actions — auth, consent, upload
+  auth/callback/         OAuth callback Route Handler
+  consent/               the POPIA gate
+  dashboard/             upload and stored CVs
 components/ui/           shadcn/ui components
 lib/
+  dal.ts                 every authoritative identity check, close to the data
   domain/                PURE — no vendor imports, enforced by ESLint
     types.ts             core types
     ports.ts             AIProvider, CvParser, ResumeRepository, RateLimiter
@@ -73,7 +76,14 @@ lib/
     resume-document.ts   neutral document model + ATS constraints + assembly
     tailoring.ts         the use case that fixes the ordering
     consent.ts           POPIA policy version and named operators
-tests/                   vitest proofs of both guarantees
+  infrastructure/        adapters — the only place vendors are imported
+    env.ts               Zod-validated environment, server-only
+    crypto.ts            AES-256-GCM identity-header encryption
+    parser.ts            magic-byte validated PDF/DOCX parsing
+    supabase-repo.ts     ResumeRepository over Supabase
+    supabase/            browser, server and middleware clients
+supabase/migrations/     schema, RLS policies, SECURITY DEFINER functions
+tests/                   vitest proofs
 ```
 
 **The dependency rule** — `lib/domain/*` may not import `lib/infrastructure/*`,
@@ -96,10 +106,25 @@ report is.
 
 ---
 
+**Row-Level Security is the backstop, not the plan.** Both the browser client
+and the server client use the **publishable** key, so every query — including
+ones made from a Server Action — runs under the user's own session and is
+scoped by RLS. The secret key bypasses RLS entirely and is read in exactly one
+place, `lib/infrastructure/env.ts`, for admin work only. A bug in application
+logic cannot read another user's rows, because the database refuses.
+
+**The original upload is never stored.** It is parsed in memory, de-identified,
+and discarded. Only the de-identified text and the encrypted identity header
+reach the database. Keeping the original would mean keeping the unredacted ID
+number, which is the thing the product promises not to do.
+
+---
+
 ## What is deliberately absent
 
-- There is **no `id_number` field** anywhere: not in the types, not in the
-  identity header, and (from Phase 2) not in the database schema.
+- There is **no `id_number` column** anywhere: not in the types, not in the
+  identity header, and not in the database schema. The migration says so in a
+  comment, in capitals.
 - The alias map in `inventory.ts` maps only true synonyms. `JS` ≡ `JavaScript`
   is fair. `React` ≡ `React Native` would be fabrication with extra steps, and
   there is a test asserting it does not happen.
