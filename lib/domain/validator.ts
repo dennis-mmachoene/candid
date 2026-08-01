@@ -1,0 +1,347 @@
+/**
+ * Guarantee 2 — Candid never fabricates experience.
+ *
+ * Every claim the model makes is judged against the user's own inventory by one
+ * ordered chain of specifications. The rule lives here as a single object rather
+ * than as conditionals sprinkled through the request handlers, so that it can be
+ * tested on its own and so that there is exactly one place to audit.
+ *
+ * Three verdicts, and the ordering between them is the whole design:
+ *
+ *   accepted   — traces directly to the original CV.
+ *   borderline — a fair inference from stated experience. Shown with the
+ *                evidence it was drawn from; included only on explicit approval.
+ *   blocked    — no trace at all. Never included. Not on approval, not on
+ *                request, not by any code path.
+ *
+ * The fallthrough is `blocked`, not `accepted`. A claim the rule does not
+ * understand is refused rather than waved through.
+ */
+
+import {
+  PROSE_MATCHABLE_VOCABULARY,
+  canonicalise,
+  evidenceFor,
+} from './inventory';
+import type {
+  Claim,
+  IntegrityReport,
+  SkillEvidence,
+  SkillInventory,
+  TailoredDraft,
+  ValidatedClaim,
+  Verdict,
+} from './types';
+
+// ---------------------------------------------------------------------------
+// Fair inferences
+// ---------------------------------------------------------------------------
+
+/**
+ * A competency a reasonable reader would grant on the strength of something the
+ * CV states outright — "led a team of five" genuinely does evidence team
+ * leadership, even if the phrase never appears.
+ *
+ * These are the only inferences permitted, and each still requires the user's
+ * explicit approval before it can be printed. The list is deliberately
+ * conservative: each rule must be defensible in an interview, where the
+ * candidate will be asked about it.
+ */
+export interface InferenceRule {
+  /** Canonical key this rule can infer. */
+  infers: string;
+  /** Phrases in the original CV that license the inference. */
+  triggers: readonly RegExp[];
+  /** Shown to the user next to the evidence, explaining the leap being made. */
+  rationale: string;
+}
+
+export const INFERENCE_RULES: readonly InferenceRule[] = [
+  {
+    infers: 'team leadership',
+    triggers: [
+      /\bled\s+(?:a\s+)?(?:team|group|squad|crew)/i,
+      /\bmanaged\s+(?:a\s+)?(?:team|group|staff|\d+\s+(?:people|staff|reports))/i,
+      /\bsupervis(?:ed|ing)\s+\d+/i,
+      /\bteam\s+(?:lead|leader)\b/i,
+      /\bline\s+manag(?:ed|er|ement)/i,
+    ],
+    rationale:
+      'Your CV describes leading or managing people directly, which supports a claim of team leadership.',
+  },
+  {
+    infers: 'mentoring',
+    triggers: [
+      /\bmentor(?:ed|ing)?\b/i,
+      /\bcoach(?:ed|ing)\b/i,
+      /\btrained\s+(?:junior|new|graduate)/i,
+      /\bonboard(?:ed|ing)\s+new/i,
+    ],
+    rationale:
+      'Your CV describes developing or training colleagues, which supports a claim of mentoring.',
+  },
+  {
+    infers: 'stakeholder management',
+    triggers: [
+      /\bstakeholder/i,
+      /\bliais(?:ed|ing)\s+with\s+(?:clients|customers|vendors|suppliers|departments)/i,
+      /\bclient[-\s]facing\b/i,
+      /\breported\s+to\s+(?:the\s+)?(?:board|executive|c-suite)/i,
+    ],
+    rationale:
+      'Your CV describes working directly with stakeholders or clients, which supports this claim.',
+  },
+  {
+    infers: 'project management',
+    triggers: [
+      /\bmanaged\s+(?:the\s+|a\s+|multiple\s+)?projects?\b/i,
+      /\bdeliver(?:ed|ing)\s+(?:the\s+|a\s+)?projects?\b/i,
+      /\bcoordinat(?:ed|ing)\s+(?:the\s+|a\s+)?(?:projects?|rollouts?|migrations?)/i,
+      /\bproject\s+(?:lead|owner|manager)\b/i,
+    ],
+    rationale:
+      'Your CV describes running projects end to end, which supports a claim of project management.',
+  },
+  {
+    infers: 'budget management',
+    triggers: [
+      /\bbudgets?\s+of\b/i,
+      /\bmanaged\s+(?:a\s+)?budget/i,
+      /\bcost\s+(?:control|savings?|reduction)/i,
+      /\bp&l\b/i,
+    ],
+    rationale:
+      'Your CV describes responsibility for budgets or costs, which supports this claim.',
+  },
+  {
+    infers: 'public speaking',
+    triggers: [
+      /\bpresent(?:ed|ing|ations?)\s+to\b/i,
+      /\bconference\s+(?:talk|speaker|presentation)/i,
+      /\bfacilitat(?:ed|ing)\s+(?:a\s+)?workshops?/i,
+      /\bran\s+(?:training\s+)?(?:sessions?|workshops?)/i,
+    ],
+    rationale:
+      'Your CV describes presenting or facilitating for an audience, which supports this claim.',
+  },
+  {
+    infers: 'agile methodologies',
+    triggers: [
+      /\bsprints?\b/i,
+      /\bstand-?ups?\b/i,
+      /\bbacklog\s+(?:grooming|refinement)/i,
+      /\bretrospectives?\b/i,
+    ],
+    rationale:
+      'Your CV describes working in sprints or agile ceremonies, which supports this claim.',
+  },
+  {
+    infers: 'cross-functional collaboration',
+    triggers: [
+      /\bcross[-\s]functional/i,
+      /\bworked\s+(?:closely\s+)?with\s+(?:design|product|marketing|engineering|sales|finance)/i,
+      /\bpartnered\s+with\s+\w+\s+teams?/i,
+    ],
+    rationale:
+      'Your CV describes working across team boundaries, which supports this claim.',
+  },
+  {
+    infers: 'data analysis',
+    triggers: [
+      /\banalys(?:ed|is|ing)\s+(?:data|trends|results|performance)/i,
+      /\bbuilt\s+(?:reports?|dashboards?)/i,
+      /\breporting\s+(?:on|for)\b/i,
+    ],
+    rationale:
+      'Your CV describes analysing data or producing reporting, which supports this claim.',
+  },
+  {
+    infers: 'process improvement',
+    triggers: [
+      /\bstreamlin(?:ed|ing)\b/i,
+      /\bautomat(?:ed|ing)\s+(?:the\s+)?(?:process|workflow|reporting)/i,
+      /\breduc(?:ed|ing)\s+(?:turnaround|processing)\s+time/i,
+      /\bimproved\s+(?:the\s+)?(?:process|efficiency)/i,
+    ],
+    rationale:
+      'Your CV describes improving how work gets done, which supports this claim.',
+  },
+];
+
+// ---------------------------------------------------------------------------
+// Specifications
+// ---------------------------------------------------------------------------
+
+export interface SpecificationMatch {
+  canonical: string;
+  reason: string;
+  evidence: readonly SkillEvidence[];
+}
+
+/**
+ * One rule in the chain. Returns a match, or null to defer to the next rule.
+ */
+export interface ClaimSpecification {
+  readonly name: string;
+  readonly verdict: Verdict;
+  evaluate(claim: Claim, inventory: SkillInventory): SpecificationMatch | null;
+}
+
+/** The claim appears in the CV, under this or a recognised alternate spelling. */
+export const TraceableToInventory: ClaimSpecification = {
+  name: 'TraceableToInventory',
+  verdict: 'accepted',
+  evaluate(claim, inventory) {
+    const canonical = canonicalise(claim.text);
+    if (!canonical || !inventory.canonical.has(canonical)) return null;
+    return {
+      canonical,
+      reason: 'This appears in your original CV.',
+      evidence: evidenceFor(inventory, canonical),
+    };
+  },
+};
+
+/** The claim is a defensible reading of something the CV states outright. */
+export const FairInferenceFromExperience: ClaimSpecification = {
+  name: 'FairInferenceFromExperience',
+  verdict: 'borderline',
+  evaluate(claim, inventory) {
+    const canonical = canonicalise(claim.text);
+    if (!canonical) return null;
+
+    const rule = INFERENCE_RULES.find((r) => r.infers === canonical);
+    if (!rule) return null;
+
+    const evidence: SkillEvidence[] = [];
+    for (const line of inventory.lines) {
+      const trigger = rule.triggers.find((t) => t.test(line));
+      if (trigger) {
+        evidence.push({ surface: line.trim(), line: line.trim() });
+      }
+    }
+    if (evidence.length === 0) return null;
+
+    return { canonical, reason: rule.rationale, evidence };
+  },
+};
+
+/**
+ * The ordered chain. Order is significant: a claim that traces directly must
+ * never be demoted to an inference, and nothing may be appended after the
+ * blocked fallthrough.
+ */
+export const SPECIFICATION_CHAIN: readonly ClaimSpecification[] = [
+  TraceableToInventory,
+  FairInferenceFromExperience,
+];
+
+// ---------------------------------------------------------------------------
+// Validation
+// ---------------------------------------------------------------------------
+
+export function validateClaim(
+  claim: Claim,
+  inventory: SkillInventory,
+): ValidatedClaim {
+  for (const specification of SPECIFICATION_CHAIN) {
+    const match = specification.evaluate(claim, inventory);
+    if (match) {
+      return {
+        claim,
+        verdict: specification.verdict,
+        canonical: match.canonical,
+        reason: match.reason,
+        evidence: match.evidence,
+      };
+    }
+  }
+
+  return {
+    claim,
+    verdict: 'blocked',
+    canonical: canonicalise(claim.text),
+    reason:
+      'Nothing in your CV supports this. Candid will not add it — if you do have this experience, add it to your CV and upload again.',
+    evidence: [],
+  };
+}
+
+export function validateClaims(
+  claims: readonly Claim[],
+  inventory: SkillInventory,
+): readonly ValidatedClaim[] {
+  return claims.map((claim) => validateClaim(claim, inventory));
+}
+
+// ---------------------------------------------------------------------------
+// Extracting claims from a draft
+// ---------------------------------------------------------------------------
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/** Vocabulary terms asserted inside a piece of model-written prose. */
+function claimsInProse(text: string): string[] {
+  const found: string[] = [];
+  for (const term of PROSE_MATCHABLE_VOCABULARY) {
+    const pattern = new RegExp(
+      `(?<![a-z0-9])${escapeRegExp(term)}(?![a-z0-9])`,
+      'i',
+    );
+    if (pattern.test(text)) found.push(term);
+  }
+  return found;
+}
+
+/**
+ * Every assertion in a draft that needs judging.
+ *
+ * Bullets and the summary are scanned as well as the skills list. A fabricated
+ * skill buried in a bullet — "used Kubernetes to orchestrate deployments" — is
+ * exactly as dishonest as one in the skills array, and checking only the array
+ * would leave the obvious hole open.
+ */
+export function extractClaims(draft: TailoredDraft): readonly Claim[] {
+  const claims: Claim[] = [];
+
+  for (const skill of draft.skills) {
+    const text = skill.trim();
+    if (text) claims.push({ text, source: 'skill' });
+  }
+
+  draft.bullets.forEach((bullet, bulletIndex) => {
+    for (const term of claimsInProse(bullet)) {
+      claims.push({ text: term, source: 'bullet', bulletIndex });
+    }
+  });
+
+  for (const term of claimsInProse(draft.summary)) {
+    claims.push({ text: term, source: 'summary' });
+  }
+
+  return claims;
+}
+
+// ---------------------------------------------------------------------------
+// The integrity report
+// ---------------------------------------------------------------------------
+
+export function buildIntegrityReport(
+  validated: readonly ValidatedClaim[],
+): IntegrityReport {
+  return {
+    accepted: validated.filter((v) => v.verdict === 'accepted'),
+    borderline: validated.filter((v) => v.verdict === 'borderline'),
+    blocked: validated.filter((v) => v.verdict === 'blocked'),
+  };
+}
+
+/** Validate a whole draft against an inventory and report on it. */
+export function reviewDraft(
+  draft: TailoredDraft,
+  inventory: SkillInventory,
+): IntegrityReport {
+  return buildIntegrityReport(validateClaims(extractClaims(draft), inventory));
+}
