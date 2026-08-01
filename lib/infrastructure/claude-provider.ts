@@ -173,9 +173,17 @@ export class ClaudeProvider implements AIProvider {
       });
       parsedOutput = message.parsed_output;
     } catch (cause) {
-      // Anthropic errors can carry request ids and internal detail. Log it,
-      // return something a user can act on.
-      console.error('[claude] request failed', cause);
+      // Log the shape of the failure, not the object.
+      //
+      // An Anthropic error can carry headers and, on a 400, a message that
+      // echoes part of the request — and the request contains the user's
+      // experience. Logs are the one place PII leaks quietly and stays leaked,
+      // so only the status and error type are recorded.
+      const status =
+        cause instanceof Anthropic.APIError ? cause.status : 'unknown';
+      const name = cause instanceof Error ? cause.name : typeof cause;
+      console.error('[claude] request failed', { status, name });
+
       throw new AIProviderError(
         'The tailoring service is unavailable right now. Please try again in a moment.',
       );
@@ -187,7 +195,17 @@ export class ClaudeProvider implements AIProvider {
     // unvalidated object into the domain.
     const result = draftSchema.safeParse(parsedOutput);
     if (!result.success) {
-      console.error('[claude] reply failed validation', result.error.issues);
+      // Code, path and message only. A Zod issue does not serialise the input
+      // today, but the reply is derived from the user's CV, and "does not
+      // today" is not a property to build a privacy guarantee on.
+      console.error(
+        '[claude] reply failed validation',
+        result.error.issues.map((issue) => ({
+          code: issue.code,
+          path: issue.path.join('.'),
+          message: issue.message,
+        })),
+      );
       throw new AIProviderError(
         'The tailoring service returned something unexpected. Please try again.',
       );

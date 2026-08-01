@@ -20,7 +20,7 @@ See [`PLAN.md`](./PLAN.md) for the phased build plan and the audit gates.
 
 ---
 
-## Current state — Phase 4 complete
+## Current state — Phase 5 complete
 
 | Phase | Status |
 |---|---|
@@ -28,12 +28,11 @@ See [`PLAN.md`](./PLAN.md) for the phased build plan and the audit gates.
 | 2 — Auth, consent, data layer (M1, M2) | **Done, awaiting audit** |
 | 3 — Tailoring and review UI (M3, M4) | **Done, awaiting audit** |
 | 4 — Templates and ATS export (M5) | **Done, awaiting audit** |
-| 5 — Hardening and retention (M7) | Not started |
+| 5 — History, retention, hardening (M6, M7) | **Done, awaiting audit** |
 | 6 — Tests, E2E and CI (M8) | Not started |
 
-Account erasure (M6) shipped early, in Phase 4, because a settings page in a
-POPIA product without a delete button is not a settings page. The scheduled
-retention purge is still Phase 5.
+Account erasure shipped early, in Phase 4, because a settings page in a POPIA
+product without a delete button is not a settings page.
 
 ---
 

@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Settings, ShieldCheck } from 'lucide-react';
+import { History, Settings, ShieldCheck } from 'lucide-react';
 
 import { signOut } from '@/app/actions/auth';
 import { ThemeToggle } from '@/components/theme-toggle';
@@ -34,6 +34,12 @@ export async function SiteHeader() {
               <span className="text-muted-foreground hidden text-sm sm:inline">
                 Hi, {user.firstName}
               </span>
+              <Button variant="ghost" size="sm" asChild>
+                <Link href="/history">
+                  <History className="size-4" aria-hidden />
+                  <span className="hidden sm:inline">History</span>
+                </Link>
+              </Button>
               <Button variant="ghost" size="sm" asChild>
                 <Link href="/settings">
                   <Settings className="size-4" aria-hidden />

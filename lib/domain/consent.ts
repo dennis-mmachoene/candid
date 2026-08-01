@@ -18,7 +18,21 @@ import type { ConsentRecord, Operator } from './types';
  * Bump this whenever the operator list, the purposes, or the data flows change.
  * Consent recorded against an older version no longer counts.
  */
-export const POLICY_VERSION = '2026-08-01';
+export const POLICY_VERSION = '2026-08-02';
+
+/**
+ * How long a CV survives without being used. POPIA §14: records must not be
+ * kept longer than the purpose requires.
+ *
+ * Twelve months rather than three. Job searches are long, people come back to a
+ * CV they wrote last year, and a tool that silently deleted their work after a
+ * quarter would be worse than useless to the people this is built for.
+ *
+ * This number appears in three places on purpose — here, in the consent notice,
+ * and in the migration that enforces it. A retention period nobody is told
+ * about is not a policy, it is a habit.
+ */
+export const RETENTION_MONTHS = 12;
 
 export const OPERATORS: readonly Operator[] = [
   {
@@ -61,6 +75,7 @@ export const CONSENT_STATEMENTS: readonly string[] = [
   'If your CV contains a South African ID number it is redacted and discarded. Candid has no field to store one.',
   'Candid will never add a skill, employer or date that your CV does not support, even if the job advert asks for it.',
   'You can delete your account and everything in it at any time, and the deletion is immediate.',
+  `If you do not use a stored CV for ${RETENTION_MONTHS} months, it is deleted automatically along with everything tailored from it.`,
 ];
 
 /** The operators that actually receive identifying information. */

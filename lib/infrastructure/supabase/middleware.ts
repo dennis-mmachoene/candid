@@ -1,8 +1,10 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
+import { NOINDEX_HEADER, buildCsp } from '../security-headers';
+
 /**
- * Session refresh, and optimistic redirects only.
+ * Session refresh, security headers, and optimistic redirects only.
  *
  * Server Components cannot write cookies, so something has to refresh the auth
  * token and write it back. That is this.
@@ -31,7 +33,19 @@ function isPublicPath(pathname: string): boolean {
 export async function updateSession(
   request: NextRequest,
 ): Promise<NextResponse> {
-  let response = NextResponse.next({ request });
+  const { nonce, header: csp } = buildCsp(
+    process.env.NODE_ENV === 'development',
+  );
+
+  // The nonce must be on the *request* headers too. Next reads the CSP header
+  // off the incoming request during SSR and stamps the nonce onto its own
+  // framework and bundle scripts. Set it only on the response and every Next
+  // script is blocked by the policy we just wrote.
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set('x-nonce', nonce);
+  requestHeaders.set('Content-Security-Policy', csp);
+
+  let response = NextResponse.next({ request: { headers: requestHeaders } });
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -48,7 +62,9 @@ export async function updateSession(
           for (const { name, value } of cookiesToSet) {
             request.cookies.set(name, value);
           }
-          response = NextResponse.next({ request });
+          response = NextResponse.next({
+            request: { headers: requestHeaders },
+          });
           for (const { name, value, options } of cookiesToSet) {
             response.cookies.set(name, value, options);
           }
@@ -61,11 +77,24 @@ export async function updateSession(
   const { data } = await supabase.auth.getClaims();
   const signedIn = Boolean(data?.claims?.sub);
 
-  if (!signedIn && !isPublicPath(request.nextUrl.pathname)) {
+  const pathname = request.nextUrl.pathname;
+
+  if (!signedIn && !isPublicPath(pathname)) {
     const url = request.nextUrl.clone();
     url.pathname = '/';
     url.searchParams.set('signin', 'required');
-    return NextResponse.redirect(url);
+    const redirect = NextResponse.redirect(url);
+    redirect.headers.set('Content-Security-Policy', csp);
+    return redirect;
+  }
+
+  response.headers.set('Content-Security-Policy', csp);
+
+  // Signed-in routes carry CV and tailoring ids in the path. The landing page,
+  // privacy and terms are the public face of the product and must stay
+  // indexable, so this is per-path rather than global.
+  if (!isPublicPath(pathname)) {
+    response.headers.set(NOINDEX_HEADER.key, NOINDEX_HEADER.value);
   }
 
   return response;

@@ -29,6 +29,21 @@ import type {
  * below it sees the plaintext.
  */
 
+/** A row in the history list. Deliberately lighter than a full tailoring. */
+export interface StoredTailoringSummary {
+  id: string;
+  resumeId: string;
+  createdAt: Date;
+  status: string;
+  title: string | null;
+  advertExcerpt: string;
+  acceptedCount: number;
+  borderlineCount: number;
+  blockedCount: number;
+  approvedCount: number;
+  gapCount: number;
+}
+
 export class DatabaseError extends Error {
   constructor(message: string) {
     super(message);
@@ -216,6 +231,59 @@ export class SupabaseResumeRepository implements ResumeRepository {
       .eq('id', tailoringId);
 
     if (error) fail('setApprovedClaims', error);
+  }
+
+  /**
+   * Everything the user has tailored, newest first, with the advert it was
+   * tailored against. RLS-scoped, so no user id is needed or accepted.
+   */
+  async listTailorings(): Promise<readonly StoredTailoringSummary[]> {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from('tailored_resumes')
+      .select(
+        'id, resume_id, created_at, status, draft, report, approved_claims, job_descriptions(title, content)',
+      )
+      .order('created_at', { ascending: false })
+      .limit(50);
+
+    if (error) fail('listTailorings', error);
+
+    return (data ?? []).map((row) => {
+      const advert = Array.isArray(row.job_descriptions)
+        ? row.job_descriptions[0]
+        : row.job_descriptions;
+
+      return {
+        id: row.id,
+        resumeId: row.resume_id,
+        createdAt: new Date(row.created_at),
+        status: row.status,
+        title: advert?.title ?? null,
+        // A short excerpt only. The full advert is not needed to list history,
+        // and shipping it to the browser for fifty rows would be waste.
+        advertExcerpt: (advert?.content ?? '').slice(0, 160),
+        acceptedCount: row.report?.accepted?.length ?? 0,
+        borderlineCount: row.report?.borderline?.length ?? 0,
+        blockedCount: row.report?.blocked?.length ?? 0,
+        approvedCount: row.approved_claims?.length ?? 0,
+        gapCount: row.draft?.gaps?.length ?? 0,
+      };
+    });
+  }
+
+  /**
+   * Mark a CV as used, so an active user's history is never purged out from
+   * under them. Fire and forget: a failed touch is not worth failing a request
+   * the user asked for.
+   */
+  async touchResume(resumeId: string): Promise<void> {
+    try {
+      const supabase = await createClient();
+      await supabase.rpc('touch_resume_access', { p_resume_id: resumeId });
+    } catch (cause) {
+      console.error('[repo] touchResume failed', cause);
+    }
   }
 
   async getTailoring(id: string): Promise<StoredTailoring | null> {

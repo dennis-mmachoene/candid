@@ -110,6 +110,9 @@ export async function tailorResume(
 
     tailoringId = tailoring.id;
 
+    // Keeps this CV out of the retention purge for another twelve months.
+    await resumeRepository.touchResume(resume.id);
+
     await supabase.rpc('log_audit_event', {
       p_action: 'resume.tailored',
       p_metadata: {

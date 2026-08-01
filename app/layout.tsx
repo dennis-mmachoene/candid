@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from 'next';
+import { headers } from 'next/headers';
 
 import { SiteFooter } from '@/components/site-footer';
 import { SiteHeader } from '@/components/site-header';
@@ -22,9 +23,14 @@ export const viewport: Viewport = {
   ],
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  // next-themes writes an inline script before paint so the page never flashes
+  // the wrong theme. Under a nonce-based CSP that script is blocked unless it
+  // carries the nonce, so it is read here and handed down.
+  const nonce = (await headers()).get('x-nonce') ?? undefined;
+
   return (
     // `suppressHydrationWarning` is required by next-themes: it writes the
     // theme class onto <html> before React hydrates, which is exactly what
@@ -42,6 +48,7 @@ export default function RootLayout({
           defaultTheme="system"
           enableSystem
           disableTransitionOnChange={false}
+          nonce={nonce}
         >
           <SiteHeader />
           <div className="flex-1">{children}</div>
