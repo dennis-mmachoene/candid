@@ -1,5 +1,7 @@
 import { FileCheck2, ShieldCheck, Sparkles } from 'lucide-react';
+import { redirect } from 'next/navigation';
 
+import { signInWithGoogle } from '@/app/actions/auth';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -8,6 +10,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import { getVerifiedUser } from '@/lib/dal';
 import { CONSENT_STATEMENTS } from '@/lib/domain/consent';
 
 const promises = [
@@ -28,7 +31,24 @@ const promises = [
   },
 ];
 
-export default function Home() {
+export default async function Home({
+  searchParams,
+}: {
+  searchParams: Promise<{ signin?: string; error?: string }>;
+}) {
+  // Next 15 makes searchParams async. Awaiting it is required, not optional.
+  const params = await searchParams;
+  const user = await getVerifiedUser();
+
+  if (user) redirect('/dashboard');
+
+  const notice =
+    params.error === 'auth'
+      ? 'Sign-in did not complete. Please try again.'
+      : params.signin === 'required'
+        ? 'Please sign in to continue.'
+        : null;
+
   return (
     <main className="mx-auto flex min-h-screen max-w-3xl flex-col gap-12 px-6 py-16">
       <header className="flex flex-col gap-4">
@@ -43,14 +63,27 @@ export default function Home() {
           Candid rewrites what you have actually done in the language the advert
           uses — and tells you plainly what you are missing.
         </p>
-        <div className="flex flex-wrap gap-3 pt-2">
-          <Button disabled>Sign in with Google</Button>
+
+        {notice ? (
+          <p
+            role="status"
+            className="border-borderline/40 bg-borderline/10 text-foreground rounded-md border px-3 py-2 text-sm"
+          >
+            {notice}
+          </p>
+        ) : null}
+
+        <div className="flex flex-wrap items-center gap-3 pt-2">
+          <form action={signInWithGoogle}>
+            <Button type="submit">Sign in with Google</Button>
+          </form>
           <Button variant="outline" asChild>
             <a href="#promises">What Candid will not do</a>
           </Button>
         </div>
         <p className="text-muted-foreground text-xs">
-          Sign-in arrives in the next phase of the build.
+          No password is created or stored. Google confirms who you are and
+          returns only your email address.
         </p>
       </header>
 
