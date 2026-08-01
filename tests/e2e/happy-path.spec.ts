@@ -176,11 +176,16 @@ test.describe('tailoring and export', () => {
     await expect(page).toHaveURL(/\/review\//, { timeout: 90_000 });
 
     // The three verdict sections must all be present.
-    await expect(
-      page.getByRole('heading', { name: /traced to your CV/i }),
-    ).toBeVisible();
-    await expect(page.getByRole('heading', { name: /your call/i })).toBeVisible();
-    await expect(page.getByRole('heading', { name: /refused/i })).toBeVisible();
+    //
+    // Scoped to level 2 because the page heading also contains the word
+    // "refused" — "here is what Candid kept and what it refused". An
+    // unscoped match found both and failed, which is the selector being
+    // sloppy rather than the page being wrong.
+    for (const section of [/traced to your CV/i, /your call/i, /refused/i]) {
+      await expect(
+        page.getByRole('heading', { level: 2, name: section }),
+      ).toBeVisible();
+    }
 
     // The advert tried to inject Kubernetes. It must not appear as an accepted
     // skill anywhere in the preview.
