@@ -60,6 +60,24 @@ export async function signIn(
 ): Promise<void> {
   const admin = adminClient(credentials);
 
+  // The user has to exist before a magic link can be generated for them, and
+  // the suite deletes the test account between runs. `email_confirm: true`
+  // marks the address verified without sending anything, which is what lets
+  // this work with "Confirm email" switched on — as it should be in a real
+  // project.
+  const { error: createError } = await admin.auth.admin.createUser({
+    email: credentials.email,
+    email_confirm: true,
+  });
+
+  // "already registered" is the expected case on every run after the first
+  // within a describe block. Anything else is a real failure.
+  if (createError && !/already (been )?registered|already exists/i.test(createError.message)) {
+    throw new Error(
+      `Could not create the test user. Check SUPABASE_SECRET_KEY. (${createError.message})`,
+    );
+  }
+
   const { data, error } = await admin.auth.admin.generateLink({
     type: 'magiclink',
     email: credentials.email,
