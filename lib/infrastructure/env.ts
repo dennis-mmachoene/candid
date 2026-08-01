@@ -30,6 +30,14 @@ const encryptionSchema = z.object({
   ENCRYPTION_KEY: z.string().min(1),
 });
 
+const aiSchema = z.object({
+  ANTHROPIC_API_KEY: z.string().min(1),
+  // Pinned to a dated snapshot rather than a moving alias like
+  // `claude-haiku-4-5`. An alias means the model can change under a build that
+  // passed its tests, and the thing being tested here is honesty.
+  ANTHROPIC_MODEL: z.string().min(1),
+});
+
 /**
  * Read only in `lib/infrastructure/supabase/admin.ts`. Bypasses RLS entirely.
  */
@@ -55,6 +63,10 @@ export function publicEnv() {
 
 export function encryptionEnv() {
   return read(encryptionSchema, 'encryption');
+}
+
+export function aiEnv() {
+  return read(aiSchema, 'AI provider');
 }
 
 /**

@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { FileText, ShieldCheck } from 'lucide-react';
 
 import { signOut } from '@/app/actions/auth';
@@ -83,7 +84,7 @@ export default async function DashboardPage() {
                       })}
                     </CardDescription>
                   </CardHeader>
-                  <CardContent className="flex flex-col gap-2">
+                  <CardContent className="flex flex-col gap-3">
                     <p className="text-muted-foreground flex items-start gap-2 text-xs">
                       <ShieldCheck className="mt-0.5 size-3.5 shrink-0" aria-hidden />
                       Stored de-identified. Contact details are encrypted
@@ -93,6 +94,11 @@ export default async function DashboardPage() {
                       {resume.content.slice(0, 400)}
                       {resume.content.length > 400 ? '…' : ''}
                     </pre>
+                    <Button asChild size="sm" className="self-start">
+                      <Link href={`/tailor/${resume.id}`}>
+                        Tailor to a job advert
+                      </Link>
+                    </Button>
                   </CardContent>
                 </Card>
               </li>
@@ -102,7 +108,7 @@ export default async function DashboardPage() {
       </section>
 
       <p className="text-muted-foreground text-xs">
-        Tailoring against a job advert arrives in the next phase.
+        Downloading as PDF and Word arrives in the next phase.
       </p>
     </main>
   );

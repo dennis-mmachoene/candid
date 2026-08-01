@@ -20,13 +20,13 @@ See [`PLAN.md`](./PLAN.md) for the phased build plan and the audit gates.
 
 ---
 
-## Current state — Phase 2 complete
+## Current state — Phase 3 complete
 
 | Phase | Status |
 |---|---|
 | 1 — Foundation and the two guarantees | **Audited, passed** |
 | 2 — Auth, consent, data layer (M1, M2) | **Done, awaiting audit** |
-| 3 — Tailoring and review UI (M3, M4) | Not started — needs Anthropic |
+| 3 — Tailoring and review UI (M3, M4) | **Done, awaiting audit** |
 | 4 — Templates and ATS export (M5) | Not started |
 | 5 — Lifecycle and hardening (M6, M7) | Not started |
 | 6 — Tests, E2E and CI (M8) | Not started |
@@ -73,13 +73,17 @@ lib/
     identity.ts          Guarantee 1 — strip identity, redact SA ID numbers
     inventory.ts         the verifiable skill inventory
     validator.ts         Guarantee 2 — the anti-fabrication rule
+    provenance.ts        employers and dates — named in the source, or blocked
     resume-document.ts   neutral document model + ATS constraints + assembly
     tailoring.ts         the use case that fixes the ordering
+    learning.ts          real, checked resources for each gap
     consent.ts           POPIA policy version and named operators
   infrastructure/        adapters — the only place vendors are imported
     env.ts               Zod-validated environment, server-only
     crypto.ts            AES-256-GCM identity-header encryption
     parser.ts            magic-byte validated PDF/DOCX parsing
+    claude-provider.ts   AIProvider over Anthropic, structured outputs
+    rate-limit.ts        the Postgres limiter — fails closed
     supabase-repo.ts     ResumeRepository over Supabase
     supabase/            browser, server and middleware clients
 supabase/migrations/     schema, RLS policies, SECURITY DEFINER functions
