@@ -1,6 +1,27 @@
 import { defineConfig, devices } from '@playwright/test';
 
 /**
+ * Load `.env.local` into the test runner's own environment.
+ *
+ * Next loads `.env.local` for the application. It does **not** load it for
+ * anything else, and Playwright is a separate process — so without this,
+ * `process.env.SUPABASE_SECRET_KEY` is undefined inside a spec, the credential
+ * check returns null, and the authenticated tests skip. They skip *silently
+ * and correctly*, which is the worst kind of wrong: the suite reports success
+ * while the half that matters never ran.
+ *
+ * `process.loadEnvFile` is built into Node 20.12+ and 22, so this needs no
+ * dependency. It throws when the file is absent, which is the normal case in
+ * CI where variables come from repository secrets instead.
+ */
+try {
+  process.loadEnvFile('.env.local');
+} catch {
+  // No .env.local. Fine in CI; the specs will skip if that leaves them
+  // without credentials, and say so.
+}
+
+/**
  * Playwright configuration.
  *
  * Two things worth knowing:

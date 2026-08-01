@@ -33,15 +33,35 @@ export interface E2ECredentials {
   siteUrl: string;
 }
 
-/** Null when the environment is not configured, so tests can skip cleanly. */
+/**
+ * Null when the environment is not configured, so tests can skip cleanly.
+ *
+ * It says which variable is missing, on the way out. A silent skip is the
+ * worst failure mode available here: the run reports success while the half of
+ * the suite that actually exercises the product never executed, and nobody
+ * notices for a month.
+ */
 export function readE2ECredentials(): E2ECredentials | null {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const secretKey = process.env.SUPABASE_SECRET_KEY;
   const email = process.env.E2E_TEST_EMAIL;
   const siteUrl = process.env.E2E_BASE_URL ?? 'http://localhost:3000';
 
-  if (!url || !secretKey || !email) return null;
-  return { url, secretKey, email, siteUrl };
+  const missing = [
+    !url && 'NEXT_PUBLIC_SUPABASE_URL',
+    !secretKey && 'SUPABASE_SECRET_KEY',
+    !email && 'E2E_TEST_EMAIL',
+  ].filter(Boolean);
+
+  if (missing.length > 0) {
+    console.warn(
+      `\n  ⚠  Authenticated end-to-end tests will SKIP. Missing: ${missing.join(', ')}.` +
+        `\n     Set them in .env.local — playwright.config.ts loads that file.\n`,
+    );
+    return null;
+  }
+
+  return { url: url!, secretKey: secretKey!, email: email!, siteUrl };
 }
 
 function adminClient(credentials: E2ECredentials) {
