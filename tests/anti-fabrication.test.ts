@@ -106,7 +106,7 @@ describe('verdicts', () => {
    */
   it('blocks anything the rule does not understand', () => {
     const verdict = validateClaim(
-      { text: 'quantum cryptography', source: 'skill' },
+      { text: 'quantum cryptography', kind: 'skill', source: 'skill' },
       inventory,
     );
     expect(verdict.verdict).toBe('blocked');

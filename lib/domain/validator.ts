@@ -23,6 +23,7 @@ import {
   canonicalise,
   evidenceFor,
 } from './inventory';
+import { appearsInSource, extractProvenanceMentions } from './provenance';
 import type {
   Claim,
   IntegrityReport,
@@ -187,11 +188,42 @@ export interface ClaimSpecification {
   evaluate(claim: Claim, inventory: SkillInventory): SpecificationMatch | null;
 }
 
+/**
+ * Employers and dates: named in the source CV, or blocked.
+ *
+ * No inference path exists for these, deliberately. "Led a team of five"
+ * evidences team leadership; nothing evidences an employer the CV never
+ * mentions. This runs first in the chain so an employer name that happens to
+ * collide with a skill term cannot be waved through by the skill rules.
+ */
+export const NamedInSourceCv: ClaimSpecification = {
+  name: 'NamedInSourceCv',
+  verdict: 'accepted',
+  evaluate(claim, inventory) {
+    if (claim.kind === 'skill') return null;
+    if (!appearsInSource(claim.text, inventory.lines.join('\n'))) return null;
+
+    const line = inventory.lines.find((candidate) =>
+      appearsInSource(claim.text, candidate),
+    );
+
+    return {
+      canonical: `${claim.kind}:${claim.text.toLowerCase()}`,
+      reason:
+        claim.kind === 'employer'
+          ? 'This organisation is named in your original CV.'
+          : 'This date appears in your original CV.',
+      evidence: line ? [{ surface: claim.text, line: line.trim() }] : [],
+    };
+  },
+};
+
 /** The claim appears in the CV, under this or a recognised alternate spelling. */
 export const TraceableToInventory: ClaimSpecification = {
   name: 'TraceableToInventory',
   verdict: 'accepted',
   evaluate(claim, inventory) {
+    if (claim.kind !== 'skill') return null;
     const canonical = canonicalise(claim.text);
     if (!canonical || !inventory.canonical.has(canonical)) return null;
     return {
@@ -207,6 +239,7 @@ export const FairInferenceFromExperience: ClaimSpecification = {
   name: 'FairInferenceFromExperience',
   verdict: 'borderline',
   evaluate(claim, inventory) {
+    if (claim.kind !== 'skill') return null;
     const canonical = canonicalise(claim.text);
     if (!canonical) return null;
 
@@ -232,6 +265,7 @@ export const FairInferenceFromExperience: ClaimSpecification = {
  * blocked fallthrough.
  */
 export const SPECIFICATION_CHAIN: readonly ClaimSpecification[] = [
+  NamedInSourceCv,
   TraceableToInventory,
   FairInferenceFromExperience,
 ];
@@ -257,12 +291,21 @@ export function validateClaim(
     }
   }
 
+  const reason =
+    claim.kind === 'employer'
+      ? 'Your CV does not name this organisation. Candid will not add an employer you did not list.'
+      : claim.kind === 'date'
+        ? 'This date does not appear in your CV. Candid will not change your employment dates.'
+        : 'Nothing in your CV supports this. Candid will not add it — if you do have this experience, add it to your CV and upload again.';
+
   return {
     claim,
     verdict: 'blocked',
-    canonical: canonicalise(claim.text),
-    reason:
-      'Nothing in your CV supports this. Candid will not add it — if you do have this experience, add it to your CV and upload again.',
+    canonical:
+      claim.kind === 'skill'
+        ? canonicalise(claim.text)
+        : `${claim.kind}:${claim.text.toLowerCase()}`,
+    reason,
     evidence: [],
   };
 }
@@ -308,17 +351,30 @@ export function extractClaims(draft: TailoredDraft): readonly Claim[] {
 
   for (const skill of draft.skills) {
     const text = skill.trim();
-    if (text) claims.push({ text, source: 'skill' });
+    if (text) claims.push({ text, kind: 'skill', source: 'skill' });
   }
 
   draft.bullets.forEach((bullet, bulletIndex) => {
     for (const term of claimsInProse(bullet)) {
-      claims.push({ text: term, source: 'bullet', bulletIndex });
+      claims.push({ text: term, kind: 'skill', source: 'bullet', bulletIndex });
+    }
+    // Organisations and dates are asserted in prose, not in the skills array,
+    // so this is the only place they can be caught.
+    for (const mention of extractProvenanceMentions(bullet)) {
+      claims.push({
+        text: mention.text,
+        kind: mention.kind,
+        source: 'bullet',
+        bulletIndex,
+      });
     }
   });
 
   for (const term of claimsInProse(draft.summary)) {
-    claims.push({ text: term, source: 'summary' });
+    claims.push({ text: term, kind: 'skill', source: 'summary' });
+  }
+  for (const mention of extractProvenanceMentions(draft.summary)) {
+    claims.push({ text: mention.text, kind: mention.kind, source: 'summary' });
   }
 
   return claims;

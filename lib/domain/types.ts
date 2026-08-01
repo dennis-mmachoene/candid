@@ -84,10 +84,19 @@ export interface SkillInventory {
  */
 export type ClaimSource = 'skill' | 'bullet' | 'summary';
 
+/**
+ * What kind of assertion this is. The distinction matters because the rules
+ * differ: a skill can be a fair inference from stated experience, while an
+ * employer or a date cannot be inferred from anything. Either the CV names it
+ * or the model invented it.
+ */
+export type ClaimKind = 'skill' | 'employer' | 'date';
+
 /** A single assertion extracted from the model's draft, awaiting judgement. */
 export interface Claim {
-  /** The skill or competency being asserted, as the model wrote it. */
+  /** The skill, employer or date being asserted, as the model wrote it. */
   text: string;
+  kind: ClaimKind;
   source: ClaimSource;
   /**
    * Index of the bullet this claim came from, when `source` is 'bullet'.

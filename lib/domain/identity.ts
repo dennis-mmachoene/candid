@@ -209,7 +209,34 @@ export function looksLikeName(line: string): boolean {
   return capitalised || allCaps;
 }
 
-/** Split a CV into its (presumed identifying) header block and its body. */
+/**
+ * Does this line look like part of a header block rather than a sentence of
+ * experience? Short, no terminal punctuation, or it carries an identifier.
+ */
+function looksLikeHeaderLine(line: string): boolean {
+  const trimmed = line.trim();
+  if (!trimmed) return true;
+  if (trimmed.includes('@')) return true;
+  if (URL_PATTERN.test(trimmed)) return true;
+  if (findPhone(trimmed)) return true;
+  if (looksLikeName(trimmed)) return true;
+  // An address or a title: short, and not a sentence.
+  return trimmed.length <= 60 && !/[.!?]$/.test(trimmed);
+}
+
+/**
+ * Split a CV into its (presumed identifying) header block and its body.
+ *
+ * When no conventional section heading is found we do not blindly cut a fixed
+ * number of lines. We take only the leading lines that still look like header
+ * material and stop at the first line that reads like real content.
+ *
+ * That detail is what makes `deidentify()` safe to run twice. Already
+ * de-identified text has no header left, so nothing is cut, and the function
+ * becomes idempotent — which lets the tailoring path re-run it as a safety net
+ * on stored content without quietly deleting the first six lines of someone's
+ * experience.
+ */
 export function splitHeaderBlock(text: string): {
   headerLines: string[];
   bodyLines: string[];
@@ -218,7 +245,11 @@ export function splitHeaderBlock(text: string): {
   let boundary = lines.findIndex(isSectionHeading);
 
   if (boundary === -1) {
-    boundary = Math.min(FALLBACK_HEADER_LINES, lines.length);
+    boundary = 0;
+    const limit = Math.min(FALLBACK_HEADER_LINES, lines.length);
+    while (boundary < limit && looksLikeHeaderLine(lines[boundary])) {
+      boundary += 1;
+    }
   } else if (boundary > MAX_HEADER_LINES) {
     boundary = MAX_HEADER_LINES;
   }
