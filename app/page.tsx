@@ -1,7 +1,23 @@
-import { FileCheck2, ShieldCheck, Sparkles } from 'lucide-react';
+import Link from 'next/link';
 import { redirect } from 'next/navigation';
+import {
+  ArrowRight,
+  Ban,
+  ClipboardPaste,
+  EyeOff,
+  FileCheck2,
+  FileDown,
+  Info,
+  Lock,
+  ScanSearch,
+  ShieldCheck,
+  Sparkles,
+  Upload,
+} from 'lucide-react';
 
 import { signInWithGoogle } from '@/app/actions/auth';
+import { GoogleIcon } from '@/components/google-icon';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -11,23 +27,68 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { getVerifiedUser } from '@/lib/dal';
-import { CONSENT_STATEMENTS } from '@/lib/domain/consent';
+import { CONSENT_STATEMENTS, OPERATORS } from '@/lib/domain/consent';
+
+const steps = [
+  {
+    icon: Upload,
+    title: 'Upload your CV',
+    body: 'PDF or Word. Your name, email, phone and ID number are stripped out before anything else happens.',
+  },
+  {
+    icon: ClipboardPaste,
+    title: 'Paste the advert',
+    body: 'The whole thing, requirements list included. That list is what your CV gets compared against.',
+  },
+  {
+    icon: ScanSearch,
+    title: 'See what was kept, and what was refused',
+    body: 'Every claim is traced back to your CV. Anything that cannot be traced is blocked, and you are told why.',
+  },
+  {
+    icon: FileDown,
+    title: 'Download it',
+    body: 'PDF or Word, formatted so an applicant tracking system can actually read it back.',
+  },
+];
 
 const promises = [
   {
-    icon: ShieldCheck,
+    icon: EyeOff,
     title: 'Your identity never reaches the AI',
-    body: 'Your name, email address and phone number are stripped out before anything is sent, and added back afterwards on our server. A South African ID number is redacted and discarded — there is nowhere in the database to store one.',
+    body: 'Your name, email address and phone number are removed before anything is sent, and reattached afterwards on our server. If your CV carries a South African ID number it is redacted and thrown away.',
+    footnote: 'There is no id_number column in the database. Not an empty one. None.',
   },
   {
     icon: FileCheck2,
     title: 'Nothing gets invented',
-    body: 'Every skill in your tailored CV is checked against your original. Anything that cannot be traced back is blocked outright, and anything that is a fair inference is shown to you with the evidence before it goes in.',
+    body: 'Every skill, employer and date in the tailored version is checked against your original. Untraceable claims are blocked outright. Fair inferences are shown to you with the evidence, and only go in if you say so.',
+    footnote: 'A blocked claim cannot reach a file, whatever you click.',
   },
   {
     icon: Sparkles,
-    title: 'Built to get through the filter',
-    body: 'Exports are single-column, real selectable text, conventional headings, no tables or images — the format applicant tracking systems can actually read.',
+    title: 'Built to get past the filter',
+    body: 'Single column. Real selectable text. Conventional headings. No tables, no text boxes, no images. The format applicant tracking systems can parse rather than the one that looks nice and scores zero.',
+    footnote: 'Tested by reading every export back through a parser.',
+  },
+];
+
+const refusals = [
+  {
+    title: 'Add a skill you do not have',
+    body: 'Even when the advert asks for it. It goes in your gaps list instead, with somewhere to go and learn it.',
+  },
+  {
+    title: 'Invent an employer or stretch a date',
+    body: 'This is what gets an offer withdrawn after a background check. Both are checked against your original CV.',
+  },
+  {
+    title: 'Send your name to an AI provider',
+    body: 'Not your name, not your email, not your phone number, not your ID number. The model sees experience and nothing else.',
+  },
+  {
+    title: 'Keep your data when you leave',
+    body: 'One button deletes everything you own, and the deletion is immediate.',
   },
 ];
 
@@ -50,76 +111,303 @@ export default async function Home({
         : null;
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-3xl flex-col gap-12 px-6 py-16">
-      <header className="flex flex-col gap-4">
-        <p className="text-muted-foreground text-sm font-medium tracking-wide uppercase">
-          Candid
-        </p>
-        <h1 className="text-4xl font-semibold tracking-tight text-balance sm:text-5xl">
-          An honest CV, tailored to the job.
-        </h1>
-        <p className="text-muted-foreground max-w-xl text-lg text-pretty">
-          Applicant tracking systems reject good candidates for bad wording.
-          Candid rewrites what you have actually done in the language the advert
-          uses — and tells you plainly what you are missing.
-        </p>
+    <main>
+      {/* ---------------------------------------------------------------- */}
+      {/* Hero                                                              */}
+      {/* ---------------------------------------------------------------- */}
+      <section className="gradient-hero relative overflow-hidden">
+        {/* Decorative only, and hidden from assistive tech. */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 opacity-40 [background:radial-gradient(60%_50%_at_20%_0%,white_0%,transparent_60%)]"
+        />
+        <div className="relative mx-auto max-w-6xl px-4 py-20 sm:px-6 sm:py-28">
+          <div className="animate-rise flex max-w-3xl flex-col items-start gap-6">
+            <Badge className="border-white/25 bg-white/15 text-white backdrop-blur-sm">
+              <Lock className="size-3" aria-hidden />
+              Built for South African job seekers
+            </Badge>
 
-        {notice ? (
-          <p
-            role="status"
-            className="border-borderline/40 bg-borderline/10 text-foreground rounded-md border px-3 py-2 text-sm"
-          >
-            {notice}
-          </p>
-        ) : null}
+            <h1 className="text-4xl font-semibold tracking-tight text-balance text-white sm:text-6xl">
+              An honest CV,{' '}
+              <span className="bg-gradient-to-r from-white via-indigo-100 to-violet-200 bg-clip-text text-transparent">
+                tailored to the job.
+              </span>
+            </h1>
 
-        <div className="flex flex-wrap items-center gap-3 pt-2">
-          <form action={signInWithGoogle}>
-            <Button type="submit">Sign in with Google</Button>
-          </form>
-          <Button variant="outline" asChild>
-            <a href="#promises">What Candid will not do</a>
-          </Button>
+            <p className="max-w-xl text-lg leading-relaxed text-pretty text-white/80">
+              Applicant tracking systems reject good candidates for bad wording.
+              Candid rewrites what you have actually done in the language the
+              advert uses, and tells you plainly what you are missing.
+            </p>
+
+            {notice ? (
+              <p
+                role="status"
+                className="rounded-lg border border-white/25 bg-white/10 px-4 py-2.5 text-sm text-white backdrop-blur-sm"
+              >
+                {notice}
+              </p>
+            ) : null}
+
+            <div className="flex flex-col gap-3 pt-2 sm:flex-row sm:items-center">
+              <form action={signInWithGoogle}>
+                <Button
+                  type="submit"
+                  size="lg"
+                  className="w-full bg-white text-brand-700 shadow-lift hover:bg-white hover:brightness-100 sm:w-auto"
+                >
+                  <GoogleIcon className="size-5" />
+                  Sign in with Google
+                </Button>
+              </form>
+              <Button
+                size="lg"
+                variant="outline"
+                asChild
+                className="w-full border-white/30 bg-white/10 text-white backdrop-blur-sm hover:border-white/50 hover:bg-white/20 hover:text-white sm:w-auto"
+              >
+                <Link href="#how">
+                  See how it works
+                  <ArrowRight className="size-4" aria-hidden />
+                </Link>
+              </Button>
+            </div>
+
+            <p className="text-sm text-white/60">
+              No password is created or stored. Google confirms who you are and
+              returns only your email address.
+            </p>
+          </div>
         </div>
-        <p className="text-muted-foreground text-xs">
-          No password is created or stored. Google confirms who you are and
-          returns only your email address.
-        </p>
-      </header>
-
-      <section id="promises" className="flex flex-col gap-4">
-        {promises.map(({ icon: Icon, title, body }) => (
-          <Card key={title}>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Icon className="size-4" aria-hidden />
-                {title}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="text-muted-foreground text-sm">
-              {body}
-            </CardContent>
-          </Card>
-        ))}
       </section>
 
-      <section className="flex flex-col gap-4">
-        <Card>
-          <CardHeader>
-            <CardTitle>What you will be asked to agree to</CardTitle>
-            <CardDescription>
-              Taken directly from the consent notice, so there are no surprises
-              later.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ul className="text-muted-foreground flex list-disc flex-col gap-2 pl-5 text-sm">
-              {CONSENT_STATEMENTS.map((statement) => (
-                <li key={statement}>{statement}</li>
-              ))}
-            </ul>
-          </CardContent>
-        </Card>
+      {/* ---------------------------------------------------------------- */}
+      {/* How it works                                                      */}
+      {/* ---------------------------------------------------------------- */}
+      <section id="how" className="mx-auto max-w-6xl scroll-mt-20 px-4 py-20 sm:px-6">
+        <div className="flex max-w-2xl flex-col gap-3">
+          <Badge variant="brand">How it works</Badge>
+          <h2 className="text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
+            Four steps, and you can see what happened at every one.
+          </h2>
+          <p className="text-muted-foreground text-lg text-pretty">
+            Nothing runs invisibly. You are shown what was kept, what was
+            refused, and what evidence each decision rested on.
+          </p>
+        </div>
+
+        <ol className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          {steps.map((step, index) => (
+            <li key={step.title}>
+              <Card className="card-hover h-full">
+                <CardHeader>
+                  <div className="mb-1 flex items-center gap-3">
+                    <span className="gradient-brand grid size-10 place-items-center rounded-lg shadow-soft">
+                      <step.icon className="size-5 text-white" aria-hidden />
+                    </span>
+                    <span className="text-muted-foreground/60 text-2xl font-semibold tabular-nums">
+                      {String(index + 1).padStart(2, '0')}
+                    </span>
+                  </div>
+                  <CardTitle className="text-base">{step.title}</CardTitle>
+                </CardHeader>
+                <CardContent className="text-muted-foreground text-sm leading-relaxed">
+                  {step.body}
+                </CardContent>
+              </Card>
+            </li>
+          ))}
+        </ol>
+      </section>
+
+      {/* ---------------------------------------------------------------- */}
+      {/* Promises                                                          */}
+      {/* ---------------------------------------------------------------- */}
+      <section
+        id="promises"
+        className="gradient-subtle scroll-mt-20 border-y py-20"
+      >
+        <div className="mx-auto max-w-6xl px-4 sm:px-6">
+          <div className="flex max-w-2xl flex-col gap-3">
+            <Badge variant="brand">Our promises</Badge>
+            <h2 className="text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
+              Two guarantees, enforced in code rather than in marketing.
+            </h2>
+            <p className="text-muted-foreground text-lg text-pretty">
+              Both are covered by tests that fail the build if they ever stop
+              being true.
+            </p>
+          </div>
+
+          <div className="mt-12 grid gap-5 lg:grid-cols-3">
+            {promises.map((promise) => (
+              <Card key={promise.title} className="card-hover h-full">
+                <CardHeader>
+                  <span className="border-brand-500/25 bg-brand-500/10 mb-2 grid size-11 place-items-center rounded-xl border">
+                    <promise.icon className="text-brand-600 dark:text-brand-300 size-5" aria-hidden />
+                  </span>
+                  <CardTitle className="text-lg">{promise.title}</CardTitle>
+                </CardHeader>
+                <CardContent className="flex flex-col gap-4">
+                  <p className="text-muted-foreground text-sm leading-relaxed">
+                    {promise.body}
+                  </p>
+                  <p className="border-brand-500/30 text-foreground/80 border-l-2 pl-3 text-xs">
+                    {promise.footnote}
+                  </p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ---------------------------------------------------------------- */}
+      {/* Refusals                                                          */}
+      {/* ---------------------------------------------------------------- */}
+      <section
+        id="refusals"
+        className="mx-auto max-w-6xl scroll-mt-20 px-4 py-20 sm:px-6"
+      >
+        <div className="grid gap-12 lg:grid-cols-[1fr_1.15fr] lg:items-start">
+          <div className="flex flex-col gap-4">
+            <Badge variant="blocked">
+              <Ban className="size-3" aria-hidden />
+              What Candid will not do
+            </Badge>
+            <h2 className="text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
+              Most CV tools sell you the opposite of this.
+            </h2>
+            <p className="text-muted-foreground text-lg text-pretty">
+              Padding a CV works right up until someone asks a question about
+              it. Candid is built so that everything on the page is something
+              you can defend in the room.
+            </p>
+            <div className="pt-2">
+              <Button asChild variant="outline">
+                <Link href="#how">
+                  See what it does instead
+                  <ArrowRight className="size-4" aria-hidden />
+                </Link>
+              </Button>
+            </div>
+          </div>
+
+          <ul className="flex flex-col gap-3">
+            {refusals.map((refusal) => (
+              <li
+                key={refusal.title}
+                className="border-blocked/25 bg-blocked-surface/25 card-hover flex items-start gap-4 rounded-xl border p-5"
+              >
+                <span className="border-blocked/30 bg-blocked/10 mt-0.5 grid size-8 shrink-0 place-items-center rounded-lg border">
+                  <Ban className="text-blocked size-4" aria-hidden />
+                </span>
+                <div className="flex flex-col gap-1">
+                  <h3 className="font-medium">{refusal.title}</h3>
+                  <p className="text-muted-foreground text-sm leading-relaxed">
+                    {refusal.body}
+                  </p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
+
+      {/* ---------------------------------------------------------------- */}
+      {/* Data handling                                                     */}
+      {/* ---------------------------------------------------------------- */}
+      <section className="gradient-subtle border-y py-20">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6">
+          <div className="grid gap-10 lg:grid-cols-2 lg:items-start">
+            <div className="flex flex-col gap-4">
+              <Badge variant="brand">
+                <ShieldCheck className="size-3" aria-hidden />
+                Your data
+              </Badge>
+              <h2 className="text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
+                You will be told exactly who touches your information.
+              </h2>
+              <p className="text-muted-foreground text-pretty">
+                POPIA requires it, and a privacy claim you cannot check is not
+                worth much. This is the same list you will see before you can
+                use the app.
+              </p>
+              <ul className="mt-2 flex flex-col gap-3">
+                {CONSENT_STATEMENTS.map((statement) => (
+                  <li key={statement} className="flex items-start gap-3">
+                    <span className="border-accepted/30 bg-accepted/10 mt-0.5 grid size-5 shrink-0 place-items-center rounded-full border">
+                      <Info className="text-accepted size-3" aria-hidden />
+                    </span>
+                    <span className="text-muted-foreground text-sm leading-relaxed">
+                      {statement}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Who processes your information</CardTitle>
+                <CardDescription>
+                  Four companies, and what each one actually receives.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="flex flex-col gap-5">
+                {OPERATORS.map((operator) => (
+                  <div key={operator.name} className="flex flex-col gap-1.5">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-medium">{operator.name}</span>
+                      <Badge
+                        variant={
+                          operator.receivesIdentifyingData
+                            ? 'borderline'
+                            : 'accepted'
+                        }
+                      >
+                        {operator.receivesIdentifyingData
+                          ? 'receives identifying data'
+                          : 'receives no identifying data'}
+                      </Badge>
+                    </div>
+                    <p className="text-muted-foreground text-sm leading-relaxed">
+                      {operator.purpose}
+                    </p>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </section>
+
+      {/* ---------------------------------------------------------------- */}
+      {/* Closing call to action                                            */}
+      {/* ---------------------------------------------------------------- */}
+      <section className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
+        <div className="gradient-hero glow-brand relative overflow-hidden rounded-2xl px-6 py-16 text-center sm:px-12">
+          <div className="relative z-10 mx-auto flex max-w-2xl flex-col items-center gap-5">
+            <h2 className="text-3xl font-semibold tracking-tight text-balance text-white sm:text-4xl">
+              Start with the CV you already have.
+            </h2>
+            <p className="text-lg text-pretty text-white/80">
+              No payment, no password, and nothing on the finished CV that you
+              cannot back up.
+            </p>
+            <form action={signInWithGoogle} className="pt-2">
+              <Button
+                type="submit"
+                size="lg"
+                className="bg-white text-brand-700 shadow-lift hover:bg-white hover:brightness-100"
+              >
+                <GoogleIcon className="size-5" />
+                Sign in with Google
+              </Button>
+            </form>
+          </div>
+        </div>
       </section>
     </main>
   );

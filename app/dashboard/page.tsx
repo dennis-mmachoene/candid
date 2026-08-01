@@ -1,8 +1,8 @@
 import Link from 'next/link';
-import { FileText, ShieldCheck } from 'lucide-react';
+import { ArrowRight, FileText, ShieldCheck, Upload } from 'lucide-react';
 
-import { signOut } from '@/app/actions/auth';
 import { UploadForm } from '@/components/upload-form';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -14,67 +14,118 @@ import {
 import { requireConsentedUser } from '@/lib/dal';
 import { resumeRepository } from '@/lib/infrastructure/supabase-repo';
 
+export const metadata = { title: 'Your CVs' };
+
 export default async function DashboardPage() {
   // The gate. A signed-out user is redirected, and a signed-in user who has
   // not accepted the current policy version goes to /consent. Both checks
   // happen here, next to the data, not in middleware.
-  const user = await requireConsentedUser();
+  await requireConsentedUser();
 
   // No user id passed and none needed: Row-Level Security scopes this to the
   // caller's own rows.
   const resumes = await resumeRepository.listResumes();
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-3xl flex-col gap-10 px-6 py-12">
-      <header className="flex flex-wrap items-start justify-between gap-4">
-        <div className="flex flex-col gap-1">
-          <p className="text-muted-foreground text-sm font-medium tracking-wide uppercase">
-            Candid
-          </p>
-          <h1 className="text-2xl font-semibold tracking-tight">
-            Your CVs
-          </h1>
-          <p className="text-muted-foreground text-sm">
-            Signed in as {user.email}
-          </p>
-        </div>
-        <form action={signOut}>
-          <Button type="submit" variant="outline" size="sm">
-            Sign out
-          </Button>
-        </form>
+    <main className="mx-auto max-w-5xl px-4 py-10 sm:px-6 sm:py-14">
+      <header className="animate-rise flex flex-col gap-2">
+        <Badge variant="brand">Your workspace</Badge>
+        <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
+          Your CVs
+        </h1>
+        <p className="text-muted-foreground">
+          Upload once, then tailor it to as many adverts as you like.
+        </p>
       </header>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Upload a CV</CardTitle>
-          <CardDescription>
-            It is de-identified the moment it arrives. Only the experience,
-            skills and education part is stored.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <UploadForm />
-        </CardContent>
-      </Card>
+      <div className="mt-10 grid gap-6 lg:grid-cols-[1.1fr_1fr] lg:items-start">
+        <Card className="card-hover">
+          <CardHeader>
+            <span className="gradient-brand shadow-soft mb-1 grid size-11 place-items-center rounded-xl">
+              <Upload className="size-5 text-white" aria-hidden />
+            </span>
+            <CardTitle className="text-lg">Upload a CV</CardTitle>
+            <CardDescription>
+              It is de-identified the moment it arrives. Only the experience,
+              skills and education part is stored.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <UploadForm />
+          </CardContent>
+        </Card>
 
-      <section className="flex flex-col gap-3">
-        <h2 className="text-lg font-medium">Stored CVs</h2>
+        <Card className="border-accepted/25 bg-accepted-surface/25">
+          <CardHeader>
+            <span className="border-accepted/30 bg-accepted/10 mb-1 grid size-11 place-items-center rounded-xl border">
+              <ShieldCheck className="text-accepted size-5" aria-hidden />
+            </span>
+            <CardTitle className="text-lg">What happens to your file</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ol className="text-muted-foreground flex flex-col gap-3 text-sm leading-relaxed">
+              <li className="flex gap-3">
+                <span className="text-accepted font-mono text-xs">01</span>
+                Your name, email and phone are lifted out and encrypted
+                separately.
+              </li>
+              <li className="flex gap-3">
+                <span className="text-accepted font-mono text-xs">02</span>
+                Any South African ID number is redacted and thrown away. It is
+                never stored.
+              </li>
+              <li className="flex gap-3">
+                <span className="text-accepted font-mono text-xs">03</span>
+                The original file is discarded. Only the de-identified text is
+                kept.
+              </li>
+              <li className="flex gap-3">
+                <span className="text-accepted font-mono text-xs">04</span>
+                Your skills are recorded as the list every future claim gets
+                checked against.
+              </li>
+            </ol>
+          </CardContent>
+        </Card>
+      </div>
+
+      <section className="mt-14 flex flex-col gap-4">
+        <div className="flex items-baseline justify-between gap-4">
+          <h2 className="text-xl font-semibold tracking-tight">Stored CVs</h2>
+          {resumes.length > 0 ? (
+            <span className="text-muted-foreground text-sm tabular-nums">
+              {resumes.length} stored
+            </span>
+          ) : null}
+        </div>
 
         {resumes.length === 0 ? (
-          <p className="text-muted-foreground text-sm">
-            Nothing yet. Upload a CV above to get started.
-          </p>
+          <Card className="border-dashed">
+            <CardContent className="flex flex-col items-center gap-2 py-14 text-center">
+              <FileText className="text-muted-foreground/50 size-8" aria-hidden />
+              <p className="font-medium">Nothing here yet</p>
+              <p className="text-muted-foreground max-w-sm text-sm">
+                Upload a CV above and it will appear here, ready to tailor
+                against any advert.
+              </p>
+            </CardContent>
+          </Card>
         ) : (
-          <ul className="flex flex-col gap-3">
+          <ul className="grid gap-4 sm:grid-cols-2">
             {resumes.map((resume) => (
               <li key={resume.id}>
-                <Card>
+                <Card className="card-hover h-full">
                   <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-base">
-                      <FileText className="size-4" aria-hidden />
-                      {resume.format.toUpperCase()} CV
-                    </CardTitle>
+                    <div className="flex items-start justify-between gap-3">
+                      <CardTitle className="flex items-center gap-2 text-base">
+                        <FileText className="text-brand-600 dark:text-brand-300 size-4" aria-hidden />
+                        {resume.format.toUpperCase()} CV
+                      </CardTitle>
+                      <Badge variant="accepted">
+                        <ShieldCheck className="size-3" aria-hidden />
+                        de-identified
+                      </Badge>
+                    </div>
                     <CardDescription>
                       Uploaded{' '}
                       {resume.createdAt.toLocaleDateString('en-ZA', {
@@ -84,19 +135,15 @@ export default async function DashboardPage() {
                       })}
                     </CardDescription>
                   </CardHeader>
-                  <CardContent className="flex flex-col gap-3">
-                    <p className="text-muted-foreground flex items-start gap-2 text-xs">
-                      <ShieldCheck className="mt-0.5 size-3.5 shrink-0" aria-hidden />
-                      Stored de-identified. Contact details are encrypted
-                      separately and never left this server.
-                    </p>
-                    <pre className="bg-muted text-muted-foreground max-h-32 overflow-hidden rounded-md p-3 text-xs whitespace-pre-wrap">
-                      {resume.content.slice(0, 400)}
-                      {resume.content.length > 400 ? '…' : ''}
+                  <CardContent className="flex flex-col gap-4">
+                    <pre className="bg-muted/60 text-muted-foreground max-h-28 overflow-hidden rounded-lg p-3 font-mono text-[0.7rem] leading-relaxed whitespace-pre-wrap">
+                      {resume.content.slice(0, 260)}
+                      {resume.content.length > 260 ? '…' : ''}
                     </pre>
                     <Button asChild size="sm" className="self-start">
                       <Link href={`/tailor/${resume.id}`}>
                         Tailor to a job advert
+                        <ArrowRight className="size-4" aria-hidden />
                       </Link>
                     </Button>
                   </CardContent>
@@ -106,10 +153,6 @@ export default async function DashboardPage() {
           </ul>
         )}
       </section>
-
-      <p className="text-muted-foreground text-xs">
-        Downloading as PDF and Word arrives in the next phase.
-      </p>
     </main>
   );
 }

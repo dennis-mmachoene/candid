@@ -31,10 +31,10 @@ export function UploadForm() {
           accept=".pdf,.docx"
           required
           disabled={pending}
-          className="border-input file:bg-secondary file:text-secondary-foreground focus-visible:border-ring focus-visible:ring-ring/50 w-full rounded-md border bg-transparent px-3 py-2 text-sm outline-none file:mr-3 file:rounded file:border-0 file:px-3 file:py-1 file:text-sm focus-visible:ring-[3px] disabled:opacity-50"
+          className="border-input hover:border-brand-500/40 focus-visible:border-ring focus-visible:ring-ring/50 file:bg-secondary file:text-secondary-foreground hover:file:bg-accent w-full cursor-pointer rounded-lg border border-dashed bg-transparent px-3 py-6 text-sm transition-colors outline-none file:mr-3 file:cursor-pointer file:rounded-md file:border-0 file:px-3 file:py-1.5 file:text-sm file:font-medium file:transition-colors focus-visible:ring-[3px] disabled:opacity-50"
         />
-        <p className="text-muted-foreground text-xs">
-          PDF or Word (.docx), up to 5 MB. A scan or photo will not work — the
+        <p className="text-muted-foreground text-xs leading-relaxed">
+          PDF or Word (.docx), up to 5 MB. A scan or photo will not work, the
           text has to be selectable.
         </p>
       </div>
@@ -53,9 +53,9 @@ export function UploadForm() {
       {state.status === 'error' ? (
         <p
           role="alert"
-          className="border-blocked/40 bg-blocked/10 flex items-start gap-2 rounded-md border px-3 py-2 text-sm"
+          className="border-blocked/40 bg-blocked-surface/40 animate-fade flex items-start gap-2 rounded-lg border px-3 py-2.5 text-sm"
         >
-          <TriangleAlert className="mt-0.5 size-4 shrink-0" aria-hidden />
+          <TriangleAlert className="text-blocked mt-0.5 size-4 shrink-0" aria-hidden />
           {state.message}
         </p>
       ) : null}
@@ -63,13 +63,13 @@ export function UploadForm() {
       {state.status === 'success' ? (
         <div
           role="status"
-          className="border-accepted/40 bg-accepted/10 flex flex-col gap-2 rounded-md border px-3 py-3 text-sm"
+          className="border-accepted/40 bg-accepted-surface/40 animate-fade flex flex-col gap-2 rounded-lg border px-3 py-3 text-sm"
         >
           <p className="flex items-start gap-2 font-medium">
-            <CheckCircle2 className="mt-0.5 size-4 shrink-0" aria-hidden />
+            <CheckCircle2 className="text-accepted mt-0.5 size-4 shrink-0" aria-hidden />
             {state.message}
           </p>
-          <p className="text-muted-foreground flex items-start gap-2">
+          <p className="text-muted-foreground flex items-start gap-2 leading-relaxed">
             <ShieldCheck className="mt-0.5 size-4 shrink-0" aria-hidden />
             Your name, email address and phone number were removed and encrypted
             separately. {state.skillCount} skill

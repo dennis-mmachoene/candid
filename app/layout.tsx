@@ -1,22 +1,53 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
+
+import { SiteFooter } from '@/components/site-footer';
+import { SiteHeader } from '@/components/site-header';
+import { ThemeProvider } from '@/components/theme-provider';
 
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Candid — an honest CV, tailored',
+  title: {
+    default: 'Candid — an honest CV, tailored',
+    template: '%s — Candid',
+  },
   description:
     'Tailor your CV to a job advert using only the experience you actually have. Your name, contact details and ID number never reach the AI.',
+};
+
+export const viewport: Viewport = {
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#ffffff' },
+    { media: '(prefers-color-scheme: dark)', color: '#151520' },
+  ],
 };
 
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    // Fonts are a local system stack rather than next/font/google: fetching a
-    // webfont at build time makes the build depend on a third-party network
-    // call, which is a fragile thing to put in CI and a needless one here.
+    // `suppressHydrationWarning` is required by next-themes: it writes the
+    // theme class onto <html> before React hydrates, which is exactly what
+    // stops the flash of the wrong theme, and exactly what React would
+    // otherwise complain about.
     <html lang="en-ZA" suppressHydrationWarning>
-      <body className="antialiased font-sans">{children}</body>
+      {/*
+        A local system font stack rather than next/font/google. Fetching a
+        webfont at build time makes the build depend on a third-party network
+        call, which is a fragile thing to put in CI.
+      */}
+      <body className="flex min-h-screen flex-col antialiased">
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange={false}
+        >
+          <SiteHeader />
+          <div className="flex-1">{children}</div>
+          <SiteFooter />
+        </ThemeProvider>
+      </body>
     </html>
   );
 }
