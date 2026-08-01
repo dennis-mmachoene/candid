@@ -50,7 +50,9 @@ export default async function SettingsPage() {
               <span className="bg-muted grid size-9 place-items-center rounded-lg border">
                 <User className="size-4" aria-hidden />
               </span>
-              <CardTitle className="text-lg">Account</CardTitle>
+              <CardTitle asChild className="text-fluid-lg">
+                <h2>Account</h2>
+              </CardTitle>
             </div>
           </CardHeader>
           <CardContent className="flex flex-col gap-4 text-sm">
@@ -84,7 +86,9 @@ export default async function SettingsPage() {
               <span className="bg-muted grid size-9 place-items-center rounded-lg border">
                 <FileText className="size-4" aria-hidden />
               </span>
-              <CardTitle className="text-lg">Default template</CardTitle>
+              <CardTitle asChild className="text-fluid-lg">
+                <h2>Default template</h2>
+              </CardTitle>
             </div>
             <CardDescription>
               Which look to pre-select when you download. Templates change
@@ -105,7 +109,9 @@ export default async function SettingsPage() {
               <span className="border-accepted/30 bg-accepted/10 grid size-9 place-items-center rounded-lg border">
                 <ShieldCheck className="text-accepted size-4" aria-hidden />
               </span>
-              <CardTitle className="text-lg">Your consent</CardTitle>
+              <CardTitle asChild className="text-fluid-lg">
+                <h2>Your consent</h2>
+              </CardTitle>
             </div>
             <CardDescription>
               You accepted policy version{' '}
@@ -143,7 +149,9 @@ export default async function SettingsPage() {
               <span className="border-blocked/30 bg-blocked/10 grid size-9 place-items-center rounded-lg border">
                 <TriangleAlert className="text-blocked size-4" aria-hidden />
               </span>
-              <CardTitle className="text-lg">Delete everything</CardTitle>
+              <CardTitle asChild className="text-fluid-lg">
+                <h2>Delete everything</h2>
+              </CardTitle>
             </div>
             <CardDescription>
               Your right under section 24 of POPIA, and a button rather than a

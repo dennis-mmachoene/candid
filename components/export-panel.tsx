@@ -46,7 +46,9 @@ export function ExportPanel({
           <span className="gradient-brand shadow-soft grid size-9 place-items-center rounded-lg">
             <Download className="size-4 text-white" aria-hidden />
           </span>
-          <CardTitle className="text-lg">Download</CardTitle>
+          <CardTitle asChild className="text-fluid-lg">
+            <h2>Download</h2>
+          </CardTitle>
         </div>
         <CardDescription>
           Every template is single column, real selectable text, conventional

@@ -72,7 +72,9 @@ export default async function TailorPage({
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Paste the advert</CardTitle>
+            <CardTitle asChild className="text-fluid-lg">
+              <h2>Paste the advert</h2>
+            </CardTitle>
             <CardDescription>
               Include the requirements list. That is what your CV gets compared
               against, so leaving it out gives a worse result.

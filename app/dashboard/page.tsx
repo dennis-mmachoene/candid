@@ -50,7 +50,9 @@ export default async function DashboardPage() {
             <span className="gradient-brand shadow-soft mb-1 grid size-11 place-items-center rounded-xl">
               <Upload className="size-5 text-white" aria-hidden />
             </span>
-            <CardTitle className="text-lg">Upload a CV</CardTitle>
+            <CardTitle asChild className="text-fluid-lg">
+              <h2>Upload a CV</h2>
+            </CardTitle>
             <CardDescription>
               It is de-identified the moment it arrives. Only the experience,
               skills and education part is stored.
@@ -66,7 +68,9 @@ export default async function DashboardPage() {
             <span className="border-accepted/30 bg-accepted/10 mb-1 grid size-11 place-items-center rounded-xl border">
               <ShieldCheck className="text-accepted size-5" aria-hidden />
             </span>
-            <CardTitle className="text-lg">What happens to your file</CardTitle>
+            <CardTitle asChild className="text-fluid-lg">
+              <h2>What happens to your file</h2>
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <ol className="text-muted-foreground flex flex-col gap-3 text-sm leading-relaxed">

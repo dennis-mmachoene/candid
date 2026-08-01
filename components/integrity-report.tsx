@@ -95,11 +95,13 @@ export function IntegrityReport({
             <span className="border-accepted/30 bg-accepted/10 grid size-9 place-items-center rounded-lg border">
               <Check className="text-accepted size-4" aria-hidden />
             </span>
-            <CardTitle className="text-lg">
-              Traced to your CV
-              <span className="text-muted-foreground ml-2 font-normal tabular-nums">
+            <CardTitle asChild className="text-fluid-lg">
+              <h2>
+                Traced to your CV
+                <span className="text-muted-foreground ml-2 font-normal tabular-nums">
                 {accepted.length}
-              </span>
+                </span>
+              </h2>
             </CardTitle>
           </div>
           <CardDescription>
@@ -130,11 +132,13 @@ export function IntegrityReport({
             <span className="border-borderline/30 bg-borderline/10 grid size-9 place-items-center rounded-lg border">
               <CircleAlert className="text-borderline size-4" aria-hidden />
             </span>
-            <CardTitle className="text-lg">
-              Your call
-              <span className="text-muted-foreground ml-2 font-normal tabular-nums">
+            <CardTitle asChild className="text-fluid-lg">
+              <h2>
+                Your call
+                <span className="text-muted-foreground ml-2 font-normal tabular-nums">
                 {borderline.length}
-              </span>
+                </span>
+              </h2>
             </CardTitle>
           </div>
           <CardDescription>
@@ -222,11 +226,13 @@ export function IntegrityReport({
             <span className="border-blocked/30 bg-blocked/10 grid size-9 place-items-center rounded-lg border">
               <Ban className="text-blocked size-4" aria-hidden />
             </span>
-            <CardTitle className="text-lg">
-              Refused
-              <span className="text-muted-foreground ml-2 font-normal tabular-nums">
+            <CardTitle asChild className="text-fluid-lg">
+              <h2>
+                Refused
+                <span className="text-muted-foreground ml-2 font-normal tabular-nums">
                 {blocked.length}
-              </span>
+                </span>
+              </h2>
             </CardTitle>
           </div>
           <CardDescription>

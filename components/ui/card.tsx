@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { Slot } from '@radix-ui/react-slot';
 
 import { cn } from '@/lib/utils';
 
@@ -25,9 +26,28 @@ function CardHeader({ className, ...props }: React.ComponentProps<'div'>) {
   );
 }
 
-function CardTitle({ className, ...props }: React.ComponentProps<'div'>) {
+/**
+ * A card title is a `div` by default, which is right for decorative cards and
+ * wrong for cards that are real sections of a page.
+ *
+ * `asChild` lets a caller supply the correct element:
+ *
+ *     <CardTitle asChild><h2>Traced to your CV</h2></CardTitle>
+ *
+ * This is not cosmetic. A screen-reader user navigates by heading, and the
+ * integrity report — the most important screen in the product — had three
+ * `div`s where its three sections should be. The end-to-end test found it by
+ * looking for a heading and not finding one, which is exactly how a person
+ * using a screen reader would have found it.
+ */
+function CardTitle({
+  className,
+  asChild = false,
+  ...props
+}: React.ComponentProps<'div'> & { asChild?: boolean }) {
+  const Comp = asChild ? Slot : 'div';
   return (
-    <div
+    <Comp
       data-slot="card-title"
       className={cn('leading-snug font-semibold tracking-tight', className)}
       {...props}

@@ -75,7 +75,9 @@ export default async function ConsentPage({
       <div className="mt-10 flex flex-col gap-6">
         <Card className="border-accepted/25 bg-accepted-surface/25">
           <CardHeader>
-            <CardTitle className="text-lg">What Candid promises</CardTitle>
+            <CardTitle asChild className="text-fluid-lg">
+              <h2>What Candid promises</h2>
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <ul className="flex flex-col gap-3">
@@ -93,8 +95,8 @@ export default async function ConsentPage({
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">
-              Who processes your information
+            <CardTitle asChild className="text-fluid-lg">
+              <h2>Who processes your information</h2>
             </CardTitle>
             <CardDescription>
               These are the only third parties involved, and exactly what each
