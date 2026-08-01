@@ -14,15 +14,17 @@ the Phase 2 audit asked for and the following three phases did not deliver.
 | `npx vitest run` | **125 passed, 0 failed** (was 114) | Claude |
 | **Breaking a guarantee turns the suite red** | **demonstrated three ways** — see below | Claude |
 | `npm run build` | not yet | **Dennis** |
-| **Playwright: public and responsive specs** | **43 passed, 7 skipped** | Dennis |
-| Playwright: authenticated happy-path | skipped — needs `E2E_TEST_EMAIL` | **Dennis** |
+| **Playwright, full suite** | **50 passed, 0 skipped, 0 failed** | Dennis |
 | CI goes green on GitHub | not yet | **Dennis** |
 
-The seven skips are the authenticated journey. They are not failures: the suite
-skips rather than fails when unconfigured, because a suite that goes red on a
-machine without secrets teaches people to ignore red suites. To run them, set
-`E2E_TEST_EMAIL` in `.env.local` and enable the Email provider in Supabase
-(sign-ups can stay disabled — `generateLink` is an admin call).
+**The full flow has now run end to end against real Supabase and real
+Anthropic.** Sign in, consent gate, upload a CV containing a valid South
+African ID number, de-identification verified in the stored row, tailoring
+against an advert carrying a prompt-injection attempt, integrity report, PDF
+and DOCX download, account deletion. Every step, on a real instance.
+
+That was the largest outstanding risk in this project for five phases. It is
+closed.
 
 ---
 
@@ -186,33 +188,31 @@ not fail for want of secrets it cannot have.
 
 | Requirement | State |
 |---|---|
-| Signs in with Google | Built; Dennis has verified the setup, not the full flow |
-| Accepts consent notice | Built and E2E-tested |
-| Uploads a real CV | Built and E2E-tested |
-| Tailored version with correct integrity report | Built; needs a real run |
-| No fabricated claims | Proven by tests, three ways |
-| ID number redacted | Proven by tests |
+| Signs in with Google | Built; the E2E suite uses a real Supabase session rather than driving Google's UI |
+| Accepts consent notice | **Verified on a real instance** |
+| Uploads a real CV | **Verified on a real instance** |
+| Tailored version with correct integrity report | **Verified against the real Anthropic API** |
+| No fabricated claims | Proven by tests three ways, and by a real injected advert |
+| ID number redacted | Proven by tests, and verified in the stored row |
 | Identity never sent to the model | Proven by tests, on the real payload |
-| Approves borderline wording | Built and E2E-tested |
-| Downloads ATS-parseable PDF and DOCX | Built; round-trip proven through real parsers |
-| Sees their history | Built; not yet verified across two accounts |
-| Deletes everything they own | Built and E2E-tested |
-| `typecheck`, `lint`, `test`, `build` pass in CI | First three verified locally; **build and CI unverified** |
-| Playwright happy-path passes in CI | **Unverified** |
+| Approves borderline wording | **Verified on a real instance** |
+| Downloads ATS-parseable PDF and DOCX | **Both downloaded from a running instance**; round-trip proven through real parsers |
+| Sees their history | Built; **not yet verified across two accounts** |
+| Deletes everything they own | **Verified on a real instance** |
+| `typecheck`, `lint`, `test` | Verified locally |
+| `build` passes | **Unverified** |
+| CI green on GitHub | **Unverified** |
 
-**Not done until Dennis runs it.** The honest summary: everything is built and
-the guarantees are proven by tests that demonstrably fail when broken, but the
-full flow against real Supabase and real Anthropic has never executed once.
+**Substantially done.** What remains is `npm run build`, CI, and one check no
+automated test covers: that two real accounts cannot see each other's rows.
 
 ---
 
 ## Known gaps, carried to the end
 
-1. **The authenticated flow has never run.** No CV has been uploaded, no
-   advert tailored, no file downloaded from a running instance. The public
-   half of the journey is now verified in a real browser; this half is not.
-   It remains the single largest outstanding risk and no amount of unit
-   testing substitutes for it.
+1. ~~**The authenticated flow has never run.**~~ **Closed.** 50 of 50 tests
+   pass against real Supabase and real Anthropic, including a tailoring with a
+   prompt-injection attempt in the advert and both file downloads.
 2. **`lib/database.types.ts` is hand-written** and can drift from the schema.
 3. **No test proves RLS isolates two real users.** Still only verifiable by
    hand, and still not done. A seeded integration test against a local Supabase

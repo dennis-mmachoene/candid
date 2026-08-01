@@ -31,11 +31,13 @@ See [`PLAN.md`](./PLAN.md) for the phased build plan and the audit gates.
 | 5 — History, retention, hardening (M6, M7) | **Done, awaiting audit** |
 | 6 — Tests, E2E and CI (M8) | **Done, awaiting audit** |
 
-**The full flow has never run end to end.** Everything is built and 125 tests
-pass, but no CV has been uploaded to a running instance against real Supabase
-and real Anthropic. That is the largest outstanding risk and no amount of unit
-testing substitutes for it. See `AUDIT-PHASE-6.md` for an honest assessment
-against the spec's definition of done.
+**The full flow runs end to end.** 125 unit tests and 50 Playwright tests pass,
+the latter against real Supabase and real Anthropic: sign in, consent gate,
+upload a CV carrying a South African ID number, tailor against an advert
+containing a prompt-injection attempt, review the integrity report, download
+PDF and Word, delete the account. See `AUDIT-PHASE-6.md` for an honest
+assessment against the spec's definition of done, including what is still
+unverified.
 
 Account erasure shipped early, in Phase 4, because a settings page in a POPIA
 product without a delete button is not a settings page.
