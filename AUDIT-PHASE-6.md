@@ -14,8 +14,15 @@ the Phase 2 audit asked for and the following three phases did not deliver.
 | `npx vitest run` | **125 passed, 0 failed** (was 114) | Claude |
 | **Breaking a guarantee turns the suite red** | **demonstrated three ways** — see below | Claude |
 | `npm run build` | not yet | **Dennis** |
-| Playwright suite | not yet | **Dennis** |
+| **Playwright: public and responsive specs** | **43 passed, 7 skipped** | Dennis |
+| Playwright: authenticated happy-path | skipped — needs `E2E_TEST_EMAIL` | **Dennis** |
 | CI goes green on GitHub | not yet | **Dennis** |
+
+The seven skips are the authenticated journey. They are not failures: the suite
+skips rather than fails when unconfigured, because a suite that goes red on a
+machine without secrets teaches people to ignore red suites. To run them, set
+`E2E_TEST_EMAIL` in `.env.local` and enable the Email provider in Supabase
+(sign-ups can stay disabled — `generateLink` is an admin call).
 
 ---
 
@@ -201,15 +208,20 @@ full flow against real Supabase and real Anthropic has never executed once.
 
 ## Known gaps, carried to the end
 
-1. **The full flow has never run.** No CV has been uploaded, no advert tailored,
-   no file downloaded from a running instance. This is the single largest
-   outstanding risk and no amount of unit testing substitutes for it.
+1. **The authenticated flow has never run.** No CV has been uploaded, no
+   advert tailored, no file downloaded from a running instance. The public
+   half of the journey is now verified in a real browser; this half is not.
+   It remains the single largest outstanding risk and no amount of unit
+   testing substitutes for it.
 2. **`lib/database.types.ts` is hand-written** and can drift from the schema.
 3. **No test proves RLS isolates two real users.** Still only verifiable by
    hand, and still not done. A seeded integration test against a local Supabase
    is the right answer and does not exist.
-4. **The CSP has never run in a browser.** `public.spec.ts` will check it the
-   moment Playwright runs.
+4. ~~**The CSP has never run in a browser.**~~ **Closed.** Playwright ran the
+   public suite on Windows: 0 CSP violations across `/`, `/privacy` and
+   `/terms`, a fresh nonce on every request, and the theme surviving a reload —
+   which also proves the nonce is reaching the inline script next-themes writes
+   before paint. This was the largest untested risk from Phase 5.
 5. **`style-src 'unsafe-inline'`**, documented in Phase 5 with an upgrade path.
 6. **Employer detection is heuristic.** It will have both misses and false
    positives. Single-word lowercase company names and companies named without a

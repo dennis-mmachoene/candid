@@ -13,7 +13,10 @@ Scope: M7 (security headers, CSP, error sanitisation) and the remainder of M6
 | `npx eslint` | passes, 0 errors, 0 warnings | Claude |
 | `npx vitest run` | **114 passed, 0 failed** (was 98) | Claude |
 | Every `console.error` audited for PII | **done** — two hardened, see below | Claude |
-| CSP does not break the app in a browser | not yet | **Dennis** |
+| **CSP does not break the app in a browser** | **verified** — Playwright, 0 violations across `/`, `/privacy`, `/terms` | Dennis |
+| **Nonce differs on every request** | **verified** — Playwright | Dennis |
+| **Theme survives reload** (proves the nonce reaches next-themes) | **verified** — Playwright | Dennis |
+| **Signed-out visitors bounced from every protected route** | **verified** — Playwright | Dennis |
 | Migration `0003` applies, pg_cron schedules | not yet | **Dennis** |
 | History list shows only your own rows | not yet | **Dennis** |
 
