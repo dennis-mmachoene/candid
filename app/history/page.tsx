@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { ArrowRight, Ban, Check, CircleAlert, Clock, History } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
+import { Container } from '@/components/ui/container';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -31,13 +32,14 @@ export default async function HistoryPage() {
   const tailorings = await resumeRepository.listTailorings();
 
   return (
-    <main className="mx-auto max-w-4xl px-4 py-10 sm:px-6 sm:py-14">
+    <main className="py-10 sm:py-14">
+      <Container width="wide">
       <header className="animate-rise flex flex-col gap-2">
         <Badge variant="brand">
           <History className="size-3" aria-hidden />
           History
         </Badge>
-        <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
+        <h1 className="text-fluid-2xl font-semibold tracking-tight">
           {user.firstName}&apos;s tailored CVs
         </h1>
         <p className="text-muted-foreground">
@@ -61,13 +63,13 @@ export default async function HistoryPage() {
           </CardContent>
         </Card>
       ) : (
-        <ul className="mt-10 flex flex-col gap-4">
+        <ul className="mt-8 grid gap-4 sm:mt-10 xl:grid-cols-2">
           {tailorings.map((item) => (
             <li key={item.id}>
               <Card className="card-hover">
                 <CardHeader>
                   <div className="flex flex-wrap items-start justify-between gap-3">
-                    <CardTitle className="text-base">
+                    <CardTitle className="break-anywhere min-w-0 text-base">
                       {item.title ?? 'Untitled role'}
                     </CardTitle>
                     <Badge
@@ -142,6 +144,7 @@ export default async function HistoryPage() {
         </Link>
         .
       </p>
+    </Container>
     </main>
   );
 }

@@ -100,7 +100,7 @@ export function ExportPanel({
           </div>
         </fieldset>
 
-        <div className="flex flex-col gap-3 sm:flex-row">
+        <div className="grid gap-3 sm:grid-cols-2 lg:flex lg:flex-row">
           <Button asChild size="lg" disabled={disabled}>
             <a href={href('pdf')} download>
               <FileText className="size-4" aria-hidden />

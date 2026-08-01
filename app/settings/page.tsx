@@ -5,6 +5,7 @@ import {
   TemplatePreferenceForm,
 } from '@/components/settings-forms';
 import { Badge } from '@/components/ui/badge';
+import { Container } from '@/components/ui/container';
 import {
   Card,
   CardContent,
@@ -29,10 +30,11 @@ export default async function SettingsPage() {
     .maybeSingle();
 
   return (
-    <main className="mx-auto max-w-3xl px-4 py-10 sm:px-6 sm:py-14">
+    <main className="py-10 sm:py-14">
+      <Container width="prose">
       <header className="animate-rise flex flex-col gap-2">
         <Badge variant="brand">Settings</Badge>
-        <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
+        <h1 className="text-fluid-2xl font-semibold tracking-tight">
           {user.firstName}&apos;s settings
         </h1>
         <p className="text-muted-foreground">
@@ -52,9 +54,9 @@ export default async function SettingsPage() {
             </div>
           </CardHeader>
           <CardContent className="flex flex-col gap-4 text-sm">
-            <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex flex-col gap-1 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-2">
               <span className="text-muted-foreground">Signed in as</span>
-              <span className="font-medium">{user.email}</span>
+              <span className="break-anywhere font-medium">{user.email}</span>
             </div>
             {user.fullName ? (
               <div className="flex flex-wrap items-center justify-between gap-2">
@@ -169,6 +171,7 @@ export default async function SettingsPage() {
           </CardContent>
         </Card>
       </div>
+    </Container>
     </main>
   );
 }

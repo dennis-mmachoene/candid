@@ -113,7 +113,9 @@ export function IntegrityReport({
             <ul className="flex flex-wrap gap-2">
               {accepted.map((claim, index) => (
                 <li key={`${claim.canonical}-${index}`}>
-                  <Badge variant="accepted">{claim.claim.text}</Badge>
+                  <Badge variant="accepted" className="break-anywhere whitespace-normal">
+                    {claim.claim.text}
+                  </Badge>
                 </li>
               ))}
             </ul>
@@ -168,7 +170,7 @@ export function IntegrityReport({
                           className="accent-borderline mt-1 size-4 shrink-0 cursor-pointer"
                         />
                         <span className="flex flex-col gap-1">
-                          <span className="font-medium">
+                          <span className="break-anywhere font-medium">
                             {claim.claim.text}
                           </span>
                           <span className="text-muted-foreground text-sm leading-relaxed">
@@ -245,7 +247,7 @@ export function IntegrityReport({
                   key={`${claim.canonical}-${index}`}
                   className="border-blocked/25 bg-blocked-surface/25 rounded-xl border p-4"
                 >
-                  <p className="font-medium">{claim.claim.text}</p>
+                  <p className="break-anywhere font-medium">{claim.claim.text}</p>
                   <p className="text-muted-foreground mt-0.5 text-sm leading-relaxed">
                     {claim.reason}
                   </p>

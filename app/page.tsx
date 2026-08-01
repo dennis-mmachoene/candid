@@ -26,6 +26,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import { Container } from '@/components/ui/container';
 import { getVerifiedUser } from '@/lib/dal';
 import { CONSENT_STATEMENTS, OPERATORS } from '@/lib/domain/consent';
 
@@ -121,21 +122,21 @@ export default async function Home({
           aria-hidden
           className="pointer-events-none absolute inset-0 opacity-40 [background:radial-gradient(60%_50%_at_20%_0%,white_0%,transparent_60%)]"
         />
-        <div className="relative mx-auto max-w-6xl px-4 py-20 sm:px-6 sm:py-28">
-          <div className="animate-rise flex max-w-3xl flex-col items-start gap-6">
+        <Container className="relative py-16 sm:py-24 lg:py-28">
+          <div className="animate-rise flex max-w-3xl flex-col items-start gap-5 sm:gap-6">
             <Badge className="border-white/25 bg-white/15 text-white backdrop-blur-sm">
               <Lock className="size-3" aria-hidden />
               Built for South African job seekers
             </Badge>
 
-            <h1 className="text-4xl font-semibold tracking-tight text-balance text-white sm:text-6xl">
+            <h1 className="text-fluid-3xl font-semibold tracking-tight text-balance text-white">
               An honest CV,{' '}
               <span className="bg-gradient-to-r from-white via-indigo-100 to-violet-200 bg-clip-text text-transparent">
                 tailored to the job.
               </span>
             </h1>
 
-            <p className="max-w-xl text-lg leading-relaxed text-pretty text-white/80">
+            <p className="text-fluid-base max-w-xl leading-relaxed text-pretty text-white/80">
               Applicant tracking systems reject good candidates for bad wording.
               Candid rewrites what you have actually done in the language the
               advert uses, and tells you plainly what you are missing.
@@ -150,12 +151,12 @@ export default async function Home({
               </p>
             ) : null}
 
-            <div className="flex flex-col gap-3 pt-2 sm:flex-row sm:items-center">
-              <form action={signInWithGoogle}>
+            <div className="flex w-full flex-col gap-3 pt-2 sm:w-auto sm:flex-row sm:items-center">
+              <form action={signInWithGoogle} className="w-full sm:w-auto">
                 <Button
                   type="submit"
                   size="lg"
-                  className="w-full bg-white text-brand-700 shadow-lift hover:bg-white hover:brightness-100 sm:w-auto"
+                  className="text-brand-700 shadow-lift w-full bg-white hover:bg-white hover:brightness-100 sm:w-auto"
                 >
                   <GoogleIcon className="size-5" />
                   Sign in with Google
@@ -179,46 +180,48 @@ export default async function Home({
               returns only your email address.
             </p>
           </div>
-        </div>
+        </Container>
       </section>
 
       {/* ---------------------------------------------------------------- */}
       {/* How it works                                                      */}
       {/* ---------------------------------------------------------------- */}
-      <section id="how" className="mx-auto max-w-6xl scroll-mt-20 px-4 py-20 sm:px-6">
-        <div className="flex max-w-2xl flex-col gap-3">
-          <Badge variant="brand">How it works</Badge>
-          <h2 className="text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
-            Four steps, and you can see what happened at every one.
-          </h2>
-          <p className="text-muted-foreground text-lg text-pretty">
-            Nothing runs invisibly. You are shown what was kept, what was
-            refused, and what evidence each decision rested on.
-          </p>
-        </div>
+      <section id="how" className="scroll-mt-20 py-16 sm:py-20">
+        <Container>
+          <div className="flex max-w-2xl flex-col gap-3">
+            <Badge variant="brand">How it works</Badge>
+            <h2 className="text-fluid-2xl font-semibold tracking-tight text-balance">
+              Four steps, and you can see what happened at every one.
+            </h2>
+            <p className="text-muted-foreground text-fluid-base text-pretty">
+              Nothing runs invisibly. You are shown what was kept, what was
+              refused, and what evidence each decision rested on.
+            </p>
+          </div>
 
-        <ol className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-          {steps.map((step, index) => (
-            <li key={step.title}>
-              <Card className="card-hover h-full">
-                <CardHeader>
-                  <div className="mb-1 flex items-center gap-3">
-                    <span className="gradient-brand grid size-10 place-items-center rounded-lg shadow-soft">
-                      <step.icon className="size-5 text-white" aria-hidden />
-                    </span>
-                    <span className="text-muted-foreground/60 text-2xl font-semibold tabular-nums">
-                      {String(index + 1).padStart(2, '0')}
-                    </span>
-                  </div>
-                  <CardTitle className="text-base">{step.title}</CardTitle>
-                </CardHeader>
-                <CardContent className="text-muted-foreground text-sm leading-relaxed">
-                  {step.body}
-                </CardContent>
-              </Card>
-            </li>
-          ))}
-        </ol>
+          <ol className="mt-10 grid gap-4 sm:grid-cols-2 sm:gap-5 xl:grid-cols-4">
+            {steps.map((step, index) => (
+              <li key={step.title}>
+                <Card className="card-hover h-full">
+                  <CardHeader>
+                    <div className="mb-1 flex items-center gap-3">
+                      <span className="gradient-brand shadow-soft grid size-10 shrink-0 place-items-center rounded-lg">
+                        <step.icon className="size-5 text-white" aria-hidden />
+                      </span>
+                      <span className="text-muted-foreground/60 text-2xl font-semibold tabular-nums">
+                        {String(index + 1).padStart(2, '0')}
+                      </span>
+                    </div>
+                    <CardTitle className="text-base">{step.title}</CardTitle>
+                  </CardHeader>
+                  <CardContent className="text-muted-foreground text-sm leading-relaxed">
+                    {step.body}
+                  </CardContent>
+                </Card>
+              </li>
+            ))}
+          </ol>
+        </Container>
       </section>
 
       {/* ---------------------------------------------------------------- */}
@@ -226,107 +229,111 @@ export default async function Home({
       {/* ---------------------------------------------------------------- */}
       <section
         id="promises"
-        className="gradient-subtle scroll-mt-20 border-y py-20"
+        className="gradient-subtle scroll-mt-20 border-y py-16 sm:py-20"
       >
-        <div className="mx-auto max-w-6xl px-4 sm:px-6">
+        <Container>
           <div className="flex max-w-2xl flex-col gap-3">
             <Badge variant="brand">Our promises</Badge>
-            <h2 className="text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
+            <h2 className="text-fluid-2xl font-semibold tracking-tight text-balance">
               Two guarantees, enforced in code rather than in marketing.
             </h2>
-            <p className="text-muted-foreground text-lg text-pretty">
+            <p className="text-muted-foreground text-fluid-base text-pretty">
               Both are covered by tests that fail the build if they ever stop
               being true.
             </p>
           </div>
 
-          <div className="mt-12 grid gap-5 lg:grid-cols-3">
+          <div className="mt-10 grid gap-4 sm:gap-5 lg:grid-cols-3">
             {promises.map((promise) => (
               <Card key={promise.title} className="card-hover h-full">
                 <CardHeader>
                   <span className="border-brand-500/25 bg-brand-500/10 mb-2 grid size-11 place-items-center rounded-xl border">
-                    <promise.icon className="text-brand-600 dark:text-brand-300 size-5" aria-hidden />
+                    <promise.icon
+                      className="text-brand-600 dark:text-brand-300 size-5"
+                      aria-hidden
+                    />
                   </span>
-                  <CardTitle className="text-lg">{promise.title}</CardTitle>
+                  <CardTitle className="text-fluid-lg">
+                    {promise.title}
+                  </CardTitle>
                 </CardHeader>
                 <CardContent className="flex flex-col gap-4">
                   <p className="text-muted-foreground text-sm leading-relaxed">
                     {promise.body}
                   </p>
-                  <p className="border-brand-500/30 text-foreground/80 border-l-2 pl-3 text-xs">
+                  <p className="border-brand-500/30 text-foreground/80 break-anywhere border-l-2 pl-3 text-xs">
                     {promise.footnote}
                   </p>
                 </CardContent>
               </Card>
             ))}
           </div>
-        </div>
+        </Container>
       </section>
 
       {/* ---------------------------------------------------------------- */}
       {/* Refusals                                                          */}
       {/* ---------------------------------------------------------------- */}
-      <section
-        id="refusals"
-        className="mx-auto max-w-6xl scroll-mt-20 px-4 py-20 sm:px-6"
-      >
-        <div className="grid gap-12 lg:grid-cols-[1fr_1.15fr] lg:items-start">
-          <div className="flex flex-col gap-4">
-            <Badge variant="blocked">
-              <Ban className="size-3" aria-hidden />
-              What Candid will not do
-            </Badge>
-            <h2 className="text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
-              Most CV tools sell you the opposite of this.
-            </h2>
-            <p className="text-muted-foreground text-lg text-pretty">
-              Padding a CV works right up until someone asks a question about
-              it. Candid is built so that everything on the page is something
-              you can defend in the room.
-            </p>
-            <div className="pt-2">
-              <Button asChild variant="outline">
-                <Link href="#how">
-                  See what it does instead
-                  <ArrowRight className="size-4" aria-hidden />
-                </Link>
-              </Button>
+      <section id="refusals" className="scroll-mt-20 py-16 sm:py-20">
+        <Container>
+          <div className="grid gap-10 lg:grid-cols-[1fr_1.15fr] lg:items-start">
+            <div className="flex flex-col gap-4">
+              <Badge variant="blocked">
+                <Ban className="size-3" aria-hidden />
+                What Candid will not do
+              </Badge>
+              <h2 className="text-fluid-2xl font-semibold tracking-tight text-balance">
+                Most CV tools sell you the opposite of this.
+              </h2>
+              <p className="text-muted-foreground text-fluid-base text-pretty">
+                Padding a CV works right up until someone asks a question about
+                it. Candid is built so that everything on the page is something
+                you can defend in the room.
+              </p>
+              <div className="pt-2">
+                <Button asChild variant="outline">
+                  <Link href="#how">
+                    See what it does instead
+                    <ArrowRight className="size-4" aria-hidden />
+                  </Link>
+                </Button>
+              </div>
             </div>
-          </div>
 
-          <ul className="flex flex-col gap-3">
-            {refusals.map((refusal) => (
-              <li
-                key={refusal.title}
-                className="border-blocked/25 bg-blocked-surface/25 card-hover flex items-start gap-4 rounded-xl border p-5"
-              >
-                <span className="border-blocked/30 bg-blocked/10 mt-0.5 grid size-8 shrink-0 place-items-center rounded-lg border">
-                  <Ban className="text-blocked size-4" aria-hidden />
-                </span>
-                <div className="flex flex-col gap-1">
-                  <h3 className="font-medium">{refusal.title}</h3>
-                  <p className="text-muted-foreground text-sm leading-relaxed">
-                    {refusal.body}
-                  </p>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </div>
+            <ul className="flex flex-col gap-3">
+              {refusals.map((refusal) => (
+                <li
+                  key={refusal.title}
+                  className="border-blocked/25 bg-blocked-surface/25 card-hover flex items-start gap-4 rounded-xl border p-4 sm:p-5"
+                >
+                  <span className="border-blocked/30 bg-blocked/10 mt-0.5 grid size-8 shrink-0 place-items-center rounded-lg border">
+                    <Ban className="text-blocked size-4" aria-hidden />
+                  </span>
+                  <div className="flex min-w-0 flex-col gap-1">
+                    <h3 className="font-medium">{refusal.title}</h3>
+                    <p className="text-muted-foreground text-sm leading-relaxed">
+                      {refusal.body}
+                    </p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </Container>
       </section>
 
       {/* ---------------------------------------------------------------- */}
       {/* Data handling                                                     */}
       {/* ---------------------------------------------------------------- */}
-      <section className="gradient-subtle border-y py-20">
-        <div className="mx-auto max-w-6xl px-4 sm:px-6">
-          <div className="grid gap-10 lg:grid-cols-2 lg:items-start">
+      <section className="gradient-subtle border-y py-16 sm:py-20">
+        <Container>
+          <div className="grid gap-8 lg:grid-cols-2 lg:items-start lg:gap-10">
             <div className="flex flex-col gap-4">
               <Badge variant="brand">
                 <ShieldCheck className="size-3" aria-hidden />
                 Your data
               </Badge>
-              <h2 className="text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
+              <h2 className="text-fluid-2xl font-semibold tracking-tight text-balance">
                 You will be told exactly who touches your information.
               </h2>
               <p className="text-muted-foreground text-pretty">
@@ -350,7 +357,9 @@ export default async function Home({
 
             <Card>
               <CardHeader>
-                <CardTitle>Who processes your information</CardTitle>
+                <CardTitle className="text-fluid-lg">
+                  Who processes your information
+                </CardTitle>
                 <CardDescription>
                   Four companies, and what each one actually receives.
                 </CardDescription>
@@ -380,34 +389,36 @@ export default async function Home({
               </CardContent>
             </Card>
           </div>
-        </div>
+        </Container>
       </section>
 
       {/* ---------------------------------------------------------------- */}
       {/* Closing call to action                                            */}
       {/* ---------------------------------------------------------------- */}
-      <section className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
-        <div className="gradient-hero glow-brand relative overflow-hidden rounded-2xl px-6 py-16 text-center sm:px-12">
-          <div className="relative z-10 mx-auto flex max-w-2xl flex-col items-center gap-5">
-            <h2 className="text-3xl font-semibold tracking-tight text-balance text-white sm:text-4xl">
-              Start with the CV you already have.
-            </h2>
-            <p className="text-lg text-pretty text-white/80">
-              No payment, no password, and nothing on the finished CV that you
-              cannot back up.
-            </p>
-            <form action={signInWithGoogle} className="pt-2">
-              <Button
-                type="submit"
-                size="lg"
-                className="bg-white text-brand-700 shadow-lift hover:bg-white hover:brightness-100"
-              >
-                <GoogleIcon className="size-5" />
-                Sign in with Google
-              </Button>
-            </form>
+      <section className="py-16 sm:py-20">
+        <Container>
+          <div className="gradient-hero glow-brand relative overflow-hidden rounded-2xl px-5 py-12 text-center sm:px-12 sm:py-16">
+            <div className="relative z-10 mx-auto flex max-w-2xl flex-col items-center gap-5">
+              <h2 className="text-fluid-2xl font-semibold tracking-tight text-balance text-white">
+                Start with the CV you already have.
+              </h2>
+              <p className="text-fluid-base text-pretty text-white/80">
+                No payment, no password, and nothing on the finished CV that you
+                cannot back up.
+              </p>
+              <form action={signInWithGoogle} className="w-full pt-2 sm:w-auto">
+                <Button
+                  type="submit"
+                  size="lg"
+                  className="text-brand-700 shadow-lift w-full bg-white hover:bg-white hover:brightness-100 sm:w-auto"
+                >
+                  <GoogleIcon className="size-5" />
+                  Sign in with Google
+                </Button>
+              </form>
+            </div>
           </div>
-        </div>
+        </Container>
       </section>
     </main>
   );

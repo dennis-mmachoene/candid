@@ -4,6 +4,7 @@ import { Check, ShieldCheck, TriangleAlert } from 'lucide-react';
 import { acceptConsent } from '@/app/actions/consent';
 import { signOut } from '@/app/actions/auth';
 import { Badge } from '@/components/ui/badge';
+import { Container } from '@/components/ui/container';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -45,13 +46,14 @@ export default async function ConsentPage({
   if (consented) redirect('/dashboard');
 
   return (
-    <main className="mx-auto max-w-3xl px-4 py-12 sm:px-6 sm:py-16">
+    <main className="py-12 sm:py-16">
+      <Container width="prose">
       <header className="animate-rise flex flex-col gap-3">
         <Badge variant="brand">
           <ShieldCheck className="size-3" aria-hidden />
           Before you start
         </Badge>
-        <h1 className="text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
+        <h1 className="text-fluid-2xl font-semibold tracking-tight text-balance">
           How Candid handles your information
         </h1>
         <p className="text-muted-foreground text-pretty">
@@ -155,6 +157,7 @@ export default async function ConsentPage({
           consent stops counting at that point.
         </p>
       </div>
+    </Container>
     </main>
   );
 }

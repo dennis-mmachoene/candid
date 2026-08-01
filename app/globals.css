@@ -178,6 +178,23 @@
   --shadow-soft: var(--shadow-soft);
   --shadow-lift: var(--shadow-lift);
 
+  /*
+   * Fluid type.
+   *
+   * `clamp` scales continuously with the viewport instead of jumping at
+   * breakpoints, which is what stops a hero headline from being enormous at
+   * 1279px and suddenly sensible at 1280px. The middle term is in `vw` with a
+   * `rem` floor so the text still respects a user's browser font size — a pure
+   * `vw` value ignores it, which breaks the page for anyone who has turned
+   * their default size up.
+   */
+  --text-fluid-sm: clamp(0.875rem, 0.84rem + 0.18vw, 1rem);
+  --text-fluid-base: clamp(1rem, 0.95rem + 0.25vw, 1.125rem);
+  --text-fluid-lg: clamp(1.125rem, 1.05rem + 0.38vw, 1.375rem);
+  --text-fluid-xl: clamp(1.375rem, 1.2rem + 0.85vw, 1.875rem);
+  --text-fluid-2xl: clamp(1.625rem, 1.35rem + 1.4vw, 2.5rem);
+  --text-fluid-3xl: clamp(2rem, 1.5rem + 2.5vw, 3.75rem);
+
   --animate-rise: rise 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
   --animate-fade: fade 0.4s ease-out both;
 
@@ -218,6 +235,49 @@
     transition:
       background-color 0.3s ease,
       color 0.3s ease;
+    /*
+     * Nothing may push the page wider than the viewport. Without this, one
+     * long unbroken string — an email address, a URL in a job advert, a
+     * German compound noun in a skills list — gives a phone a horizontal
+     * scrollbar and a layout that slides under the thumb.
+     */
+    overflow-x: hidden;
+  }
+
+  /*
+   * Long words break rather than overflow. Applied at the element level
+   * because CVs and job adverts are full of unbroken strings we do not
+   * control: email addresses, URLs, "ReactNativeDeveloper".
+   */
+  h1,
+  h2,
+  h3,
+  h4,
+  p,
+  li,
+  td,
+  th,
+  dd,
+  dt,
+  figcaption,
+  blockquote {
+    overflow-wrap: break-word;
+    hyphens: auto;
+  }
+
+  /* Media never exceeds its column. */
+  img,
+  svg,
+  video,
+  canvas {
+    max-width: 100%;
+    height: auto;
+  }
+
+  /* A focus ring that is visible on every background, including the hero. */
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
   }
 
   /*
@@ -239,6 +299,48 @@
 }
 
 @layer utilities {
+  /* Fluid heading sizes. See the token definitions above for why clamp. */
+  .text-fluid-sm {
+    font-size: var(--text-fluid-sm);
+  }
+  .text-fluid-base {
+    font-size: var(--text-fluid-base);
+  }
+  .text-fluid-lg {
+    font-size: var(--text-fluid-lg);
+  }
+  .text-fluid-xl {
+    font-size: var(--text-fluid-xl);
+    line-height: 1.25;
+  }
+  .text-fluid-2xl {
+    font-size: var(--text-fluid-2xl);
+    line-height: 1.15;
+  }
+  .text-fluid-3xl {
+    font-size: var(--text-fluid-3xl);
+    line-height: 1.05;
+  }
+
+  /**
+   * Anything that might contain a string we did not write: an email address, a
+   * URL pasted into an advert, a skill the model invented a long name for.
+   */
+  .break-anywhere {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  /**
+   * A minimum touch target. 44px is the size below which taps start missing on
+   * a phone, and several of these controls are the difference between deleting
+   * your account and not.
+   */
+  .tap-target {
+    min-height: 2.75rem;
+    min-width: 2.75rem;
+  }
+
   .gradient-hero {
     background-image: var(--gradient-hero);
   }

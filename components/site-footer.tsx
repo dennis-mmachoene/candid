@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { ShieldCheck } from 'lucide-react';
 
+import { Container } from '@/components/ui/container';
 import { POLICY_VERSION } from '@/lib/domain/consent';
 
 const sections = [
@@ -23,8 +24,8 @@ const sections = [
 
 export function SiteFooter() {
   return (
-    <footer className="gradient-subtle mt-24 border-t">
-      <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
+    <footer className="gradient-subtle mt-16 border-t sm:mt-24">
+      <Container className="py-10 sm:py-12">
         <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
           <div className="flex flex-col gap-3 lg:col-span-2">
             <div className="flex items-center gap-2.5">
@@ -71,7 +72,7 @@ export function SiteFooter() {
             Your ID number is never stored. There is no column for one.
           </p>
         </div>
-      </div>
+      </Container>
     </footer>
   );
 }

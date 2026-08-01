@@ -1,14 +1,16 @@
 import { Badge } from '@/components/ui/badge';
+import { Container } from '@/components/ui/container';
 import { POLICY_VERSION } from '@/lib/domain/consent';
 
 export const metadata = { title: 'Terms' };
 
 export default function TermsPage() {
   return (
-    <main className="mx-auto max-w-3xl px-4 py-12 sm:px-6 sm:py-16">
+    <main className="py-12 sm:py-16">
+      <Container width="prose">
       <header className="flex flex-col gap-3">
         <Badge variant="brand">Version {POLICY_VERSION}</Badge>
-        <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
+        <h1 className="text-fluid-2xl font-semibold tracking-tight">
           Terms of use
         </h1>
         <p className="text-muted-foreground text-pretty">
@@ -18,7 +20,7 @@ export default function TermsPage() {
 
       <div className="mt-10 flex flex-col gap-10">
         <section className="flex flex-col gap-3">
-          <h2 className="text-xl font-semibold tracking-tight">
+          <h2 className="text-fluid-xl font-semibold tracking-tight">
             What Candid does
           </h2>
           <p className="text-muted-foreground text-sm leading-relaxed">
@@ -31,7 +33,7 @@ export default function TermsPage() {
         </section>
 
         <section className="flex flex-col gap-3">
-          <h2 className="text-xl font-semibold tracking-tight">
+          <h2 className="text-fluid-xl font-semibold tracking-tight">
             What Candid will not do
           </h2>
           <p className="text-muted-foreground text-sm leading-relaxed">
@@ -43,7 +45,7 @@ export default function TermsPage() {
         </section>
 
         <section className="flex flex-col gap-3">
-          <h2 className="text-xl font-semibold tracking-tight">
+          <h2 className="text-fluid-xl font-semibold tracking-tight">
             Your responsibility
           </h2>
           <p className="text-muted-foreground text-sm leading-relaxed">
@@ -57,7 +59,7 @@ export default function TermsPage() {
         </section>
 
         <section className="flex flex-col gap-3">
-          <h2 className="text-xl font-semibold tracking-tight">
+          <h2 className="text-fluid-xl font-semibold tracking-tight">
             No guarantee of outcome
           </h2>
           <p className="text-muted-foreground text-sm leading-relaxed">
@@ -69,7 +71,7 @@ export default function TermsPage() {
         </section>
 
         <section className="flex flex-col gap-3">
-          <h2 className="text-xl font-semibold tracking-tight">
+          <h2 className="text-fluid-xl font-semibold tracking-tight">
             Acceptable use
           </h2>
           <p className="text-muted-foreground text-sm leading-relaxed">
@@ -80,7 +82,7 @@ export default function TermsPage() {
         </section>
 
         <section className="flex flex-col gap-3">
-          <h2 className="text-xl font-semibold tracking-tight">
+          <h2 className="text-fluid-xl font-semibold tracking-tight">
             Ending your use
           </h2>
           <p className="text-muted-foreground text-sm leading-relaxed">
@@ -89,6 +91,7 @@ export default function TermsPage() {
           </p>
         </section>
       </div>
+    </Container>
     </main>
   );
 }

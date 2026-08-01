@@ -3,6 +3,7 @@ import { ArrowRight, FileText, ShieldCheck, Upload } from 'lucide-react';
 
 import { UploadForm } from '@/components/upload-form';
 import { Badge } from '@/components/ui/badge';
+import { Container } from '@/components/ui/container';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -27,10 +28,11 @@ export default async function DashboardPage() {
   const resumes = await resumeRepository.listResumes();
 
   return (
-    <main className="mx-auto max-w-5xl px-4 py-10 sm:px-6 sm:py-14">
+    <main className="py-10 sm:py-14">
+      <Container width="wide">
       <header className="animate-rise flex flex-col gap-2">
         <Badge variant="brand">Your workspace</Badge>
-        <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
+        <h1 className="text-fluid-2xl font-semibold tracking-tight">
           {resumes.length === 0
             ? `Welcome, ${user.firstName}`
             : `Welcome back, ${user.firstName}`}
@@ -42,7 +44,7 @@ export default async function DashboardPage() {
         </p>
       </header>
 
-      <div className="mt-10 grid gap-6 lg:grid-cols-[1.1fr_1fr] lg:items-start">
+      <div className="mt-8 grid gap-5 sm:mt-10 sm:gap-6 lg:grid-cols-[1.1fr_1fr] lg:items-start">
         <Card className="card-hover">
           <CardHeader>
             <span className="gradient-brand shadow-soft mb-1 grid size-11 place-items-center rounded-xl">
@@ -95,7 +97,7 @@ export default async function DashboardPage() {
 
       <section className="mt-14 flex flex-col gap-4">
         <div className="flex items-baseline justify-between gap-4">
-          <h2 className="text-xl font-semibold tracking-tight">Stored CVs</h2>
+          <h2 className="text-fluid-xl font-semibold tracking-tight">Stored CVs</h2>
           {resumes.length > 0 ? (
             <span className="text-muted-foreground text-sm tabular-nums">
               {resumes.length} stored
@@ -115,7 +117,7 @@ export default async function DashboardPage() {
             </CardContent>
           </Card>
         ) : (
-          <ul className="grid gap-4 sm:grid-cols-2">
+          <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {resumes.map((resume) => (
               <li key={resume.id}>
                 <Card className="card-hover h-full">
@@ -140,7 +142,7 @@ export default async function DashboardPage() {
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="flex flex-col gap-4">
-                    <pre className="bg-muted/60 text-muted-foreground max-h-28 overflow-hidden rounded-lg p-3 font-mono text-[0.7rem] leading-relaxed whitespace-pre-wrap">
+                    <pre className="bg-muted/60 text-muted-foreground break-anywhere max-h-28 overflow-hidden rounded-lg p-3 font-mono text-[0.7rem] leading-relaxed whitespace-pre-wrap">
                       {resume.content.slice(0, 260)}
                       {resume.content.length > 260 ? '…' : ''}
                     </pre>
@@ -157,6 +159,7 @@ export default async function DashboardPage() {
           </ul>
         )}
       </section>
+    </Container>
     </main>
   );
 }

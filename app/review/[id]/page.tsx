@@ -5,6 +5,7 @@ import { ArrowLeft, BookOpen, ExternalLink, EyeOff, FileText } from 'lucide-reac
 import { ExportPanel } from '@/components/export-panel';
 import { IntegrityReport } from '@/components/integrity-report';
 import { Badge } from '@/components/ui/badge';
+import { Container } from '@/components/ui/container';
 import {
   Card,
   CardContent,
@@ -52,7 +53,8 @@ export default async function ReviewPage({
   });
 
   return (
-    <main className="mx-auto max-w-3xl px-4 py-10 sm:px-6 sm:py-14">
+    <main className="py-10 sm:py-14">
+      <Container width="prose">
       <Link
         href="/dashboard"
         className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 text-sm transition-colors"
@@ -63,7 +65,7 @@ export default async function ReviewPage({
 
       <header className="animate-rise mt-6 flex flex-col gap-2">
         <Badge variant="brand">Step 3 of 3</Badge>
-        <h1 className="text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
+        <h1 className="text-fluid-2xl font-semibold tracking-tight text-balance">
           {user.firstName}, here is what Candid kept and what it refused
         </h1>
         <p className="text-muted-foreground text-pretty">
@@ -100,7 +102,7 @@ export default async function ReviewPage({
               <span className="border-brand-500/25 bg-brand-500/10 grid size-9 place-items-center rounded-lg border">
                 <BookOpen className="text-brand-600 dark:text-brand-300 size-4" aria-hidden />
               </span>
-              <h2 className="text-xl font-semibold tracking-tight">
+              <h2 className="text-fluid-xl font-semibold tracking-tight">
                 What you are missing
                 <span className="text-muted-foreground ml-2 font-normal tabular-nums">
                   {tailoring.draft.gaps.length}
@@ -158,7 +160,7 @@ export default async function ReviewPage({
             <span className="bg-muted grid size-9 place-items-center rounded-lg border">
               <FileText className="size-4" aria-hidden />
             </span>
-            <h2 className="text-xl font-semibold tracking-tight">Preview</h2>
+            <h2 className="text-fluid-xl font-semibold tracking-tight">Preview</h2>
           </div>
           <p className="text-muted-foreground text-sm leading-relaxed">
             Exactly what would be printed, given your choices above.
@@ -213,6 +215,7 @@ export default async function ReviewPage({
           disabled={document.sections.length === 0}
         />
       </section>
+    </Container>
     </main>
   );
 }

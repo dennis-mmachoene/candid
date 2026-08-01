@@ -1,4 +1,5 @@
 import { Badge } from '@/components/ui/badge';
+import { Container } from '@/components/ui/container';
 import {
   CONSENT_STATEMENTS,
   OPERATORS,
@@ -14,10 +15,11 @@ export const metadata = { title: 'Privacy' };
  */
 export default function PrivacyPage() {
   return (
-    <main className="mx-auto max-w-3xl px-4 py-12 sm:px-6 sm:py-16">
+    <main className="py-12 sm:py-16">
+      <Container width="prose">
       <header className="flex flex-col gap-3">
         <Badge variant="brand">Version {POLICY_VERSION}</Badge>
-        <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
+        <h1 className="text-fluid-2xl font-semibold tracking-tight">
           Privacy
         </h1>
         <p className="text-muted-foreground text-pretty">
@@ -29,7 +31,7 @@ export default function PrivacyPage() {
 
       <div className="mt-10 flex flex-col gap-10">
         <section className="flex flex-col gap-3">
-          <h2 className="text-xl font-semibold tracking-tight">
+          <h2 className="text-fluid-xl font-semibold tracking-tight">
             What Candid promises
           </h2>
           <ul className="text-muted-foreground flex list-disc flex-col gap-2 pl-5 text-sm leading-relaxed">
@@ -40,7 +42,7 @@ export default function PrivacyPage() {
         </section>
 
         <section className="flex flex-col gap-3">
-          <h2 className="text-xl font-semibold tracking-tight">
+          <h2 className="text-fluid-xl font-semibold tracking-tight">
             What is collected
           </h2>
           <ul className="text-muted-foreground flex list-disc flex-col gap-2 pl-5 text-sm leading-relaxed">
@@ -65,7 +67,7 @@ export default function PrivacyPage() {
         </section>
 
         <section className="flex flex-col gap-3">
-          <h2 className="text-xl font-semibold tracking-tight">
+          <h2 className="text-fluid-xl font-semibold tracking-tight">
             What is never collected
           </h2>
           <p className="text-muted-foreground text-sm leading-relaxed">
@@ -76,7 +78,7 @@ export default function PrivacyPage() {
         </section>
 
         <section className="flex flex-col gap-4">
-          <h2 className="text-xl font-semibold tracking-tight">
+          <h2 className="text-fluid-xl font-semibold tracking-tight">
             Who processes it
           </h2>
           {OPERATORS.map((operator) => (
@@ -104,7 +106,7 @@ export default function PrivacyPage() {
         </section>
 
         <section className="flex flex-col gap-3">
-          <h2 className="text-xl font-semibold tracking-tight">Your rights</h2>
+          <h2 className="text-fluid-xl font-semibold tracking-tight">Your rights</h2>
           <p className="text-muted-foreground text-sm leading-relaxed">
             Under POPIA you may ask what personal information is held about you,
             ask for it to be corrected, and ask for it to be deleted. Deletion
@@ -114,7 +116,7 @@ export default function PrivacyPage() {
         </section>
 
         <section className="flex flex-col gap-3">
-          <h2 className="text-xl font-semibold tracking-tight">
+          <h2 className="text-fluid-xl font-semibold tracking-tight">
             Changes to this policy
           </h2>
           <p className="text-muted-foreground text-sm leading-relaxed">
@@ -124,6 +126,7 @@ export default function PrivacyPage() {
           </p>
         </section>
       </div>
+    </Container>
     </main>
   );
 }

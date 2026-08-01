@@ -4,6 +4,7 @@ import { ArrowLeft, EyeOff, Target } from 'lucide-react';
 
 import { TailorForm } from '@/components/tailor-form';
 import { Badge } from '@/components/ui/badge';
+import { Container } from '@/components/ui/container';
 import {
   Card,
   CardContent,
@@ -31,7 +32,8 @@ export default async function TailorPage({
   if (!resume) notFound();
 
   return (
-    <main className="mx-auto max-w-3xl px-4 py-10 sm:px-6 sm:py-14">
+    <main className="py-10 sm:py-14">
+      <Container width="prose">
       <Link
         href="/dashboard"
         className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 text-sm transition-colors"
@@ -45,7 +47,7 @@ export default async function TailorPage({
           <Target className="size-3" aria-hidden />
           Step 2 of 3
         </Badge>
-        <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
+        <h1 className="text-fluid-2xl font-semibold tracking-tight">
           Tailor to a job advert
         </h1>
         <p className="text-muted-foreground text-pretty">
@@ -81,6 +83,7 @@ export default async function TailorPage({
           </CardContent>
         </Card>
       </div>
+    </Container>
     </main>
   );
 }
