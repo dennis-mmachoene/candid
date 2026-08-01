@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { ShieldCheck } from 'lucide-react';
+import { Settings, ShieldCheck } from 'lucide-react';
 
 import { signOut } from '@/app/actions/auth';
 import { ThemeToggle } from '@/components/theme-toggle';
@@ -31,9 +31,15 @@ export async function SiteHeader() {
         <nav className="flex items-center gap-1 sm:gap-2">
           {user ? (
             <>
-              <span className="text-muted-foreground hidden max-w-[16rem] truncate text-sm sm:inline">
-                {user.email}
+              <span className="text-muted-foreground hidden text-sm sm:inline">
+                Hi, {user.firstName}
               </span>
+              <Button variant="ghost" size="sm" asChild>
+                <Link href="/settings">
+                  <Settings className="size-4" aria-hidden />
+                  <span className="hidden sm:inline">Settings</span>
+                </Link>
+              </Button>
               <ThemeToggle />
               <form action={signOut}>
                 <Button type="submit" variant="outline" size="sm">

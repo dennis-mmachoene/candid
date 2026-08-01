@@ -20,16 +20,20 @@ See [`PLAN.md`](./PLAN.md) for the phased build plan and the audit gates.
 
 ---
 
-## Current state — Phase 3 complete
+## Current state — Phase 4 complete
 
 | Phase | Status |
 |---|---|
 | 1 — Foundation and the two guarantees | **Audited, passed** |
 | 2 — Auth, consent, data layer (M1, M2) | **Done, awaiting audit** |
 | 3 — Tailoring and review UI (M3, M4) | **Done, awaiting audit** |
-| 4 — Templates and ATS export (M5) | Not started |
-| 5 — Lifecycle and hardening (M6, M7) | Not started |
+| 4 — Templates and ATS export (M5) | **Done, awaiting audit** |
+| 5 — Hardening and retention (M7) | Not started |
 | 6 — Tests, E2E and CI (M8) | Not started |
+
+Account erasure (M6) shipped early, in Phase 4, because a settings page in a
+POPIA product without a delete button is not a settings page. The scheduled
+retention purge is still Phase 5.
 
 ---
 
@@ -85,7 +89,8 @@ lib/
     claude-provider.ts   AIProvider over Anthropic, structured outputs
     rate-limit.ts        the Postgres limiter — fails closed
     supabase-repo.ts     ResumeRepository over Supabase
-    supabase/            browser, server and middleware clients
+    supabase/            browser, server, middleware and admin clients
+    export/              pdf-renderer, docx-renderer, shared text preparation
 supabase/migrations/     schema, RLS policies, SECURITY DEFINER functions
 tests/                   vitest proofs
 ```
@@ -121,6 +126,12 @@ logic cannot read another user's rows, because the database refuses.
 and discarded. Only the de-identified text and the encrypted identity header
 reach the database. Keeping the original would mean keeping the unredacted ID
 number, which is the thing the product promises not to do.
+
+**The export route takes three inputs and none of them is content.** A tailoring
+id, a format, and a template id. The document is rebuilt server-side from the
+stored integrity report by the same function that renders the on-screen
+preview, so a caller who controls every parameter still cannot put a blocked
+claim into a file, and the preview and the download cannot drift apart.
 
 ---
 

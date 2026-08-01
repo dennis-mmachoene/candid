@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ArrowLeft, BookOpen, ExternalLink, EyeOff, FileText } from 'lucide-react';
 
+import { ExportPanel } from '@/components/export-panel';
 import { IntegrityReport } from '@/components/integrity-report';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -15,6 +16,7 @@ import { requireConsentedUser } from '@/lib/dal';
 import { resourcesForGap } from '@/lib/domain/learning';
 import { assembleResumeDocument } from '@/lib/domain/resume-document';
 import { resumeRepository } from '@/lib/infrastructure/supabase-repo';
+import { createClient } from '@/lib/infrastructure/supabase/server';
 import type { IntegrityReport as Report } from '@/lib/domain/types';
 
 export const metadata = { title: 'Review' };
@@ -25,10 +27,16 @@ export default async function ReviewPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  await requireConsentedUser();
+  const user = await requireConsentedUser();
 
   const tailoring = await resumeRepository.getTailoring(id);
   if (!tailoring) notFound();
+
+  const supabase = await createClient();
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('default_template')
+    .maybeSingle();
 
   const report = tailoring.report as Report;
   const approved = new Set(tailoring.approvedClaims);
@@ -56,7 +64,7 @@ export default async function ReviewPage({
       <header className="animate-rise mt-6 flex flex-col gap-2">
         <Badge variant="brand">Step 3 of 3</Badge>
         <h1 className="text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
-          What Candid did, and what it refused
+          {user.firstName}, here is what Candid kept and what it refused
         </h1>
         <p className="text-muted-foreground text-pretty">
           Every claim in the draft was checked against your original CV.
@@ -196,9 +204,14 @@ export default async function ReviewPage({
           </CardContent>
         </Card>
 
-        <p className="text-muted-foreground text-xs">
-          Downloading as PDF and Word arrives in the next phase.
-        </p>
+      </section>
+
+      <section className="mt-12">
+        <ExportPanel
+          tailoringId={tailoring.id}
+          defaultTemplate={profile?.default_template ?? 'modern'}
+          disabled={document.sections.length === 0}
+        />
       </section>
     </main>
   );

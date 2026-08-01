@@ -20,7 +20,7 @@ export default async function DashboardPage() {
   // The gate. A signed-out user is redirected, and a signed-in user who has
   // not accepted the current policy version goes to /consent. Both checks
   // happen here, next to the data, not in middleware.
-  await requireConsentedUser();
+  const user = await requireConsentedUser();
 
   // No user id passed and none needed: Row-Level Security scopes this to the
   // caller's own rows.
@@ -31,10 +31,14 @@ export default async function DashboardPage() {
       <header className="animate-rise flex flex-col gap-2">
         <Badge variant="brand">Your workspace</Badge>
         <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
-          Your CVs
+          {resumes.length === 0
+            ? `Welcome, ${user.firstName}`
+            : `Welcome back, ${user.firstName}`}
         </h1>
         <p className="text-muted-foreground">
-          Upload once, then tailor it to as many adverts as you like.
+          {resumes.length === 0
+            ? 'Upload your CV to get started. It is de-identified the moment it arrives.'
+            : 'Upload once, then tailor it to as many adverts as you like.'}
         </p>
       </header>
 
