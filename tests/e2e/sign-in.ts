@@ -89,11 +89,11 @@ function adminClient(credentials: E2ECredentials) {
   });
 }
 
-/** Obtain a real session for the test account, through Supabase's own API. */
-async function createSession(credentials: E2ECredentials): Promise<{
-  access_token: string;
-  refresh_token: string;
-}> {
+/** Obtain a real session for a test account, through Supabase's own API. */
+async function createSession(
+  credentials: E2ECredentials,
+  email = credentials.email,
+): Promise<{ access_token: string; refresh_token: string }> {
   const admin = adminClient(credentials);
 
   // The user has to exist before a link can be generated, and the suite deletes
@@ -101,7 +101,7 @@ async function createSession(credentials: E2ECredentials): Promise<{
   // without sending anything, which is what lets this work with "Confirm email"
   // switched on — as it should be in a real project.
   const { error: createError } = await admin.auth.admin.createUser({
-    email: credentials.email,
+    email,
     email_confirm: true,
   });
 
@@ -117,7 +117,7 @@ async function createSession(credentials: E2ECredentials): Promise<{
   const { data: link, error: linkError } =
     await admin.auth.admin.generateLink({
       type: 'magiclink',
-      email: credentials.email,
+      email,
     });
 
   if (linkError || !link.properties?.hashed_token) {
@@ -195,8 +195,9 @@ export async function signIn(
   page: Page,
   credentials: E2ECredentials,
   path = '/dashboard',
+  email = credentials.email,
 ): Promise<void> {
-  const session = await createSession(credentials);
+  const session = await createSession(credentials, email);
   const cookies = await sessionCookies(credentials, session);
 
   const context: BrowserContext = page.context();
@@ -225,9 +226,22 @@ export async function signIn(
  */
 export async function deleteTestUser(
   credentials: E2ECredentials,
+  email = credentials.email,
 ): Promise<void> {
   const admin = adminClient(credentials);
   const { data } = await admin.auth.admin.listUsers();
-  const user = data?.users.find((u) => u.email === credentials.email);
+  const user = data?.users.find((u) => u.email === email);
   if (user) await admin.auth.admin.deleteUser(user.id);
+}
+
+/**
+ * A second, distinct address derived from the configured one.
+ *
+ * Plus-addressing keeps this to a single environment variable while giving
+ * Supabase two genuinely separate accounts — it treats `a+b@x` and `a@x` as
+ * different users, which is exactly what the isolation test needs.
+ */
+export function secondEmail(credentials: E2ECredentials): string {
+  const [local, domain] = credentials.email.split('@');
+  return `${local.split('+')[0]}+candid-isolation@${domain}`;
 }

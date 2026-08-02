@@ -156,9 +156,14 @@ and serialised into cookies by `@supabase/ssr` itself.
    and real.
 2. **Prose-buried skill detection is vocabulary-bound.** §6.2 is accurate as
    written.
-3. **Two real accounts have never been tested against each other.** RLS should
-   make cross-account reads impossible and no automated test covers it. This is
-   now the largest unverified claim in the project.
+3. ~~**Two real accounts have never been tested against each other.**~~
+   **Closed.** `tests/e2e/isolation.spec.ts` creates two real accounts and
+   attacks from both ends. Through the application: B holds A's CV id and gets
+   a 404, not a 403 — a 403 would confirm the id exists, which is a leak in
+   itself. Through the database: B's own session runs `select *` on every user
+   table with no filter at all, bypassing every line of application code, and
+   gets nothing but B's own consent record. `rate_limits` is unreadable even by
+   its owner, as the migration intends. 5 tests, all passing.
 4. **`style-src 'unsafe-inline'`.** Documented, tested, with an upgrade path.
 5. **CI has never gone green**, and branch protection is not configured, so the
    workflow does not yet block anything.

@@ -14,7 +14,8 @@ the Phase 2 audit asked for and the following three phases did not deliver.
 | `npx vitest run` | **125 passed, 0 failed** (was 114) | Claude |
 | **Breaking a guarantee turns the suite red** | **demonstrated three ways** — see below | Claude |
 | `npm run build` | not yet | **Dennis** |
-| **Playwright, full suite** | **50 passed, 0 skipped, 0 failed** | Dennis |
+| **Playwright, full suite** | **55 passed, 0 skipped, 0 failed** | Dennis |
+| **Two accounts cannot read each other's rows** | **verified, app and database** | Dennis |
 | CI goes green on GitHub | not yet | **Dennis** |
 
 **The full flow has now run end to end against real Supabase and real
@@ -197,14 +198,14 @@ not fail for want of secrets it cannot have.
 | Identity never sent to the model | Proven by tests, on the real payload |
 | Approves borderline wording | **Verified on a real instance** |
 | Downloads ATS-parseable PDF and DOCX | **Both downloaded from a running instance**; round-trip proven through real parsers |
-| Sees their history | Built; **not yet verified across two accounts** |
+| Sees their history | **Verified, and verified not to show another account's** |
 | Deletes everything they own | **Verified on a real instance** |
 | `typecheck`, `lint`, `test` | Verified locally |
 | `build` passes | **Unverified** |
 | CI green on GitHub | **Unverified** |
 
-**Substantially done.** What remains is `npm run build`, CI, and one check no
-automated test covers: that two real accounts cannot see each other's rows.
+**Done, bar CI.** The only outstanding items are a green CI run and branch
+protection being switched on so the workflow actually blocks a merge.
 
 ---
 
@@ -214,9 +215,10 @@ automated test covers: that two real accounts cannot see each other's rows.
    pass against real Supabase and real Anthropic, including a tailoring with a
    prompt-injection attempt in the advert and both file downloads.
 2. **`lib/database.types.ts` is hand-written** and can drift from the schema.
-3. **No test proves RLS isolates two real users.** Still only verifiable by
-   hand, and still not done. A seeded integration test against a local Supabase
-   is the right answer and does not exist.
+3. ~~**No test proves RLS isolates two real users.**~~ **Closed.**
+   `tests/e2e/isolation.spec.ts` proves it against a real project, including a
+   completely unfiltered `select *` from a second account's session — the check
+   that bypasses application code entirely.
 4. ~~**The CSP has never run in a browser.**~~ **Closed.** Playwright ran the
    public suite on Windows: 0 CSP violations across `/`, `/privacy` and
    `/terms`, a fresh nonce on every request, and the theme surviving a reload —
