@@ -1,0 +1,34 @@
+#!/bin/sh
+#
+# Runs before every `git push`.
+#
+# This is not branch protection and does not pretend to be. GitHub does not
+# enforce rulesets on private repositories on the Free plan, so nothing
+# server-side can currently stop a bad push. A hook can be skipped with
+# `--no-verify`, so it stops accidents, not decisions.
+#
+# Accidents are the realistic failure mode for one person working alone. The
+# case this exists for is pushing at the end of a long day having forgotten to
+# run the tests — not someone deliberately circumventing a policy.
+#
+# Enable once per clone:
+#     git config core.hooksPath .githooks
+#
+# Deliberately omitted: `npm run build` and `npm run e2e`. Together they take
+# minutes, and a hook slow enough to be resented is a hook that gets disabled.
+# CI runs both.
+
+set -e
+
+printf '\n  Running checks before push. Skip with --no-verify if you must.\n\n'
+
+printf '  → typecheck\n'
+npm run --silent typecheck
+
+printf '  → lint\n'
+npm run --silent lint
+
+printf '  → tests\n'
+npm run --silent test
+
+printf '\n  All clear. Pushing.\n\n'

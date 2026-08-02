@@ -5,6 +5,22 @@ records what was done about it, and corrects two findings that do not match the
 code as it stands. Everything below has a command behind it, in the same spirit
 as the audit itself.
 
+**Outcome:** the auditor re-ran the build, checked both contested points against
+the code, and corrected the report — §6.1 was factually wrong (the file existed
+and was not opened), §6.4 was overstated (only `style-src` allows inline). They
+also verified the isolation suite independently and confirmed there is no
+test-only bypass in the application.
+
+That is worth recording for a reason beyond scorekeeping. An audit that revises
+itself under evidence is worth more than one that is always right, and the
+narrower statement they arrived at — *employer detection is heuristic* rather
+than *absent* — is the one that should be carried forward.
+
+**The one claim still without a command behind it** is the 55/55 Playwright run
+against live Supabase and Anthropic. The auditor could not reproduce it, and was
+right not to use the keys that shipped in the archive. See "Making the live run
+verifiable" at the end.
+
 ---
 
 ## §0 — secrets in the archive. Accepted, and acted on.
@@ -175,7 +191,55 @@ and serialised into cookies by `@supabase/ssr` itself.
    The auth check is now allowed to fail, and failing means "not signed in":
    public pages render as a visitor would see them, protected pages redirect to
    sign-in. That is the safe direction — an outage locks people out rather than
-   letting them through. Branch protection is still not configured, so the
-   workflow reports but does not yet block.
+   letting them through.
+
+   **Branch protection.** The repository is public, so rulesets are enforced.
+   Briefly going private disabled them — GitHub does not enforce rulesets on
+   private repositories on the Free plan — which is worth knowing before anyone
+   flips that switch expecting the rules to follow.
+
+   A `.githooks/pre-push` hook also runs typecheck, lint and the tests locally.
+   That is not a substitute for the ruleset: a hook can be skipped with
+   `--no-verify`, so it stops accidents rather than decisions. The two together
+   are belt and braces — three seconds on your machine, ninety on a clean one.
+
+   Nothing sensitive is exposed by the repository being public. `git grep`
+   across the entire history finds no key material; `.env.local` has never been
+   tracked, and `.env.example` holds only variable names with empty values.
 6. **`lib/database.types.ts` is hand-written** from the migrations rather than
    generated, and can drift.
+
+
+---
+
+## Making the live run verifiable
+
+The auditor's remaining reservation is fair and worth removing rather than
+arguing with: they verified the end-to-end code is legitimate and adds no bypass,
+but had to take the live result as reported.
+
+The fix is to have CI run it, on a public repository, so the log is a thing
+anyone can open rather than a claim in a document. Add these as repository
+secrets under Settings → Secrets and variables → Actions:
+
+```
+E2E_SUPABASE_URL
+E2E_SUPABASE_PUBLISHABLE_KEY
+E2E_SUPABASE_SECRET_KEY
+E2E_ENCRYPTION_KEY
+E2E_TEST_EMAIL
+```
+
+The workflow already reads them, with placeholder fallbacks so absent secrets
+degrade to "public specs run, authenticated specs skip loudly" rather than
+failing. Adding them turns on the other 12 tests.
+
+Two cautions worth taking seriously:
+
+- **Use a separate Supabase project.** The suite creates and deletes accounts
+  and it is not something to point at production data, however carefully it
+  cleans up after itself.
+- **`ANTHROPIC_API_KEY` is deliberately still absent.** Adding it would run the
+  tailoring step on every push to `main`, which spends real money on a schedule
+  nobody is watching. The five isolation tests and the six authenticated
+  happy-path tests cost nothing; only the twelfth calls the model.

@@ -56,8 +56,9 @@ rather than trusting it.
 
 ## Running it
 
-First time on Phase 2, follow [`SETUP-PHASE-2.md`](./SETUP-PHASE-2.md): run the
-migration, set up Google sign-in, and fill in `.env.local`.
+First time, follow [`SETUP-PHASE-2.md`](./SETUP-PHASE-2.md): run the migrations,
+set up Google sign-in, and fill in `.env.local`. To put it online, see
+[`SETUP-DEPLOY.md`](./SETUP-DEPLOY.md).
 
 ```bash
 npm install
@@ -68,8 +69,25 @@ npm run dev        # http://localhost:3000
 npm run typecheck  # tsc --noEmit
 npm run lint       # eslint, including the domain dependency rule
 npm test           # vitest — the guarantee proofs
+npm run e2e        # playwright — the full flow against real services
 npm run build      # production build
 ```
+
+### Run the checks before every push
+
+```bash
+git config core.hooksPath .githooks
+```
+
+Once per clone. `.githooks/pre-push` then runs typecheck, lint and the test
+suite before any push, and refuses if one fails.
+
+This is **not** branch protection and is not a substitute for it. A hook can be
+skipped with `--no-verify`, so it stops accidents rather than decisions. It runs
+before you push; the ruleset on `main` is what actually blocks a merge.
+
+Belt and braces: the hook catches the mistake in three seconds on your machine,
+CI catches it in ninety on a clean one.
 
 ---
 
