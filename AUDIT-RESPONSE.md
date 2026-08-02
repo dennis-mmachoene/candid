@@ -165,7 +165,17 @@ and serialised into cookies by `@supabase/ssr` itself.
    gets nothing but B's own consent record. `rate_limits` is unreadable even by
    its owner, as the migration intends. 5 tests, all passing.
 4. **`style-src 'unsafe-inline'`.** Documented, tested, with an upgrade path.
-5. **CI has never gone green**, and branch protection is not configured, so the
-   workflow does not yet block anything.
+5. **CI's verify job is green** — typecheck, lint, 125 tests and `next build`
+   all pass on a clean runner. The end-to-end job failed on its first run, and
+   that failure was a real defect rather than a CI quirk: with no Supabase
+   secrets configured the URL was an empty string, `createServerClient` threw,
+   and **every page returned 500 — including the landing page**. Middleware runs
+   on every request, so an unreachable auth service took the whole site down.
+
+   The auth check is now allowed to fail, and failing means "not signed in":
+   public pages render as a visitor would see them, protected pages redirect to
+   sign-in. That is the safe direction — an outage locks people out rather than
+   letting them through. Branch protection is still not configured, so the
+   workflow reports but does not yet block.
 6. **`lib/database.types.ts` is hand-written** from the migrations rather than
    generated, and can drift.

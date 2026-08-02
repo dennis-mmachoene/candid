@@ -80,11 +80,24 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
     env:
-      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.E2E_SUPABASE_URL }}
-      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.E2E_SUPABASE_PUBLISHABLE_KEY }}
-      SUPABASE_SECRET_KEY: ${{ secrets.E2E_SUPABASE_SECRET_KEY }}
+      # Every variable falls back to a placeholder.
+      #
+      # Without a fallback an unset secret becomes an empty string, the Supabase
+      # client cannot be constructed, and middleware throws on every request --
+      # so even the public specs fail, for a reason that has nothing to do with
+      # the code. That is exactly what happened on the first CI run.
+      #
+      # With placeholders the app boots, the public and responsive specs run
+      # properly (they need no backend), and the authenticated specs skip and
+      # say why. Add the real secrets to include those too.
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.E2E_SUPABASE_URL || 'https://placeholder.supabase.co' }}
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.E2E_SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_ci_placeholder' }}
       NEXT_PUBLIC_SITE_URL: http://localhost:3000
-      ENCRYPTION_KEY: ${{ secrets.E2E_ENCRYPTION_KEY }}
+      ENCRYPTION_KEY: ${{ secrets.E2E_ENCRYPTION_KEY || 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=' }}
+      # No fallback for these two. An absent secret leaves them unset, which is
+      # what makes the authenticated specs skip loudly rather than fail
+      # obscurely against a placeholder that cannot work.
+      SUPABASE_SECRET_KEY: ${{ secrets.E2E_SUPABASE_SECRET_KEY }}
       E2E_TEST_EMAIL: ${{ secrets.E2E_TEST_EMAIL }}
       # Deliberately absent, so the paid tailoring step skips. Add
       # ANTHROPIC_API_KEY as a secret and reference it here to include it.

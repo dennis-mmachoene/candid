@@ -47,10 +47,25 @@ export async function updateSession(
   requestHeaders.set('Content-Security-Policy', csp);
 
   let response = NextResponse.next({ request: { headers: requestHeaders } });
+  const pathname = request.nextUrl.pathname;
 
+  /*
+   * Middleware runs on every request, including the landing page. If it throws,
+   * the whole site returns a 500 — marketing pages included.
+   *
+   * That is not hypothetical. CI found it: the workflow had no Supabase
+   * secrets, so the URL was an empty string, `createServerClient` threw, and
+   * every page failed. A misconfigured environment is one cause; Supabase being
+   * unreachable for ten minutes is another, and that one will happen.
+   *
+   * So the auth check is allowed to fail, and failing means "not signed in".
+   * On a public path that renders the page as a visitor would see it. On a
+   * protected path it redirects to sign-in, which is the safe direction: an
+   * outage locks people out rather than letting them through.
+   */
   const supabase = createServerClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
+    process.env.NEXT_PUBLIC_SUPABASE_URL ?? '',
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? '',
     {
       cookies: {
         getAll() {
@@ -75,10 +90,18 @@ export async function updateSession(
   );
 
   // Do not remove. This call is what performs the refresh.
-  const { data } = await supabase.auth.getClaims();
-  const signedIn = Boolean(data?.claims?.sub);
-
-  const pathname = request.nextUrl.pathname;
+  let signedIn = false;
+  try {
+    const { data } = await supabase.auth.getClaims();
+    signedIn = Boolean(data?.claims?.sub);
+  } catch (cause) {
+    // Shape only — never the error object, which can carry request detail.
+    console.error('[middleware] auth check failed', {
+      name: cause instanceof Error ? cause.name : typeof cause,
+      pathname,
+    });
+    signedIn = false;
+  }
 
   if (!signedIn && !isPublicPath(pathname)) {
     const url = request.nextUrl.clone();
