@@ -175,7 +175,14 @@ and serialised into cookies by `@supabase/ssr` itself.
    The auth check is now allowed to fail, and failing means "not signed in":
    public pages render as a visitor would see them, protected pages redirect to
    sign-in. That is the safe direction — an outage locks people out rather than
-   letting them through. Branch protection is still not configured, so the
-   workflow reports but does not yet block.
+   letting them through.
+
+   **Branch protection is not available.** The repository is private, and GitHub
+   does not enforce rulesets or classic branch protection on private
+   repositories on the Free plan. Private is the right call for a product
+   handling CVs, so CI reports rather than blocks. A `.githooks/pre-push` hook
+   runs typecheck, lint and the tests locally before any push — that stops
+   accidents, not decisions, and the distinction is worth being clear about.
+   Enforcement returns if the repository goes public or moves to a paid plan.
 6. **`lib/database.types.ts` is hand-written** from the migrations rather than
    generated, and can drift.

@@ -68,8 +68,24 @@ npm run dev        # http://localhost:3000
 npm run typecheck  # tsc --noEmit
 npm run lint       # eslint, including the domain dependency rule
 npm test           # vitest — the guarantee proofs
+npm run e2e        # playwright — the full flow against real services
 npm run build      # production build
 ```
+
+### Run the checks before every push
+
+```bash
+git config core.hooksPath .githooks
+```
+
+Once per clone. `.githooks/pre-push` then runs typecheck, lint and the test
+suite before any push, and refuses if one fails.
+
+This is **not** branch protection and is not a substitute for it. GitHub does
+not enforce rulesets on private repositories on the Free plan, so nothing
+server-side currently blocks a bad push, and a hook can be skipped with
+`--no-verify`. It stops accidents, not decisions — which is the realistic
+failure mode for one person working alone.
 
 ---
 
