@@ -177,12 +177,18 @@ and serialised into cookies by `@supabase/ssr` itself.
    sign-in. That is the safe direction — an outage locks people out rather than
    letting them through.
 
-   **Branch protection is not available.** The repository is private, and GitHub
-   does not enforce rulesets or classic branch protection on private
-   repositories on the Free plan. Private is the right call for a product
-   handling CVs, so CI reports rather than blocks. A `.githooks/pre-push` hook
-   runs typecheck, lint and the tests locally before any push — that stops
-   accidents, not decisions, and the distinction is worth being clear about.
-   Enforcement returns if the repository goes public or moves to a paid plan.
+   **Branch protection.** The repository is public, so rulesets are enforced.
+   Briefly going private disabled them — GitHub does not enforce rulesets on
+   private repositories on the Free plan — which is worth knowing before anyone
+   flips that switch expecting the rules to follow.
+
+   A `.githooks/pre-push` hook also runs typecheck, lint and the tests locally.
+   That is not a substitute for the ruleset: a hook can be skipped with
+   `--no-verify`, so it stops accidents rather than decisions. The two together
+   are belt and braces — three seconds on your machine, ninety on a clean one.
+
+   Nothing sensitive is exposed by the repository being public. `git grep`
+   across the entire history finds no key material; `.env.local` has never been
+   tracked, and `.env.example` holds only variable names with empty values.
 6. **`lib/database.types.ts` is hand-written** from the migrations rather than
    generated, and can drift.
