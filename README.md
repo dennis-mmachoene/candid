@@ -56,8 +56,9 @@ rather than trusting it.
 
 ## Running it
 
-First time on Phase 2, follow [`SETUP-PHASE-2.md`](./SETUP-PHASE-2.md): run the
-migration, set up Google sign-in, and fill in `.env.local`.
+First time, follow [`SETUP-PHASE-2.md`](./SETUP-PHASE-2.md): run the migrations,
+set up Google sign-in, and fill in `.env.local`. To put it online, see
+[`SETUP-DEPLOY.md`](./SETUP-DEPLOY.md).
 
 ```bash
 npm install
