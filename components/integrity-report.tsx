@@ -16,13 +16,18 @@ import {
 import type { ValidatedClaim } from '@/lib/domain/types';
 
 /**
- * The integrity report.
+ * The integrity report — the screen the whole product is built around.
  *
- * The design rule here: a user cannot fairly approve an inference without
- * seeing what it was inferred from, so every borderline claim shows the line of
- * their own CV it came from. Blocked claims are shown too, with the reason,
- * rather than silently dropped — being told what was refused and why is the
- * point of the product.
+ * It is written to read like a calm report a good advisor walked you through,
+ * not an error list. An overview names the three outcomes up front; then each
+ * section explains itself in plain language.
+ *
+ * The design rule that has not changed: a user cannot fairly approve an
+ * inference without seeing what it was inferred from, so every borderline claim
+ * shows the line of their own CV it came from. Blocked claims are shown too,
+ * with the reason, rather than silently dropped — being told what was refused
+ * and why is the point of the product. The tone on `blocked` is deliberately
+ * unalarming: it is information, not a scolding.
  *
  * The checkboxes only govern borderline claims. Blocked claims have no control
  * next to them because there is nothing to decide.
@@ -43,7 +48,7 @@ function Evidence({ claim }: { claim: ValidatedClaim }) {
       {claim.evidence.slice(0, 3).map((item, index) => (
         <li
           key={`${item.line}-${index}`}
-          className="bg-muted/50 text-muted-foreground flex items-start gap-2 rounded-lg px-3 py-2 text-xs leading-relaxed"
+          className="bg-muted text-muted-foreground flex items-start gap-2 rounded-md px-3 py-2 text-xs leading-relaxed"
         >
           <Quote className="mt-0.5 size-3 shrink-0 opacity-60" aria-hidden />
           <span className="italic">{item.line}</span>
@@ -86,20 +91,65 @@ export function IntegrityReport({
     });
   };
 
+  const overview = [
+    {
+      label: 'Traced to your CV',
+      count: accepted.length,
+      tint: 'border-accepted/30 bg-accepted/10 text-accepted',
+      icon: Check,
+    },
+    {
+      label: 'Your call',
+      count: borderline.length,
+      tint: 'border-borderline/30 bg-borderline/10 text-borderline',
+      icon: CircleAlert,
+    },
+    {
+      label: 'Refused',
+      count: blocked.length,
+      tint: 'border-blocked/30 bg-blocked/10 text-blocked',
+      icon: Ban,
+    },
+  ];
+
   return (
     <div className="flex flex-col gap-6">
+      {/* --- Overview --------------------------------------------------- */}
+      <div className="grid grid-cols-3 gap-3 sm:gap-4">
+        {overview.map((item) => (
+          <div
+            key={item.label}
+            className="bg-card flex flex-col gap-2 rounded-lg border p-4 sm:flex-row sm:items-center sm:gap-3"
+          >
+            <span
+              className={`grid size-9 shrink-0 place-items-center rounded-md border ${item.tint}`}
+            >
+              <item.icon className="size-4" aria-hidden />
+            </span>
+            <span className="flex flex-col">
+              <span className="text-xl font-semibold tabular-nums sm:text-2xl">
+                {item.count}
+              </span>
+              <span className="text-muted-foreground text-xs leading-tight">
+                {item.label}
+              </span>
+            </span>
+          </div>
+        ))}
+      </div>
+
       {/* --- Accepted --------------------------------------------------- */}
-      <Card className="border-accepted/25">
+      <Card>
         <CardHeader>
           <div className="flex items-center gap-2.5">
-            <span className="border-accepted/30 bg-accepted/10 grid size-9 place-items-center rounded-lg border">
+            <span className="border-accepted/30 bg-accepted/10 grid size-9 place-items-center rounded-md border">
               <Check className="text-accepted size-4" aria-hidden />
             </span>
             <CardTitle asChild className="text-fluid-lg">
               <h2>
                 Traced to your CV
                 <span className="text-muted-foreground ml-2 font-normal tabular-nums">
-                {accepted.length}
+                  {accepted.length}
                 </span>
               </h2>
             </CardTitle>
@@ -115,7 +165,10 @@ export function IntegrityReport({
             <ul className="flex flex-wrap gap-2">
               {accepted.map((claim, index) => (
                 <li key={`${claim.canonical}-${index}`}>
-                  <Badge variant="accepted" className="break-anywhere whitespace-normal">
+                  <Badge
+                    variant="accepted"
+                    className="break-anywhere whitespace-normal"
+                  >
                     {claim.claim.text}
                   </Badge>
                 </li>
@@ -126,17 +179,17 @@ export function IntegrityReport({
       </Card>
 
       {/* --- Borderline ------------------------------------------------- */}
-      <Card className="border-borderline/25">
+      <Card>
         <CardHeader>
           <div className="flex items-center gap-2.5">
-            <span className="border-borderline/30 bg-borderline/10 grid size-9 place-items-center rounded-lg border">
+            <span className="border-borderline/30 bg-borderline/10 grid size-9 place-items-center rounded-md border">
               <CircleAlert className="text-borderline size-4" aria-hidden />
             </span>
             <CardTitle asChild className="text-fluid-lg">
               <h2>
                 Your call
                 <span className="text-muted-foreground ml-2 font-normal tabular-nums">
-                {borderline.length}
+                  {borderline.length}
                 </span>
               </h2>
             </CardTitle>
@@ -160,9 +213,9 @@ export function IntegrityReport({
                   return (
                     <li
                       key={`${claim.canonical}-${index}`}
-                      className={`rounded-xl border p-4 transition-colors ${
+                      className={`rounded-lg border p-4 transition-colors ${
                         checked
-                          ? 'border-borderline/45 bg-borderline-surface/40'
+                          ? 'border-borderline/45 bg-borderline-surface/50'
                           : 'border-border bg-transparent'
                       }`}
                     >
@@ -202,7 +255,7 @@ export function IntegrityReport({
                 {saved ? (
                   <span
                     role="status"
-                    className="text-accepted animate-fade flex items-center gap-1.5 text-sm"
+                    className="text-accepted animate-fade flex items-center gap-1.5 text-sm font-medium"
                   >
                     <Check className="size-4" aria-hidden />
                     Saved
@@ -220,17 +273,17 @@ export function IntegrityReport({
       </Card>
 
       {/* --- Blocked ---------------------------------------------------- */}
-      <Card className="border-blocked/25">
+      <Card>
         <CardHeader>
           <div className="flex items-center gap-2.5">
-            <span className="border-blocked/30 bg-blocked/10 grid size-9 place-items-center rounded-lg border">
+            <span className="border-blocked/30 bg-blocked/10 grid size-9 place-items-center rounded-md border">
               <Ban className="text-blocked size-4" aria-hidden />
             </span>
             <CardTitle asChild className="text-fluid-lg">
               <h2>
                 Refused
                 <span className="text-muted-foreground ml-2 font-normal tabular-nums">
-                {blocked.length}
+                  {blocked.length}
                 </span>
               </h2>
             </CardTitle>
@@ -243,17 +296,18 @@ export function IntegrityReport({
         <CardContent>
           {blocked.length === 0 ? (
             <p className="text-muted-foreground text-sm">
-              Nothing was refused. The draft stayed inside what your CV
-              supports.
+              Nothing was refused. The draft stayed inside what your CV supports.
             </p>
           ) : (
             <ul className="flex flex-col gap-2">
               {blocked.map((claim, index) => (
                 <li
                   key={`${claim.canonical}-${index}`}
-                  className="border-blocked/25 bg-blocked-surface/25 rounded-xl border p-4"
+                  className="border-border bg-blocked-surface/25 rounded-lg border p-4"
                 >
-                  <p className="break-anywhere font-medium">{claim.claim.text}</p>
+                  <p className="break-anywhere font-medium">
+                    {claim.claim.text}
+                  </p>
                   <p className="text-muted-foreground mt-0.5 text-sm leading-relaxed">
                     {claim.reason}
                   </p>

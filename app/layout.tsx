@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from 'next';
+import localFont from 'next/font/local';
 import { headers } from 'next/headers';
 
 import { SiteFooter } from '@/components/site-footer';
@@ -7,6 +8,35 @@ import { ThemeProvider } from '@/components/theme-provider';
 import { publicEnv } from '@/lib/infrastructure/env';
 
 import './globals.css';
+
+/*
+ * Fonts are self-hosted through next/font/local, not fetched from a font CDN.
+ *
+ * next/font copies the files into the build and serves them from our own
+ * origin, so there is no third-party request at runtime, nothing for the
+ * Content-Security-Policy to allow beyond `font-src 'self'`, and no font
+ * provider watching who reads the page. Both files are variable, so a single
+ * request per face covers every weight the interface uses.
+ *
+ *   - Bricolage Grotesque carries the headlines and section titles: a display
+ *     grotesque with real character, which is where "not a template" lives.
+ *   - Hanken Grotesk is the body and UI face: clean, warm and highly legible.
+ */
+const bricolage = localFont({
+  src: './fonts/bricolage-grotesque-variable.woff2',
+  variable: '--font-bricolage',
+  weight: '200 800',
+  display: 'swap',
+  fallback: ['ui-sans-serif', 'system-ui', 'sans-serif'],
+});
+
+const hanken = localFont({
+  src: './fonts/hanken-grotesk-variable.woff2',
+  variable: '--font-hanken',
+  weight: '100 900',
+  display: 'swap',
+  fallback: ['ui-sans-serif', 'system-ui', 'sans-serif'],
+});
 
 const DESCRIPTION =
   'Tailor your CV to a job advert using only the experience you actually have. Your name, contact details and ID number never reach the AI.';
@@ -44,9 +74,11 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
+  /* The warm paper and warm near-black page colours, so the browser chrome
+     matches the page rather than framing it in a cooler white or black. */
   themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#ffffff' },
-    { media: '(prefers-color-scheme: dark)', color: '#151520' },
+    { media: '(prefers-color-scheme: light)', color: '#faf8f3' },
+    { media: '(prefers-color-scheme: dark)', color: '#1b1a17' },
   ],
 };
 
@@ -63,13 +95,15 @@ export default async function RootLayout({
     // theme class onto <html> before React hydrates, which is exactly what
     // stops the flash of the wrong theme, and exactly what React would
     // otherwise complain about.
-    <html lang="en-ZA" suppressHydrationWarning>
-      {/*
-        A local system font stack rather than next/font/google. Fetching a
-        webfont at build time makes the build depend on a third-party network
-        call, which is a fragile thing to put in CI.
-      */}
-      <body className="flex min-h-screen flex-col antialiased">
+    //
+    // The two font variables are set here on <html> so every surface, including
+    // the pre-paint theme script's target, can resolve them.
+    <html
+      lang="en-ZA"
+      suppressHydrationWarning
+      className={`${hanken.variable} ${bricolage.variable}`}
+    >
+      <body className="flex min-h-screen flex-col font-sans antialiased">
         <ThemeProvider
           attribute="class"
           defaultTheme="system"

@@ -6,131 +6,115 @@
 /*
  * Candid design tokens.
  *
- * Two palettes live here and they are kept deliberately apart:
+ * The product is candour, so the surface is a calm, well-lit room, not a
+ * launch page. Two decisions carry the whole look:
  *
- *   - The **brand** is indigo to violet. It carries the marketing surfaces,
- *     buttons and gradients.
- *   - The **verdict** colours — accepted, borderline, blocked — are green,
- *     amber and red, and they mean something. They are the integrity report.
+ *   1. Warm paper and warm ink. The background is a hint of warmth off white,
+ *      the text a warm near-black — never cool white on cool grey. That single
+ *      swap moves the app off the generic "cool SaaS" feel before a single
+ *      component is styled.
+ *   2. One quiet accent — a deep teal — used only for primary actions, links
+ *      and focus. It is deliberately held clear of the verdict hues.
  *
- * Nothing in the brand palette is allowed near green, amber or red. If the
- * brand and a verdict ever share a hue, a user glancing at the report cannot
- * tell decoration from judgement, and the most important screen in the product
- * becomes ambiguous.
+ * The **verdict** colours — accepted, borderline, blocked — are green, amber
+ * and red, and they mean something. They are the integrity report. Nothing in
+ * the accent palette is allowed near them: if a user glancing at the report
+ * cannot tell decoration from judgement, the most important screen in the
+ * product becomes ambiguous. Teal (hue ~196) sits a clear 45 degrees from the
+ * accepted green (hue ~150), so the two never read as the same signal.
  */
 
 :root {
+  /* One modest radius, applied everywhere. No pills, no 2xl. */
   --radius: 0.75rem;
 
-  /* Brand */
-  --brand-50: oklch(0.97 0.02 280);
-  --brand-100: oklch(0.94 0.04 280);
-  --brand-300: oklch(0.78 0.11 279);
-  --brand-500: oklch(0.58 0.21 277);
-  --brand-600: oklch(0.51 0.23 277);
-  --brand-700: oklch(0.45 0.22 277);
-  --brand-900: oklch(0.31 0.15 277);
-  --brand-ink: oklch(0.26 0.11 276);
+  /*
+   * Accent — a deep, quiet teal. Unmistakably teal, never violet, and clear of
+   * the verdict hues. A single ramp; primary actions, links and focus draw from
+   * it and nothing else does.
+   */
+  --brand-50: oklch(0.966 0.017 196);
+  --brand-100: oklch(0.932 0.031 196);
+  --brand-300: oklch(0.79 0.07 196);
+  --brand-500: oklch(0.585 0.09 196);
+  --brand-600: oklch(0.5 0.086 197);
+  --brand-700: oklch(0.42 0.072 198);
+  --brand-900: oklch(0.31 0.05 199);
+  --brand-ink: oklch(0.27 0.042 199);
 
-  /* Surfaces */
-  --background: oklch(0.99 0.003 280);
-  --foreground: oklch(0.19 0.02 275);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.19 0.02 275);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.19 0.02 275);
+  /* Surfaces — warm paper. */
+  --background: oklch(0.985 0.0075 83);
+  --foreground: oklch(0.25 0.013 66);
+  --card: oklch(0.998 0.0035 83);
+  --card-foreground: oklch(0.25 0.013 66);
+  --popover: oklch(0.998 0.0035 83);
+  --popover-foreground: oklch(0.25 0.013 66);
   --primary: var(--brand-600);
-  --primary-foreground: oklch(0.99 0.005 280);
-  --secondary: oklch(0.96 0.008 280);
-  --secondary-foreground: oklch(0.26 0.03 276);
-  --muted: oklch(0.96 0.008 280);
-  --muted-foreground: oklch(0.52 0.02 275);
-  --accent: oklch(0.95 0.02 280);
-  --accent-foreground: oklch(0.3 0.08 277);
-  --destructive: oklch(0.58 0.21 27);
-  --destructive-foreground: oklch(0.99 0.005 280);
-  --border: oklch(0.9 0.01 280);
-  --input: oklch(0.9 0.01 280);
+  --primary-foreground: oklch(0.99 0.006 83);
+  --secondary: oklch(0.955 0.0095 83);
+  --secondary-foreground: oklch(0.31 0.014 64);
+  --muted: oklch(0.957 0.009 83);
+  --muted-foreground: oklch(0.505 0.014 66);
+  --accent: oklch(0.945 0.013 88);
+  --accent-foreground: oklch(0.3 0.015 64);
+  --destructive: oklch(0.52 0.17 28);
+  --destructive-foreground: oklch(0.99 0.006 83);
+  --border: oklch(0.9 0.0085 80);
+  --input: oklch(0.9 0.0085 80);
   --ring: var(--brand-500);
 
   /* Verdicts. These carry meaning; do not reuse them for decoration. */
-  --accepted: oklch(0.52 0.14 155);
-  --accepted-surface: oklch(0.96 0.04 155);
-  --borderline: oklch(0.58 0.14 75);
-  --borderline-surface: oklch(0.96 0.05 85);
-  --blocked: oklch(0.55 0.2 27);
-  --blocked-surface: oklch(0.96 0.03 27);
+  --accepted: oklch(0.515 0.115 150);
+  --accepted-surface: oklch(0.955 0.032 150);
+  --borderline: oklch(0.52 0.1 76);
+  --borderline-surface: oklch(0.955 0.05 82);
+  --blocked: oklch(0.525 0.16 28);
+  --blocked-surface: oklch(0.957 0.028 30);
 
-  /* Composed effects, defined once so pages cannot drift apart. */
-  --gradient-hero: linear-gradient(
-    135deg,
-    oklch(0.42 0.2 265) 0%,
-    oklch(0.45 0.23 285) 45%,
-    oklch(0.38 0.19 300) 100%
-  );
-  --gradient-brand: linear-gradient(
-    135deg,
-    var(--brand-600) 0%,
-    var(--brand-500) 50%,
-    oklch(0.56 0.2 300) 100%
-  );
-  --gradient-subtle: linear-gradient(
-    180deg,
-    oklch(0.98 0.012 280) 0%,
-    oklch(1 0 0) 100%
-  );
-  --shadow-soft: 0 1px 2px oklch(0.2 0.03 275 / 6%),
-    0 8px 24px oklch(0.2 0.03 275 / 6%);
-  --shadow-lift: 0 2px 4px oklch(0.2 0.03 275 / 8%),
-    0 16px 40px oklch(0.2 0.03 275 / 10%);
-  --glass-bg: oklch(1 0 0 / 72%);
-  --glass-border: oklch(0.2 0.03 275 / 8%);
+  /*
+   * Elevation is restrained. Surfaces are flat and separated by hairlines;
+   * a soft shadow lifts only the things that genuinely float — a menu, a
+   * dialog. `soft` is barely there; `lift` is reserved for overlays.
+   */
+  --shadow-soft: 0 1px 2px oklch(0.28 0.02 66 / 4%),
+    0 1px 3px oklch(0.28 0.02 66 / 4%);
+  --shadow-lift: 0 4px 12px oklch(0.26 0.02 66 / 10%),
+    0 14px 32px oklch(0.26 0.02 66 / 9%);
 }
 
 .dark {
-  --background: oklch(0.16 0.015 275);
-  --foreground: oklch(0.97 0.005 280);
-  --card: oklch(0.21 0.018 275);
-  --card-foreground: oklch(0.97 0.005 280);
-  --popover: oklch(0.21 0.018 275);
-  --popover-foreground: oklch(0.97 0.005 280);
-  --primary: var(--brand-500);
-  --primary-foreground: oklch(0.99 0.005 280);
-  --secondary: oklch(0.26 0.02 275);
-  --secondary-foreground: oklch(0.97 0.005 280);
-  --muted: oklch(0.26 0.02 275);
-  --muted-foreground: oklch(0.72 0.02 278);
-  --accent: oklch(0.3 0.05 277);
-  --accent-foreground: oklch(0.95 0.02 280);
-  --destructive: oklch(0.68 0.19 25);
-  --destructive-foreground: oklch(0.99 0.005 280);
-  --border: oklch(1 0 0 / 11%);
-  --input: oklch(1 0 0 / 14%);
-  --ring: var(--brand-300);
+  /* Warm near-black, not blue-black, not pure black. */
+  --background: oklch(0.185 0.008 68);
+  --foreground: oklch(0.945 0.006 83);
+  --card: oklch(0.219 0.009 68);
+  --card-foreground: oklch(0.945 0.006 83);
+  --popover: oklch(0.219 0.009 68);
+  --popover-foreground: oklch(0.945 0.006 83);
+  /* A brighter teal reads on a dark surface; it carries dark ink as its label. */
+  --primary: oklch(0.64 0.093 197);
+  --primary-foreground: oklch(0.2 0.014 68);
+  --secondary: oklch(0.265 0.01 68);
+  --secondary-foreground: oklch(0.93 0.006 83);
+  --muted: oklch(0.265 0.01 68);
+  --muted-foreground: oklch(0.735 0.012 82);
+  --accent: oklch(0.3 0.013 72);
+  --accent-foreground: oklch(0.93 0.006 83);
+  --destructive: oklch(0.55 0.17 28);
+  --destructive-foreground: oklch(0.98 0.006 83);
+  --border: oklch(0.87 0.01 83 / 13%);
+  --input: oklch(0.87 0.01 83 / 16%);
+  --ring: oklch(0.66 0.1 197);
 
-  /* Lifted for contrast against a dark surface, same meaning. */
-  --accepted: oklch(0.75 0.15 155);
-  --accepted-surface: oklch(0.28 0.06 155);
-  --borderline: oklch(0.8 0.14 80);
-  --borderline-surface: oklch(0.3 0.06 80);
-  --blocked: oklch(0.7 0.18 25);
-  --blocked-surface: oklch(0.3 0.07 25);
+  /* Lifted for contrast against a dark surface; same meaning. */
+  --accepted: oklch(0.79 0.13 150);
+  --accepted-surface: oklch(0.3 0.045 150);
+  --borderline: oklch(0.82 0.11 82);
+  --borderline-surface: oklch(0.32 0.045 80);
+  --blocked: oklch(0.72 0.15 30);
+  --blocked-surface: oklch(0.32 0.055 30);
 
-  --gradient-hero: linear-gradient(
-    135deg,
-    oklch(0.26 0.13 265) 0%,
-    oklch(0.28 0.15 285) 45%,
-    oklch(0.24 0.12 300) 100%
-  );
-  --gradient-subtle: linear-gradient(
-    180deg,
-    oklch(0.19 0.022 278) 0%,
-    oklch(0.16 0.015 275) 100%
-  );
-  --shadow-soft: 0 1px 2px oklch(0 0 0 / 40%), 0 8px 24px oklch(0 0 0 / 30%);
-  --shadow-lift: 0 2px 4px oklch(0 0 0 / 45%), 0 16px 40px oklch(0 0 0 / 40%);
-  --glass-bg: oklch(0.21 0.018 275 / 68%);
-  --glass-border: oklch(1 0 0 / 10%);
+  --shadow-soft: 0 1px 2px oklch(0 0 0 / 40%), 0 1px 3px oklch(0 0 0 / 30%);
+  --shadow-lift: 0 6px 16px oklch(0 0 0 / 46%), 0 18px 40px oklch(0 0 0 / 42%);
 }
 
 @theme inline {
@@ -169,11 +153,21 @@
   --color-blocked: var(--blocked);
   --color-blocked-surface: var(--blocked-surface);
 
+  /*
+   * Type. A characterful display grotesque for headlines and section titles,
+   * a clean humanist sans for everything functional. Both are self-hosted
+   * through next/font (see app/layout.tsx), so there is no third-party font
+   * request and nothing for the CSP to allow.
+   */
+  --font-sans: var(--font-hanken), ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", sans-serif;
+  --font-display: var(--font-bricolage), var(--font-hanken), ui-sans-serif,
+    system-ui, sans-serif;
+
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
-  --radius-2xl: calc(var(--radius) + 10px);
 
   --shadow-soft: var(--shadow-soft);
   --shadow-lift: var(--shadow-lift);
@@ -192,16 +186,21 @@
   --text-fluid-base: clamp(1rem, 0.95rem + 0.25vw, 1.125rem);
   --text-fluid-lg: clamp(1.125rem, 1.05rem + 0.38vw, 1.375rem);
   --text-fluid-xl: clamp(1.375rem, 1.2rem + 0.85vw, 1.875rem);
-  --text-fluid-2xl: clamp(1.625rem, 1.35rem + 1.4vw, 2.5rem);
-  --text-fluid-3xl: clamp(2rem, 1.5rem + 2.5vw, 3.75rem);
+  --text-fluid-2xl: clamp(1.7rem, 1.35rem + 1.55vw, 2.6rem);
+  --text-fluid-3xl: clamp(2.15rem, 1.5rem + 2.9vw, 4rem);
 
-  --animate-rise: rise 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
-  --animate-fade: fade 0.4s ease-out both;
+  /*
+   * Motion is functional: the entrance of meaningful content, and nothing
+   * looping or decorative. 200-450ms, ease-out. Honoured against
+   * prefers-reduced-motion in the base layer below.
+   */
+  --animate-rise: rise 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+  --animate-fade: fade 0.3s ease-out both;
 
   @keyframes rise {
     from {
       opacity: 0;
-      transform: translateY(12px);
+      transform: translateY(10px);
     }
     to {
       opacity: 1;
@@ -230,6 +229,9 @@
 
   body {
     @apply bg-background text-foreground;
+    font-family: var(--font-sans);
+    /* Kerning and ligatures on; tabular figures stay opt-in per element. */
+    font-feature-settings: "kern", "liga", "calt";
     /* Theme switching animates, so the change reads as a transition rather
        than a flash. Only colour properties — animating layout would jank. */
     transition:
@@ -242,6 +244,18 @@
      * scrollbar and a layout that slides under the thumb.
      */
     overflow-x: hidden;
+  }
+
+  /*
+   * Headlines and section titles wear the display face; everything functional
+   * stays in the body sans. Impact comes from size and weight, never from a
+   * gradient. Call sites still set their own size and tracking.
+   */
+  h1,
+  h2 {
+    font-family: var(--font-display);
+    font-weight: 600;
+    letter-spacing: -0.015em;
   }
 
   /*
@@ -274,7 +288,7 @@
     height: auto;
   }
 
-  /* A focus ring that is visible on every background, including the hero. */
+  /* A focus ring that is visible on every background, in both themes. */
   :focus-visible {
     outline: 2px solid var(--ring);
     outline-offset: 2px;
@@ -315,11 +329,16 @@
   }
   .text-fluid-2xl {
     font-size: var(--text-fluid-2xl);
-    line-height: 1.15;
+    line-height: 1.12;
   }
   .text-fluid-3xl {
     font-size: var(--text-fluid-3xl);
-    line-height: 1.05;
+    line-height: 1.02;
+  }
+
+  /* The display face, exposed as a utility for headline call sites. */
+  .font-display {
+    font-family: var(--font-display);
   }
 
   /**
@@ -341,32 +360,6 @@
     min-width: 2.75rem;
   }
 
-  .gradient-hero {
-    background-image: var(--gradient-hero);
-  }
-  .gradient-brand {
-    background-image: var(--gradient-brand);
-  }
-  .gradient-subtle {
-    background-image: var(--gradient-subtle);
-  }
-
-  /** Gradient text. Falls back to the brand colour where unsupported. */
-  .text-gradient {
-    color: var(--brand-600);
-    background-image: var(--gradient-brand);
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-  }
-
-  .glass {
-    background-color: var(--glass-bg);
-    border-color: var(--glass-border);
-    backdrop-filter: blur(12px) saturate(140%);
-    -webkit-backdrop-filter: blur(12px) saturate(140%);
-  }
-
   .shadow-soft {
     box-shadow: var(--shadow-soft);
   }
@@ -374,31 +367,18 @@
     box-shadow: var(--shadow-lift);
   }
 
-  /** Cards that respond to a pointer without shifting the layout. */
+  /**
+   * An interactive card responds to a pointer by firming its hairline and
+   * warming its surface a touch — no lift, no scale, no shadow bloom. The only
+   * motion is a colour transition, which is calm and never shifts the layout.
+   */
   .card-hover {
     transition:
-      transform 0.25s cubic-bezier(0.22, 1, 0.36, 1),
-      box-shadow 0.25s ease,
-      border-color 0.25s ease;
+      border-color 0.2s ease,
+      background-color 0.2s ease;
   }
   .card-hover:hover {
-    transform: translateY(-3px);
-    box-shadow: var(--shadow-lift);
-    border-color: color-mix(in oklab, var(--brand-500) 30%, transparent);
-  }
-
-  /** A soft brand glow behind hero content. Decorative only. */
-  .glow-brand::before {
-    content: '';
-    position: absolute;
-    inset: -20% -10% auto -10%;
-    height: 60%;
-    background: radial-gradient(
-      60% 60% at 50% 0%,
-      color-mix(in oklab, var(--brand-500) 35%, transparent) 0%,
-      transparent 70%
-    );
-    pointer-events: none;
-    z-index: 0;
+    border-color: color-mix(in oklab, var(--brand-500) 40%, var(--border));
+    background-color: color-mix(in oklab, var(--brand-500) 4%, var(--card));
   }
 }

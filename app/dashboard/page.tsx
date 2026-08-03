@@ -47,8 +47,8 @@ export default async function DashboardPage() {
       <div className="mt-8 grid gap-5 sm:mt-10 sm:gap-6 lg:grid-cols-[1.1fr_1fr] lg:items-start">
         <Card className="card-hover">
           <CardHeader>
-            <span className="gradient-brand shadow-soft mb-1 grid size-11 place-items-center rounded-xl">
-              <Upload className="size-5 text-white" aria-hidden />
+            <span className="border-brand-500/25 bg-brand-500/10 mb-1 grid size-11 place-items-center rounded-md border">
+              <Upload className="text-brand-700 dark:text-brand-300 size-5" aria-hidden />
             </span>
             <CardTitle asChild className="text-fluid-lg">
               <h2>Upload a CV</h2>
@@ -65,7 +65,7 @@ export default async function DashboardPage() {
 
         <Card className="border-accepted/25 bg-accepted-surface/25">
           <CardHeader>
-            <span className="border-accepted/30 bg-accepted/10 mb-1 grid size-11 place-items-center rounded-xl border">
+            <span className="border-accepted/30 bg-accepted/10 mb-1 grid size-11 place-items-center rounded-md border">
               <ShieldCheck className="text-accepted size-5" aria-hidden />
             </span>
             <CardTitle asChild className="text-fluid-lg">

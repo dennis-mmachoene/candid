@@ -14,6 +14,9 @@ import { getVerifiedUser } from '@/lib/dal';
  * would mean each page deciding what the header knows, which is how a page
  * eventually forgets and shows the wrong thing.
  *
+ * A solid, opaque bar over a single hairline: no frosted glass, no blur over a
+ * coloured blob. It stays out of the way, which is the job of chrome.
+ *
  * Signed in, it carries five things. That fits from `sm` upward; below it, the
  * navigation collapses into `MobileNav` and only the theme toggle and sign out
  * stay visible.
@@ -22,16 +25,21 @@ export async function SiteHeader() {
   const user = await getVerifiedUser();
 
   return (
-    <header className="glass sticky top-0 z-50 w-full border-b">
+    <header className="bg-background sticky top-0 z-50 w-full border-b">
       <Container className="flex h-16 items-center justify-between gap-3">
         <Link
           href={user ? '/dashboard' : '/'}
-          className="group focus-visible:ring-ring/50 flex shrink-0 items-center gap-2.5 rounded-lg outline-none focus-visible:ring-[3px]"
+          className="group focus-visible:ring-ring/60 flex shrink-0 items-center gap-2.5 rounded-md outline-none focus-visible:ring-[3px]"
         >
-          <span className="gradient-brand shadow-soft grid size-8 shrink-0 place-items-center rounded-lg transition-transform duration-300 group-hover:scale-105">
-            <ShieldCheck className="size-4 text-white" aria-hidden />
+          <span className="border-brand-500/30 bg-brand-500/10 grid size-8 shrink-0 place-items-center rounded-md border">
+            <ShieldCheck
+              className="text-brand-700 dark:text-brand-300 size-4"
+              aria-hidden
+            />
           </span>
-          <span className="text-base font-semibold tracking-tight">Candid</span>
+          <span className="font-display text-base font-semibold tracking-tight">
+            Candid
+          </span>
         </Link>
 
         <nav className="flex min-w-0 items-center gap-1 sm:gap-2">

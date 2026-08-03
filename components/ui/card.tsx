@@ -3,12 +3,17 @@ import { Slot } from '@radix-ui/react-slot';
 
 import { cn } from '@/lib/utils';
 
+/**
+ * A card is a flat, confident surface separated from the page by a single
+ * hairline — no default shadow. Elevation is reserved for things that genuinely
+ * float (menus, dialogs), which is the only place `shadow-lift` appears.
+ */
 function Card({ className, ...props }: React.ComponentProps<'div'>) {
   return (
     <div
       data-slot="card"
       className={cn(
-        'bg-card text-card-foreground shadow-soft flex flex-col gap-6 rounded-xl border py-6',
+        'bg-card text-card-foreground flex flex-col gap-6 rounded-lg border py-6',
         className,
       )}
       {...props}
