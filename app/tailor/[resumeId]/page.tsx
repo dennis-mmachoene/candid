@@ -17,6 +17,19 @@ import { resumeRepository } from '@/lib/infrastructure/supabase-repo';
 
 export const metadata = { title: 'Tailor to a job advert' };
 
+/**
+ * There is deliberately no `loading.tsx` beside this file, and adding one
+ * breaks the isolation guarantee below.
+ *
+ * `loading.tsx` wraps the segment in a Suspense boundary, so Next flushes the
+ * shell — and commits HTTP 200 — before this component runs. `notFound()` can
+ * then only swap the UI mid-stream; it cannot retract a status code already on
+ * the wire. Someone else's CV would answer 200 instead of 404.
+ *
+ * `tests/e2e/isolation.spec.ts` asserts the 404 and will fail if a loading
+ * file reappears here. Routes that always answer 200 — /dashboard, /history,
+ * /settings — can have one safely, and do.
+ */
 export default async function TailorPage({
   params,
 }: {
