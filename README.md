@@ -58,7 +58,9 @@ rather than trusting it.
 
 First time, follow [`SETUP-PHASE-2.md`](./SETUP-PHASE-2.md): run the migrations,
 set up Google sign-in, and fill in `.env.local`. To put it online, see
-[`SETUP-DEPLOY.md`](./SETUP-DEPLOY.md).
+[`SETUP-DEPLOY.md`](./SETUP-DEPLOY.md). To stop the Google consent
+screen naming the Supabase project, see
+[`SETUP-VANITY-SUBDOMAIN.md`](./SETUP-VANITY-SUBDOMAIN.md).
 
 ```bash
 npm install
