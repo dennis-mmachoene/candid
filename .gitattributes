@@ -1,0 +1,40 @@
+# Line endings.
+#
+# Without this file, git stores whatever the committing machine produced. Five
+# files in this repository ended up with CRLF that way, and the symptom was a
+# whole-file diff every time one of them was touched from a different
+# environment — AUDIT-RESPONSE.md once reported 490 changed lines for no change
+# at all.
+#
+# `text=auto eol=lf` normalises to LF in the repository *and* checks out LF
+# everywhere, including Windows. Modern editors handle LF without complaint,
+# and a single endings convention is the only way the churn actually stops.
+* text=auto eol=lf
+
+# Shell scripts must be LF wherever they are checked out, not merely in the
+# repository.
+#
+# `.githooks/pre-push` was stored as CRLF, which made its first line
+# `#!/bin/sh\r`. Linux and macOS read that as a request for an interpreter at
+# the path `/bin/sh\r`, which does not exist, and refuse to run the hook with
+# "bad interpreter". Git Bash on Windows tolerates it, so the failure is
+# invisible to whoever wrote it — the hook simply stops running for everybody
+# else, without ever saying so.
+*.sh   text eol=lf
+.githooks/*  text eol=lf
+
+# Binary. Never normalised, never diffed as text.
+*.png    binary
+*.jpg    binary
+*.jpeg   binary
+*.gif    binary
+*.ico    binary
+*.woff   binary
+*.woff2  binary
+*.ttf    binary
+*.otf    binary
+*.pdf    binary
+*.docx   binary
+*.pptx   binary
+*.xlsx   binary
+*.zip    binary
