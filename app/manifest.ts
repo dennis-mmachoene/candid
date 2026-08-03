@@ -17,8 +17,15 @@ export default function manifest(): MetadataRoute.Manifest {
       'Tailor your CV to a job advert using only the experience you actually have. Your name, contact details and ID number never reach the AI.',
     start_url: '/',
     display: 'standalone',
-    background_color: '#ffffff',
-    theme_color: '#4338ca',
+    /*
+     * These two are the resolved sRGB values of --background and --brand-600
+     * from globals.css. The manifest is plain JSON served to the operating
+     * system, so it cannot read a CSS custom property or an oklch() value —
+     * they have to be written out. If the palette moves again, these move with
+     * it, or the splash screen and the task-switcher tint go stale.
+     */
+    background_color: '#fdfaf5',
+    theme_color: '#007274',
     lang: 'en-ZA',
     icons: [
       { src: '/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
