@@ -1,8 +1,11 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import {
+  AlignLeft,
   ArrowRight,
   Ban,
+  Check,
+  CircleAlert,
   ClipboardPaste,
   EyeOff,
   FileCheck2,
@@ -11,7 +14,6 @@ import {
   Lock,
   ScanSearch,
   ShieldCheck,
-  Sparkles,
   Upload,
 } from 'lucide-react';
 
@@ -67,7 +69,7 @@ const promises = [
     footnote: 'A blocked claim cannot reach a file, whatever you click.',
   },
   {
-    icon: Sparkles,
+    icon: AlignLeft,
     title: 'Built to get past the filter',
     body: 'Single column. Real selectable text. Conventional headings. No tables, no text boxes, no images. The format applicant tracking systems can parse rather than the one that looks nice and scores zero.',
     footnote: 'Tested by reading every export back through a parser.',
@@ -93,6 +95,33 @@ const refusals = [
   },
 ];
 
+/**
+ * A small, honest illustration of the one screen that carries the product: the
+ * integrity report. These rows are a generic example, not a real user and not a
+ * statistic — the whole thesis is that Candid never fabricates, so the landing
+ * page does not either.
+ */
+const sampleVerdicts = [
+  {
+    icon: Check,
+    label: 'Python',
+    note: 'Traced to your CV',
+    variant: 'accepted' as const,
+  },
+  {
+    icon: CircleAlert,
+    label: 'Team leadership',
+    note: 'A fair reading — your call',
+    variant: 'borderline' as const,
+  },
+  {
+    icon: Ban,
+    label: 'Kubernetes',
+    note: 'Not in your CV — refused',
+    variant: 'blocked' as const,
+  },
+];
+
 export default async function Home({
   searchParams,
 }: {
@@ -114,71 +143,120 @@ export default async function Home({
   return (
     <main>
       {/* ---------------------------------------------------------------- */}
-      {/* Hero                                                              */}
+      {/* Hero — typography and space, no gradient, no glass                */}
       {/* ---------------------------------------------------------------- */}
-      <section className="gradient-hero relative overflow-hidden">
-        {/* Decorative only, and hidden from assistive tech. */}
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0 opacity-40 [background:radial-gradient(60%_50%_at_20%_0%,white_0%,transparent_60%)]"
-        />
-        <Container className="relative py-16 sm:py-24 lg:py-28">
-          <div className="animate-rise flex max-w-3xl flex-col items-start gap-5 sm:gap-6">
-            <Badge className="border-white/25 bg-white/15 text-white backdrop-blur-sm">
-              <Lock className="size-3" aria-hidden />
-              Built for South African job seekers
-            </Badge>
+      <section className="border-b">
+        <Container className="py-14 sm:py-20 lg:py-24">
+          <div className="grid items-center gap-12 lg:grid-cols-[1.05fr_0.95fr] lg:gap-16">
+            <div className="animate-rise flex max-w-2xl flex-col items-start gap-6">
+              <Badge variant="brand">
+                <Lock className="size-3" aria-hidden />
+                Built for South African job seekers
+              </Badge>
 
-            <h1 className="text-fluid-3xl font-semibold tracking-tight text-balance text-white">
-              An honest CV,{' '}
-              <span className="bg-gradient-to-r from-white via-indigo-100 to-violet-200 bg-clip-text text-transparent">
-                tailored to the job.
-              </span>
-            </h1>
+              <h1 className="text-fluid-3xl font-semibold tracking-tight text-balance">
+                An{' '}
+                <span className="text-brand-700 dark:text-brand-300">
+                  honest
+                </span>{' '}
+                CV, tailored to the job.
+              </h1>
 
-            <p className="text-fluid-base max-w-xl leading-relaxed text-pretty text-white/80">
-              Applicant tracking systems reject good candidates for bad wording.
-              Candid rewrites what you have actually done in the language the
-              advert uses, and tells you plainly what you are missing.
-            </p>
-
-            {notice ? (
-              <p
-                role="status"
-                className="rounded-lg border border-white/25 bg-white/10 px-4 py-2.5 text-sm text-white backdrop-blur-sm"
-              >
-                {notice}
+              <p className="text-fluid-base text-muted-foreground max-w-xl leading-relaxed text-pretty">
+                Applicant tracking systems reject good candidates for bad
+                wording. Candid rewrites what you have actually done in the
+                language the advert uses, and tells you plainly what you are
+                missing.
               </p>
-            ) : null}
 
-            <div className="flex w-full flex-col gap-3 pt-2 sm:w-auto sm:flex-row sm:items-center">
-              <form action={signInWithGoogle} className="w-full sm:w-auto">
-                <Button
-                  type="submit"
-                  size="lg"
-                  className="text-brand-700 shadow-lift w-full bg-white hover:bg-white hover:brightness-100 sm:w-auto"
+              {notice ? (
+                <p
+                  role="status"
+                  className="border-border bg-muted text-foreground rounded-lg border px-4 py-2.5 text-sm"
                 >
-                  <GoogleIcon className="size-5" />
-                  Sign in with Google
+                  {notice}
+                </p>
+              ) : null}
+
+              <div className="flex w-full flex-col gap-3 pt-1 sm:w-auto sm:flex-row sm:items-center">
+                <form action={signInWithGoogle} className="w-full sm:w-auto">
+                  <Button
+                    type="submit"
+                    size="lg"
+                    className="w-full sm:w-auto"
+                  >
+                    <GoogleIcon className="size-5" />
+                    Sign in with Google
+                  </Button>
+                </form>
+                <Button size="lg" variant="outline" asChild className="w-full sm:w-auto">
+                  <Link href="#how">
+                    See how it works
+                    <ArrowRight className="size-4" aria-hidden />
+                  </Link>
                 </Button>
-              </form>
-              <Button
-                size="lg"
-                variant="outline"
-                asChild
-                className="w-full border-white/30 bg-white/10 text-white backdrop-blur-sm hover:border-white/50 hover:bg-white/20 hover:text-white sm:w-auto"
-              >
-                <Link href="#how">
-                  See how it works
-                  <ArrowRight className="size-4" aria-hidden />
-                </Link>
-              </Button>
+              </div>
+
+              <p className="text-muted-foreground text-sm">
+                No password is created or stored. Google confirms who you are and
+                returns only your email address.
+              </p>
             </div>
 
-            <p className="text-sm text-white/60">
-              No password is created or stored. Google confirms who you are and
-              returns only your email address.
-            </p>
+            {/* An honest illustration of the integrity report — the screen the
+                whole product is built around. */}
+            <div className="animate-rise lg:justify-self-end">
+              <div className="bg-card w-full max-w-md rounded-lg border p-5 shadow-soft sm:p-6">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2.5">
+                    <span className="border-brand-500/25 bg-brand-500/10 grid size-8 place-items-center rounded-md border">
+                      <ShieldCheck
+                        className="text-brand-700 dark:text-brand-300 size-4"
+                        aria-hidden
+                      />
+                    </span>
+                    <span className="text-sm font-semibold">
+                      Integrity check
+                    </span>
+                  </div>
+                  <Badge variant="outline" className="text-muted-foreground">
+                    example
+                  </Badge>
+                </div>
+
+                <ul className="mt-5 flex flex-col gap-2.5">
+                  {sampleVerdicts.map((row) => (
+                    <li
+                      key={row.label}
+                      className="border-border flex items-center gap-3 rounded-md border px-3 py-2.5"
+                    >
+                      <span
+                        className={
+                          row.variant === 'accepted'
+                            ? 'border-accepted/30 bg-accepted/10 text-accepted grid size-7 shrink-0 place-items-center rounded-md border'
+                            : row.variant === 'borderline'
+                              ? 'border-borderline/30 bg-borderline/10 text-borderline grid size-7 shrink-0 place-items-center rounded-md border'
+                              : 'border-blocked/30 bg-blocked/10 text-blocked grid size-7 shrink-0 place-items-center rounded-md border'
+                        }
+                      >
+                        <row.icon className="size-4" aria-hidden />
+                      </span>
+                      <span className="flex min-w-0 flex-col">
+                        <span className="text-sm font-medium">{row.label}</span>
+                        <span className="text-muted-foreground text-xs">
+                          {row.note}
+                        </span>
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+
+                <p className="text-muted-foreground mt-5 border-t pt-4 text-xs leading-relaxed">
+                  Every claim is traced to your original CV. Refused claims can
+                  never reach the downloaded file.
+                </p>
+              </div>
+            </div>
           </div>
         </Container>
       </section>
@@ -186,7 +264,7 @@ export default async function Home({
       {/* ---------------------------------------------------------------- */}
       {/* How it works                                                      */}
       {/* ---------------------------------------------------------------- */}
-      <section id="how" className="scroll-mt-20 py-16 sm:py-20">
+      <section id="how" className="bg-muted/30 scroll-mt-20 border-b py-16 sm:py-20">
         <Container>
           <div className="flex max-w-2xl flex-col gap-3">
             <Badge variant="brand">How it works</Badge>
@@ -202,13 +280,16 @@ export default async function Home({
           <ol className="mt-10 grid gap-4 sm:grid-cols-2 sm:gap-5 xl:grid-cols-4">
             {steps.map((step, index) => (
               <li key={step.title}>
-                <Card className="card-hover h-full">
+                <Card className="h-full">
                   <CardHeader>
-                    <div className="mb-1 flex items-center gap-3">
-                      <span className="gradient-brand shadow-soft grid size-10 shrink-0 place-items-center rounded-lg">
-                        <step.icon className="size-5 text-white" aria-hidden />
+                    <div className="mb-1 flex items-center justify-between gap-3">
+                      <span className="border-brand-500/25 bg-brand-500/10 grid size-10 shrink-0 place-items-center rounded-md border">
+                        <step.icon
+                          className="text-brand-700 dark:text-brand-300 size-5"
+                          aria-hidden
+                        />
                       </span>
-                      <span className="text-muted-foreground/60 text-2xl font-semibold tabular-nums">
+                      <span className="text-muted-foreground/50 font-display text-2xl font-semibold tabular-nums">
                         {String(index + 1).padStart(2, '0')}
                       </span>
                     </div>
@@ -227,10 +308,7 @@ export default async function Home({
       {/* ---------------------------------------------------------------- */}
       {/* Promises                                                          */}
       {/* ---------------------------------------------------------------- */}
-      <section
-        id="promises"
-        className="gradient-subtle scroll-mt-20 border-y py-16 sm:py-20"
-      >
+      <section id="promises" className="scroll-mt-20 py-16 sm:py-20">
         <Container>
           <div className="flex max-w-2xl flex-col gap-3">
             <Badge variant="brand">Our promises</Badge>
@@ -245,11 +323,11 @@ export default async function Home({
 
           <div className="mt-10 grid gap-4 sm:gap-5 lg:grid-cols-3">
             {promises.map((promise) => (
-              <Card key={promise.title} className="card-hover h-full">
+              <Card key={promise.title} className="h-full">
                 <CardHeader>
-                  <span className="border-brand-500/25 bg-brand-500/10 mb-2 grid size-11 place-items-center rounded-xl border">
+                  <span className="border-brand-500/25 bg-brand-500/10 mb-2 grid size-11 place-items-center rounded-md border">
                     <promise.icon
-                      className="text-brand-600 dark:text-brand-300 size-5"
+                      className="text-brand-700 dark:text-brand-300 size-5"
                       aria-hidden
                     />
                   </span>
@@ -261,7 +339,7 @@ export default async function Home({
                   <p className="text-muted-foreground text-sm leading-relaxed">
                     {promise.body}
                   </p>
-                  <p className="border-brand-500/30 text-foreground/80 break-anywhere border-l-2 pl-3 text-xs">
+                  <p className="border-brand-500/40 text-foreground/80 break-anywhere border-l-2 pl-3 text-xs leading-relaxed">
                     {promise.footnote}
                   </p>
                 </CardContent>
@@ -274,7 +352,7 @@ export default async function Home({
       {/* ---------------------------------------------------------------- */}
       {/* Refusals                                                          */}
       {/* ---------------------------------------------------------------- */}
-      <section id="refusals" className="scroll-mt-20 py-16 sm:py-20">
+      <section id="refusals" className="bg-muted/30 scroll-mt-20 border-y py-16 sm:py-20">
         <Container>
           <div className="grid gap-10 lg:grid-cols-[1fr_1.15fr] lg:items-start">
             <div className="flex flex-col gap-4">
@@ -304,9 +382,9 @@ export default async function Home({
               {refusals.map((refusal) => (
                 <li
                   key={refusal.title}
-                  className="border-blocked/25 bg-blocked-surface/25 card-hover flex items-start gap-4 rounded-xl border p-4 sm:p-5"
+                  className="bg-card flex items-start gap-4 rounded-lg border p-4 sm:p-5"
                 >
-                  <span className="border-blocked/30 bg-blocked/10 mt-0.5 grid size-8 shrink-0 place-items-center rounded-lg border">
+                  <span className="border-blocked/30 bg-blocked/10 mt-0.5 grid size-8 shrink-0 place-items-center rounded-md border">
                     <Ban className="text-blocked size-4" aria-hidden />
                   </span>
                   <div className="flex min-w-0 flex-col gap-1">
@@ -325,7 +403,7 @@ export default async function Home({
       {/* ---------------------------------------------------------------- */}
       {/* Data handling                                                     */}
       {/* ---------------------------------------------------------------- */}
-      <section className="gradient-subtle border-y py-16 sm:py-20">
+      <section className="py-16 sm:py-20">
         <Container>
           <div className="grid gap-8 lg:grid-cols-2 lg:items-start lg:gap-10">
             <div className="flex flex-col gap-4">
@@ -336,7 +414,7 @@ export default async function Home({
               <h2 className="text-fluid-2xl font-semibold tracking-tight text-balance">
                 You will be told exactly who touches your information.
               </h2>
-              <p className="text-muted-foreground text-pretty">
+              <p className="text-muted-foreground text-pretty leading-relaxed">
                 POPIA requires it, and a privacy claim you cannot check is not
                 worth much. This is the same list you will see before you can
                 use the app.
@@ -393,25 +471,21 @@ export default async function Home({
       </section>
 
       {/* ---------------------------------------------------------------- */}
-      {/* Closing call to action                                            */}
+      {/* Closing call to action — a calm bordered panel, no gradient/glow  */}
       {/* ---------------------------------------------------------------- */}
-      <section className="py-16 sm:py-20">
+      <section className="pb-16 sm:pb-20">
         <Container>
-          <div className="gradient-hero glow-brand relative overflow-hidden rounded-2xl px-5 py-12 text-center sm:px-12 sm:py-16">
-            <div className="relative z-10 mx-auto flex max-w-2xl flex-col items-center gap-5">
-              <h2 className="text-fluid-2xl font-semibold tracking-tight text-balance text-white">
+          <div className="border-brand-500/25 bg-brand-500/5 relative overflow-hidden rounded-lg border px-5 py-12 text-center sm:px-12 sm:py-16">
+            <div className="mx-auto flex max-w-2xl flex-col items-center gap-5">
+              <h2 className="text-fluid-2xl font-semibold tracking-tight text-balance">
                 Start with the CV you already have.
               </h2>
-              <p className="text-fluid-base text-pretty text-white/80">
+              <p className="text-fluid-base text-muted-foreground text-pretty">
                 No payment, no password, and nothing on the finished CV that you
                 cannot back up.
               </p>
-              <form action={signInWithGoogle} className="w-full pt-2 sm:w-auto">
-                <Button
-                  type="submit"
-                  size="lg"
-                  className="text-brand-700 shadow-lift w-full bg-white hover:bg-white hover:brightness-100 sm:w-auto"
-                >
+              <form action={signInWithGoogle} className="w-full pt-1 sm:w-auto">
+                <Button type="submit" size="lg" className="w-full sm:w-auto">
                   <GoogleIcon className="size-5" />
                   Sign in with Google
                 </Button>

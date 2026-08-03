@@ -11,7 +11,7 @@ export default function GoodbyePage() {
   return (
     <main className="flex flex-col items-center py-24 text-center">
       <Container width="narrow">
-      <span className="border-accepted/30 bg-accepted/10 mb-6 grid size-14 place-items-center rounded-2xl border">
+      <span className="border-accepted/30 bg-accepted/10 mb-6 grid size-14 place-items-center rounded-lg border">
         <CheckCircle2 className="text-accepted size-7" aria-hidden />
       </span>
 

@@ -27,7 +27,7 @@ export function TemplatePreferenceForm({ current }: { current: string }) {
         {TEMPLATES.map((template) => (
           <label
             key={template.id}
-            className="card-hover has-[:checked]:border-brand-500/50 has-[:checked]:bg-brand-500/5 flex cursor-pointer flex-col gap-1.5 rounded-xl border p-4 transition-colors"
+            className="card-hover has-[:checked]:border-brand-500/50 has-[:checked]:bg-brand-500/5 flex cursor-pointer flex-col gap-1.5 rounded-lg border p-4 transition-colors"
           >
             <input
               type="radio"

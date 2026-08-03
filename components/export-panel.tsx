@@ -43,8 +43,8 @@ export function ExportPanel({
     <Card>
       <CardHeader>
         <div className="flex items-center gap-2.5">
-          <span className="gradient-brand shadow-soft grid size-9 place-items-center rounded-lg">
-            <Download className="size-4 text-white" aria-hidden />
+          <span className="border-brand-500/25 bg-brand-500/10 grid size-9 place-items-center rounded-md border">
+            <Download className="text-brand-700 dark:text-brand-300 size-4" aria-hidden />
           </span>
           <CardTitle asChild className="text-fluid-lg">
             <h2>Download</h2>
@@ -66,7 +66,7 @@ export function ExportPanel({
               return (
                 <label
                   key={template.id}
-                  className={`card-hover relative flex cursor-pointer flex-col gap-1.5 rounded-xl border p-4 transition-colors ${
+                  className={`card-hover relative flex cursor-pointer flex-col gap-1.5 rounded-lg border p-4 transition-colors ${
                     selected
                       ? 'border-brand-500/50 bg-brand-500/5'
                       : 'border-border'

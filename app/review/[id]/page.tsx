@@ -22,6 +22,17 @@ import type { IntegrityReport as Report } from '@/lib/domain/types';
 
 export const metadata = { title: 'Review' };
 
+/**
+ * No `loading.tsx` beside this file, for the same reason as the tailor route.
+ *
+ * A Suspense boundary at the segment level flushes the shell before this
+ * component runs, which commits HTTP 200 and makes the later `notFound()`
+ * cosmetic. Another user's tailoring would answer 200 rather than 404.
+ *
+ * If this page ever becomes slow enough to need a skeleton, wrap the slow
+ * subtree in an explicit <Suspense> *below* the ownership check on line 34,
+ * not at the segment level.
+ */
 export default async function ReviewPage({
   params,
 }: {

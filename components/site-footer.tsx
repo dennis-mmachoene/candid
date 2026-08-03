@@ -24,15 +24,18 @@ const sections = [
 
 export function SiteFooter() {
   return (
-    <footer className="gradient-subtle mt-16 border-t sm:mt-24">
+    <footer className="bg-muted/30 mt-16 border-t sm:mt-24">
       <Container className="py-10 sm:py-12">
         <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
           <div className="flex flex-col gap-3 lg:col-span-2">
             <div className="flex items-center gap-2.5">
-              <span className="gradient-brand grid size-8 place-items-center rounded-lg">
-                <ShieldCheck className="size-4 text-white" aria-hidden />
+              <span className="border-brand-500/30 bg-brand-500/10 grid size-8 place-items-center rounded-md border">
+                <ShieldCheck
+                  className="text-brand-700 dark:text-brand-300 size-4"
+                  aria-hidden
+                />
               </span>
-              <span className="text-base font-semibold tracking-tight">
+              <span className="font-display text-base font-semibold tracking-tight">
                 Candid
               </span>
             </div>
@@ -51,7 +54,7 @@ export function SiteFooter() {
                   <li key={link.href}>
                     <Link
                       href={link.href}
-                      className="text-muted-foreground hover:text-foreground text-sm transition-colors"
+                      className="text-muted-foreground hover:text-foreground rounded-sm text-sm underline-offset-4 transition-colors hover:underline"
                     >
                       {link.label}
                     </Link>
@@ -65,8 +68,7 @@ export function SiteFooter() {
         <div className="mt-10 flex flex-col gap-3 border-t pt-6 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-muted-foreground text-xs">
             Candid processes personal information under POPIA. Privacy policy
-            version{' '}
-            <span className="font-mono">{POLICY_VERSION}</span>.
+            version <span className="font-mono">{POLICY_VERSION}</span>.
           </p>
           <p className="text-muted-foreground text-xs">
             Your ID number is never stored. There is no column for one.

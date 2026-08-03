@@ -68,7 +68,7 @@ export function MobileNav({ email }: { email: string }) {
       {open ? (
         <div
           id="mobile-menu"
-          className="glass animate-fade absolute right-0 z-50 mt-2 w-60 origin-top-right rounded-xl border p-2 shadow-lift"
+          className="bg-popover animate-fade absolute right-0 z-50 mt-2 w-60 origin-top-right rounded-lg border p-2 shadow-lift"
         >
           <p className="text-muted-foreground break-anywhere px-3 py-2 text-xs">
             {email}
