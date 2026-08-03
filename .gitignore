@@ -54,3 +54,8 @@ next-env.d.ts
 /playwright-report/
 /blob-report/
 /playwright/.cache/
+
+# Microsoft Office lock files. Word writes ~$name.docx beside a document
+# while it is open, and it is gone the moment the document is closed.
+# One was committed by accident before this line existed.
+~$*
