@@ -145,6 +145,18 @@ export async function renderDocx(
     for (const block of section.blocks) {
       if (block.kind === 'paragraph') {
         children.push(paragraph(block.text, { size: base }));
+      } else if (block.kind === 'entry') {
+        // Bold, and still a plain paragraph. Not a table row, not a tab stop
+        // with the dates on the right — both of those are what stop a parser
+        // recovering a work history.
+        children.push(
+          paragraph(block.text, {
+            size: base,
+            bold: true,
+            spacingBefore: 4,
+            spacingAfter: 1,
+          }),
+        );
       } else {
         for (const item of block.items) {
           children.push(

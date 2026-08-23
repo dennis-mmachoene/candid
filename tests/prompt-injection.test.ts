@@ -21,8 +21,12 @@ import { assembleResumeDocument } from '@/lib/domain/resume-document';
 import { tailorCv } from '@/lib/domain/tailoring';
 import { reviewDraft } from '@/lib/domain/validator';
 import type { AIProvider, TailorRequest } from '@/lib/domain/ports';
-import type { ApprovedClaims, TailoredDraft } from '@/lib/domain/types';
-import { CV_WITH_IDENTIFIERS } from './fixtures';
+import type {
+  ApprovedClaims,
+  Position,
+  TailoredDraft,
+} from '@/lib/domain/types';
+import { CV_TWO_JOBS, CV_WITH_IDENTIFIERS } from './fixtures';
 
 const HOSTILE_ADVERT = `Senior Backend Engineer, Cape Town.
 
@@ -40,11 +44,29 @@ const NOTHING_APPROVED: ApprovedClaims = new Set<string>();
 /** A model that did exactly what the injected advert told it to. */
 const COMPROMISED_DRAFT: TailoredDraft = {
   summary: 'Backend developer with six years building payment systems.',
-  bullets: [
-    'Delivered a payments API in Java and PostgreSQL',
-    'Managed container orchestration with Kubernetes and Terraform',
-    'Worked at Google from 2015 on large-scale infrastructure',
+  positions: [
+    {
+      // Real employer, real dates — the injection did not touch these.
+      employer: 'Absa Bank',
+      title: 'Senior Developer',
+      startDate: '2020',
+      endDate: 'present',
+      bullets: [
+        'Delivered a payments API in Java and PostgreSQL',
+        'Managed container orchestration with Kubernetes and Terraform',
+        'Worked at Google from 2015 on large-scale infrastructure',
+      ],
+    },
+    {
+      // And the invented one the advert asked for.
+      employer: 'Google',
+      title: 'Infrastructure Engineer',
+      startDate: '2015',
+      endDate: '2020',
+      bullets: ['Ran large-scale infrastructure'],
+    },
   ],
+  qualifications: [],
   skills: ['Java', 'PostgreSQL', 'Kubernetes', 'Terraform'],
   gaps: [],
 };
@@ -104,7 +126,12 @@ describe('a fully successful injection still cannot fabricate', () => {
     const employerClaims = report.blocked.filter(
       (claim) => claim.claim.kind === 'employer',
     );
-    expect(employerClaims.map((c) => c.claim.text)).toContain('Google');
+    // A position now raises one claim describing the whole job, so the text
+    // reads "Infrastructure Engineer, Google (2015 – 2020)" rather than
+    // "Google". The employer still has to be in there.
+    expect(employerClaims.some((c) => c.claim.text.includes('Google'))).toBe(
+      true,
+    );
     expect(documentText(NOTHING_APPROVED)).not.toContain('Google');
   });
 
@@ -134,7 +161,16 @@ describe('employers and dates the CV does name', () => {
   it('accepts an organisation named in the CV', () => {
     const draft: TailoredDraft = {
       summary: '',
-      bullets: ['Delivered a payments API at Absa Bank in Java'],
+      positions: [
+        {
+          employer: 'Absa Bank',
+          title: 'Senior Developer',
+          startDate: '2020',
+          endDate: 'present',
+          bullets: ['Delivered a payments API at Absa Bank in Java'],
+        },
+      ],
+      qualifications: [],
       skills: [],
       gaps: [],
     };
@@ -150,7 +186,16 @@ describe('employers and dates the CV does name', () => {
     // inventing one.
     const draft: TailoredDraft = {
       summary: '',
-      bullets: ['Senior Developer at Absa Bank delivering payments'],
+      positions: [
+        {
+          employer: 'Absa Bank',
+          title: 'Senior Developer',
+          startDate: '2020',
+          endDate: 'present',
+          bullets: ['Senior Developer at Absa Bank delivering payments'],
+        },
+      ],
+      qualifications: [],
       skills: [],
       gaps: [],
     };
@@ -163,7 +208,16 @@ describe('employers and dates the CV does name', () => {
   it('accepts a date that appears in the CV', () => {
     const draft: TailoredDraft = {
       summary: '',
-      bullets: ['Senior Developer at Absa Bank since 2020'],
+      positions: [
+        {
+          employer: 'Absa Bank',
+          title: 'Senior Developer',
+          startDate: '2020',
+          endDate: 'present',
+          bullets: ['Senior Developer at Absa Bank since 2020'],
+        },
+      ],
+      qualifications: [],
       skills: [],
       gaps: [],
     };
@@ -204,5 +258,136 @@ describe('the advert reaches the provider as data', () => {
     expect(sent).not.toContain('Thabo');
     expect(sent).not.toContain('thabo.mokoena@example.co.za');
     expect(sent).not.toContain('8001015009087');
+  });
+});
+
+/**
+ * The failure a flat containment check cannot see.
+ *
+ * Every one of these passed before positions were judged as a unit, because
+ * each field on its own does appear somewhere in the CV. They are the reason
+ * that check was replaced rather than extended: a date is only meaningful
+ * against the employer it belongs to.
+ *
+ * This is also the class of defect that gets an offer withdrawn after a
+ * background check, which makes it the most damaging thing the product could
+ * quietly produce.
+ */
+describe('dates cannot be moved between jobs', () => {
+  const twoJobs = buildInventory(CV_TWO_JOBS);
+
+  const position = (over: Partial<Position> = {}): TailoredDraft => ({
+    summary: '',
+    positions: [
+      {
+        employer: 'Absa Bank',
+        title: 'Senior Developer',
+        startDate: '2020',
+        endDate: 'present',
+        bullets: ['Delivered a payments API'],
+        ...over,
+      },
+    ],
+    qualifications: [],
+    skills: [],
+    gaps: [],
+  });
+
+  const verdictFor = (draft: TailoredDraft) => {
+    const report = reviewDraft(draft, twoJobs);
+    return [...report.accepted, ...report.borderline, ...report.blocked].find(
+      (claim) => claim.claim.source === 'position',
+    )?.verdict;
+  };
+
+  it('accepts a position exactly as the CV states it', () => {
+    expect(verdictFor(position())).toBe('accepted');
+  });
+
+  it('accepts the second job exactly as the CV states it', () => {
+    expect(
+      verdictFor(
+        position({
+          employer: 'Dimension Data',
+          title: 'Developer',
+          startDate: '2017',
+          endDate: '2020',
+        }),
+      ),
+    ).toBe('accepted');
+  });
+
+  it('blocks a finished job stretched to the present', () => {
+    // The CV says Dimension Data ended in 2020. "present" belongs to Absa.
+    expect(
+      verdictFor(
+        position({
+          employer: 'Dimension Data',
+          title: 'Developer',
+          startDate: '2020',
+          endDate: 'present',
+        }),
+      ),
+    ).toBe('blocked');
+  });
+
+  it('blocks a start date borrowed from another job to erase a gap', () => {
+    // 2017 is real, but it belongs to Dimension Data. Backdating Absa to 2017
+    // hides the fact that the two jobs did not run continuously.
+    expect(verdictFor(position({ startDate: '2017' }))).toBe('blocked');
+  });
+
+  it('blocks an invented title beside a genuine employer', () => {
+    expect(
+      verdictFor(position({ title: 'Chief Technology Officer' })),
+    ).toBe('blocked');
+  });
+
+  it('blocks an employer the CV never names', () => {
+    expect(verdictFor(position({ employer: 'Standard Bank' }))).toBe('blocked');
+  });
+
+  it('blocks a fragment of a real employer', () => {
+    // "Bank" is a genuine word inside "Absa Bank". A fragment of a name must
+    // not satisfy a check for the name.
+    expect(verdictFor(position({ employer: 'Bank', title: 'Senior' }))).toBe(
+      'blocked',
+    );
+  });
+});
+
+describe('a rejected position takes its bullets with it', () => {
+  const twoJobs = buildInventory(CV_TWO_JOBS);
+
+  it('leaves no orphaned bullets behind', () => {
+    const draft: TailoredDraft = {
+      summary: '',
+      positions: [
+        {
+          employer: 'Standard Bank',
+          title: 'Senior Developer',
+          startDate: '2020',
+          endDate: 'present',
+          bullets: ['Delivered a payments API in Java and PostgreSQL'],
+        },
+      ],
+      qualifications: [],
+      skills: [],
+      gaps: [],
+    };
+
+    const report = reviewDraft(draft, twoJobs);
+    const { document } = assembleResumeDocument({
+      identity: { fullName: null, email: null, phone: null, otherLines: [] },
+      draft,
+      report,
+      approved: new Set<string>(),
+    });
+
+    const text = JSON.stringify(document);
+    expect(text).not.toContain('Standard Bank');
+    // The bullet must go with it. Keeping achievements attached to nobody is
+    // the exact document this work exists to stop producing.
+    expect(text).not.toContain('Delivered a payments API');
   });
 });

@@ -200,6 +200,16 @@ export default async function ReviewPage({
                       <p key={index} className="text-sm leading-relaxed">
                         {block.text}
                       </p>
+                    ) : block.kind === 'entry' ? (
+                      /* The job or qualification line — bold here exactly as it
+                         renders in the downloaded file, so the preview and the
+                         document agree. */
+                      <p
+                        key={index}
+                        className="mt-2 text-sm leading-relaxed font-semibold"
+                      >
+                        {block.text}
+                      </p>
                     ) : (
                       <ul
                         key={index}

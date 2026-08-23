@@ -25,7 +25,16 @@ import type { IntegrityReport, TailoredDraft } from '@/lib/domain/types';
 
 const DRAFT: TailoredDraft = {
   summary: 'Backend developer with six years of experience.',
-  bullets: ['Delivered a payments API in Java'],
+  positions: [
+    {
+      employer: 'Absa Bank',
+      title: 'Senior Developer',
+      startDate: '2020',
+      endDate: 'present',
+      bullets: ['Delivered a payments API in Java'],
+    },
+  ],
+  qualifications: [],
   skills: ['Java', 'PostgreSQL'],
   gaps: [{ skill: 'Kubernetes', note: 'Not in your CV.' }],
 };
@@ -74,14 +83,16 @@ describe('round trip', () => {
   it('rejects a value that cannot survive a database column', () => {
     const withSet = {
       summary: 'fine',
-      bullets: [],
+      positions: [],
+      qualifications: [],
       skills: new Set(['Java', 'PostgreSQL']),
       gaps: [],
     };
 
     expect(toJson(withSet)).toEqual({
       summary: 'fine',
-      bullets: [],
+      positions: [],
+      qualifications: [],
       skills: {},
       gaps: [],
     });
@@ -132,7 +143,12 @@ describe('a nearly-right integrity report', () => {
 
 describe('a nearly-right draft', () => {
   it('is refused when gaps are missing', () => {
-    const noGaps = { summary: '', bullets: [], skills: [] } as unknown as Json;
+    const noGaps = {
+      summary: '',
+      positions: [],
+      qualifications: [],
+      skills: [],
+    } as unknown as Json;
     expect(() => readDraft(noGaps)).toThrow(CorruptRecordError);
   });
 

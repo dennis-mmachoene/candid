@@ -203,6 +203,13 @@ export async function renderPdf(
     for (const block of section.blocks) {
       if (block.kind === 'paragraph') {
         layout.line(block.text, { size: template.baseFontSize });
+      } else if (block.kind === 'entry') {
+        // The job or qualification line. Bold and nothing else — no right-
+        // aligned dates, no rule, no two-column split. Bold is the one piece of
+        // formatting an applicant tracking system reads reliably, and the
+        // designer's version of this line is what makes a CV unparseable.
+        layout.gap(template.sectionSpacing / 3);
+        layout.line(block.text, { size: template.baseFontSize, bold: true });
       } else {
         for (const item of block.items) {
           layout.bullet(item);

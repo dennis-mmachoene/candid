@@ -56,12 +56,66 @@ const draftSchema = z
       .describe(
         'A two or three sentence professional summary, drawn only from the supplied experience.',
       ),
-    bullets: z
-      .array(z.string().max(400))
-      .max(20)
+    positions: z
+      .array(
+        z
+          .object({
+            employer: z
+              .string()
+              .max(120)
+              .describe(
+                'The employer name exactly as written in the CV. Never reworded, never abbreviated, never expanded.',
+              ),
+            title: z
+              .string()
+              .max(120)
+              .describe('The job title exactly as written in the CV.'),
+            startDate: z
+              .string()
+              .max(40)
+              .describe(
+                'Start date exactly as the CV writes it, for example "2020" or "March 2020". Empty string if the CV does not give one.',
+              ),
+            endDate: z
+              .string()
+              .max(40)
+              .describe(
+                'End date exactly as the CV writes it. "present" is valid. Empty string if the CV does not give one. Never estimate.',
+              ),
+            bullets: z
+              .array(z.string().max(400))
+              .max(10)
+              .describe(
+                'What this person did in THIS job, rephrased from the CV. Never new achievements, and never moved here from another job.',
+              ),
+          })
+          .strict(),
+      )
+      .max(12)
       .describe(
-        'Experience bullet points, rephrased from the supplied CV. Never new achievements.',
+        'One entry per job in the CV, newest first. Employer, title and dates are copied, not rewritten.',
       ),
+    qualifications: z
+      .array(
+        z
+          .object({
+            award: z
+              .string()
+              .max(160)
+              .describe('The qualification exactly as written, e.g. "BSc Computer Science".'),
+            institution: z
+              .string()
+              .max(160)
+              .describe('The awarding institution exactly as written.'),
+            year: z
+              .string()
+              .max(40)
+              .describe('Year as written. Empty string if the CV does not give one.'),
+          })
+          .strict(),
+      )
+      .max(10)
+      .describe('Education from the CV. Empty array if the CV lists none.'),
     skills: z
       .array(z.string().max(80))
       .max(40)
@@ -97,6 +151,9 @@ Rules you must not break:
 3. If the advert asks for something the CV does not support, put it in "gaps". Never in "skills". This is the most common mistake and the most damaging one: it puts the candidate in an interview defending a claim they cannot back.
 4. Rephrasing is allowed and expected. "Fixed bugs in the payments system" may become "Resolved defects in payment processing" if the advert uses that language. The underlying fact must stay identical.
 5. Write plain South African English. No buzzwords, no "synergy", no "results-driven professional".
+6. Employer names, job titles, dates, qualifications and institutions are COPIED, not written. Reproduce them character for character as the CV has them. Do not tidy them up, do not expand an abbreviation, do not merge two jobs into one, and do not move a bullet from one job to another.
+7. If the CV does not state a date, leave that field as an empty string. Never estimate one, never infer it from another date, and never write "unknown". An invented date is the single most damaging thing you can produce here: it is the thing a background check catches, and the candidate carries the consequence, not you.
+8. Every bullet belongs to the job it came from. A bullet with no employer attached is worse than no bullet at all.
 
 The CV you receive has had the person's name, contact details and ID number removed before it reached you. Do not ask for them, do not guess at them, and do not write placeholders for them.
 
@@ -121,7 +178,9 @@ ${fence}
 ${request.jobAdvert}
 ${fence}
 
-Now produce the tailored CV content, using only experience present in the <cv> block above. Anything the advert asks for that the CV does not support belongs in gaps.`;
+Now produce the tailored CV content, using only experience present in the <cv> block above. Anything the advert asks for that the CV does not support belongs in gaps.
+
+Keep each job separate, with its own employer, title, dates and bullets, copied from the CV exactly. Include every qualification the CV lists.`;
 }
 
 // ---------------------------------------------------------------------------
