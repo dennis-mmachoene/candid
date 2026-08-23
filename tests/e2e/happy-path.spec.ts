@@ -166,8 +166,29 @@ test.describe('tailoring and export', () => {
       timeout: 30_000,
     });
 
-    await page.getByRole('link', { name: /tailor to a job advert/i }).click();
-    await expect(page).toHaveURL(/\/tailor\//);
+    /*
+     * This navigation gets its own timeout, and the reason is the test
+     * environment rather than the product.
+     *
+     * The suite starts `npm run dev`, which compiles a route the first time
+     * something asks for it. `/tailor/[resumeId]` is the only route in the
+     * application that no earlier spec visits — /, /dashboard, /privacy,
+     * /review, /settings and /goodbye are all warm by the time we reach here.
+     * So this click pays the full cold compile, the URL stays on /dashboard
+     * while that happens, and the default five seconds is not always enough.
+     *
+     * The failure looks alarming because the reported URL is the page we just
+     * left, which reads as "the click did nothing". The click worked.
+     *
+     * The two navigations below and above already carry explicit timeouts for
+     * the same reason. This one was simply fast enough until it was not.
+     */
+    const tailorLink = page.getByRole('link', {
+      name: /tailor to a job advert/i,
+    });
+    await expect(tailorLink).toBeVisible();
+    await tailorLink.click();
+    await expect(page).toHaveURL(/\/tailor\//, { timeout: 30_000 });
 
     await page.getByLabel(/job title/i).fill('Senior Backend Engineer');
     await page.getByLabel(/the job advert/i).fill(ADVERT_WITH_INJECTION);
