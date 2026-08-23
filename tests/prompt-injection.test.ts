@@ -308,7 +308,14 @@ describe('a date cannot be moved between jobs', () => {
     const report = reviewDraft(draft, twoJobs);
     const all = [...report.accepted, ...report.borderline, ...report.blocked];
     const { document } = assembleResumeDocument({
-      identity: { fullName: null, email: null, phone: null, otherLines: [] },
+      identity: {
+        fullName: null,
+        email: null,
+        phone: null,
+        location: null,
+        links: [],
+        otherLines: [],
+      },
       draft,
       report,
       approved: new Set<string>(),
@@ -436,7 +443,14 @@ describe('a rejected position takes its bullets with it', () => {
 
     const report = reviewDraft(draft, twoJobs);
     const { document } = assembleResumeDocument({
-      identity: { fullName: null, email: null, phone: null, otherLines: [] },
+      identity: {
+        fullName: null,
+        email: null,
+        phone: null,
+        location: null,
+        links: [],
+        otherLines: [],
+      },
       draft,
       report,
       approved: new Set<string>(),

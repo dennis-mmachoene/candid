@@ -281,6 +281,83 @@ function findPhone(text: string): string | null {
  * `otherLines` and withheld too — an address or a portfolio URL is identifying
  * even though it is none of those three.
  */
+
+/**
+ * Places a South African employer filters on.
+ *
+ * Nine provinces and the cities that carry most of the country's job adverts.
+ * A list rather than a pattern because a place name has no shape to match —
+ * and because the failure of a list is a missed city, which is recoverable,
+ * while the failure of a loose pattern is somebody's street address printed on
+ * their CV.
+ */
+const SA_LOCATIONS: readonly string[] = [
+  'Eastern Cape', 'Free State', 'Gauteng', 'KwaZulu-Natal', 'KwaZulu Natal',
+  'Limpopo', 'Mpumalanga', 'Northern Cape', 'North West', 'Western Cape',
+  'Johannesburg', 'Pretoria', 'Tshwane', 'Cape Town', 'Durban', 'eThekwini',
+  'Port Elizabeth', 'Gqeberha', 'East London', 'Bloemfontein', 'Mangaung',
+  'Polokwane', 'Nelspruit', 'Mbombela', 'Kimberley', 'Rustenburg', 'Soweto',
+  'Sandton', 'Midrand', 'Centurion', 'Randburg', 'Roodepoort', 'Boksburg',
+  'Benoni', 'Kempton Park', 'Vereeniging', 'Vanderbijlpark', 'Witbank',
+  'eMalahleni', 'Emalahleni', 'Stellenbosch', 'Paarl', 'George', 'Knysna',
+  'Pietermaritzburg', 'Richards Bay', 'Newcastle', 'Umhlanga', 'Ballito',
+  'Sasolburg', 'Welkom', 'Klerksdorp', 'Potchefstroom', 'Mahikeng', 'Upington',
+  'Springbok', 'Thohoyandou', 'Giyani', 'Tzaneen', 'Secunda', 'Middelburg',
+];
+
+const SA_PROVINCES = new Set([
+  'eastern cape', 'free state', 'gauteng', 'kwazulu-natal', 'kwazulu natal',
+  'limpopo', 'mpumalanga', 'northern cape', 'north west', 'western cape',
+]);
+
+/** LinkedIn, GitHub and anything else a candidate lists as a profile. */
+const PROFILE_LINK =
+  /\b((?:https?:\/\/)?(?:www\.)?(?:linkedin\.com|github\.com|gitlab\.com|behance\.net|dribbble\.com|stackoverflow\.com|medium\.com)\/[^\s,|]+)/gi;
+
+/**
+ * City and province only, taken from the header block.
+ *
+ * The matched place names are returned, never the line they were found on.
+ * "12 Rissik Street, Braamfontein, Johannesburg 2001" yields "Johannesburg" —
+ * the street stays behind, which is both what an employer needs and less than
+ * we would otherwise be keeping.
+ */
+export function extractLocation(headerLines: readonly string[]): string | null {
+  const text = headerLines.join(' | ');
+  const found: string[] = [];
+
+  for (const place of SA_LOCATIONS) {
+    const pattern = new RegExp(`(?<![A-Za-z])${place.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![A-Za-z])`, 'i');
+    if (pattern.test(text) && !found.some((f) => f.toLowerCase() === place.toLowerCase())) {
+      found.push(place);
+    }
+  }
+
+  if (found.length === 0) return null;
+
+  // City first, then province — "Pretoria, Gauteng", the way a person writes
+  // it. The list is alphabetical, so without this the province leads.
+  const cities = found.filter((place) => !SA_PROVINCES.has(place.toLowerCase()));
+  const provinces = found.filter((place) => SA_PROVINCES.has(place.toLowerCase()));
+
+  // A city and its province is the most anyone needs. More reads as clutter.
+  return [...cities.slice(0, 1), ...provinces.slice(0, 1)].join(', ') || found[0];
+}
+
+/** Profile links from the header block, de-duplicated, in the order found. */
+export function extractLinks(headerLines: readonly string[]): string[] {
+  const seen = new Set<string>();
+  const links: string[] = [];
+  for (const match of headerLines.join('\n').matchAll(PROFILE_LINK)) {
+    const link = match[1].replace(/[.,;]+$/, '');
+    const key = link.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    links.push(link);
+  }
+  return links;
+}
+
 export function extractIdentity(headerLines: readonly string[]): IdentityHeader {
   const headerText = headerLines.join('\n');
   const email = firstMatch(headerText, EMAIL_PATTERN);
@@ -307,7 +384,14 @@ export function extractIdentity(headerLines: readonly string[]): IdentityHeader 
     otherLines.push(trimmed);
   }
 
-  return { fullName, email, phone, otherLines };
+  return {
+    fullName,
+    email,
+    phone,
+    location: extractLocation(headerLines),
+    links: extractLinks(headerLines),
+    otherLines,
+  };
 }
 
 // ---------------------------------------------------------------------------

@@ -26,6 +26,27 @@ export interface IdentityHeader {
   email: string | null;
   phone: string | null;
   /**
+   * City and province, and nothing more precise.
+   *
+   * This was being thrown away with the rest of the header, and it costs
+   * people interviews. South African adverts filter on location before they
+   * filter on anything else, so a CV that does not say where you are reads as
+   * a CV from somewhere inconvenient.
+   *
+   * The street address is still discarded. An employer needs to know you are
+   * in Pretoria; nobody needs your house number, and keeping it would be
+   * collecting more than the purpose requires.
+   */
+  location: string | null;
+  /**
+   * Profile links — LinkedIn, GitHub and the like.
+   *
+   * Same problem as the location. They sat in the discarded header lines, so a
+   * developer's GitHub never reached the document that was meant to get them
+   * hired. Never sent to the model; reattached on export like the rest.
+   */
+  links: string[];
+  /**
    * Remaining lines of the CV's header block (address, portfolio links, and so
    * on). We keep these server-side rather than forwarding them, on the
    * principle that anything sitting in the header block is presumed

@@ -18,6 +18,10 @@ const IDENTITY: IdentityHeader = {
   fullName: 'Thabo Mokoena',
   email: 'thabo.mokoena@example.co.za',
   phone: '+27 82 555 0134',
+  // The city is printed on the CV; the street address is not. Both are still
+  // encrypted, because both came off the person's own document.
+  location: 'Johannesburg, Gauteng',
+  links: ['github.com/thabo-mokoena'],
   otherLines: ['12 Rissik Street, Braamfontein, Johannesburg 2001'],
 };
 

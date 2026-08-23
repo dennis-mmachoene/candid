@@ -57,8 +57,10 @@ function fontName(template: TemplateSpec): string {
 }
 
 function contactLine(identity: IdentityHeader): string {
-  return [identity.email, identity.phone]
-    .filter((part): part is string => Boolean(part))
+  // Location and profile links belong here. They were being discarded with the
+  // rest of the header, and a South African advert filters on location first.
+  return [identity.email, identity.phone, identity.location, ...identity.links]
+    .filter((part): part is string => Boolean(part && part.trim()))
     .join('  |  ');
 }
 

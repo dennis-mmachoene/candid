@@ -125,6 +125,11 @@ export function decryptIdentityHeader(payload: string): IdentityHeader {
     fullName: typeof record.fullName === 'string' ? record.fullName : null,
     email: typeof record.email === 'string' ? record.email : null,
     phone: typeof record.phone === 'string' ? record.phone : null,
+    // Headers encrypted before location and links existed have neither.
+    location: typeof record.location === 'string' ? record.location : null,
+    links: Array.isArray(record.links)
+      ? record.links.filter((link): link is string => typeof link === 'string')
+      : [],
     otherLines: Array.isArray(record.otherLines)
       ? record.otherLines.filter((line): line is string => typeof line === 'string')
       : [],
