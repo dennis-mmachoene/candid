@@ -121,7 +121,13 @@ export default async function DashboardPage() {
             </CardContent>
           </Card>
         ) : (
-          <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          /*
+            A fourth column only above 1920. The extra width from the wider
+            shell is better spent on another card than on making three cards
+            wider — a CV card is a fixed amount of information and stretching
+            it just moves the badge further from the title.
+          */
+          <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 min-[1920px]:grid-cols-4">
             {resumes.map((resume) => (
               <li key={resume.id}>
                 <Card className="card-hover h-full">
