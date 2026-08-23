@@ -168,4 +168,33 @@ test.describe('content width', () => {
     const difference = Math.abs((logo?.x ?? 0) - (heading?.x ?? 0));
     expect(difference === 0 || difference > 100).toBe(true);
   });
+
+  /**
+   * The wide shell uses the space a large monitor gives it; prose refuses to.
+   *
+   * These two assertions belong together because the temptation is to "fix"
+   * the second one by widening prose to match. A card grid has no reading
+   * measure and should grow. A paragraph has one and must not: 704px already
+   * runs to roughly 78 characters at the body size in use, and widening to
+   * 56rem would give over 90.
+   */
+  test('the wide shell grows on a large monitor and prose does not', async ({
+    page,
+  }) => {
+    await page.goto('/privacy', { waitUntil: 'networkidle' });
+
+    const header = await page
+      .locator('header [data-slot="container"]')
+      .first()
+      .boundingBox();
+    const paragraph = await page.locator('main p').first().boundingBox();
+
+    // Above 1920 the wide container is capped at 90rem, so its content box is
+    // 1440px less the 32px gutters. Anything near 1152 means the growth steps
+    // were dropped.
+    expect(header?.width).toBeGreaterThan(1300);
+
+    // And the paragraph is still held at the reading measure regardless.
+    expect(paragraph?.width).toBeLessThan(900);
+  });
 });
