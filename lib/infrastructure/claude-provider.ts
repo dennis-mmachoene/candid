@@ -88,6 +88,12 @@ const draftSchema = z
               .describe(
                 'What this person did in THIS job, rephrased from the CV. Never new achievements, and never moved here from another job.',
               ),
+            evidence: z
+              .string()
+              .max(600)
+              .describe(
+                'COPY the exact text from the CV that names this employer, title and dates. Character for character, including punctuation. If they span two lines, include both. This is checked against the CV and the job is dropped if it does not match.',
+              ),
           })
           .strict(),
       )
@@ -111,6 +117,12 @@ const draftSchema = z
               .string()
               .max(40)
               .describe('Year as written. Empty string if the CV does not give one.'),
+            evidence: z
+              .string()
+              .max(600)
+              .describe(
+                'COPY the exact text from the CV naming this qualification and institution. Character for character.',
+              ),
           })
           .strict(),
       )
@@ -154,6 +166,9 @@ Rules you must not break:
 6. Employer names, job titles, dates, qualifications and institutions are COPIED, not written. Reproduce them character for character as the CV has them. Do not tidy them up, do not expand an abbreviation, do not merge two jobs into one, and do not move a bullet from one job to another.
 7. If the CV does not state a date, leave that field as an empty string. Never estimate one, never infer it from another date, and never write "unknown". An invented date is the single most damaging thing you can produce here: it is the thing a background check catches, and the candidate carries the consequence, not you.
 8. Every bullet belongs to the job it came from. A bullet with no employer attached is worse than no bullet at all.
+9. For every job and every qualification, fill in "evidence" with the exact text from the CV that you read it from. Copy it character for character, including punctuation. If the employer is on one line and the title on another, include both lines. Do not summarise it, do not tidy it, do not retype it from memory.
+
+The evidence is checked against the CV word for word. If it does not appear there, the job is dropped from the output. This is how the CV stays truthful no matter how it was laid out — you read the document however it is written, and show which words you took each fact from.
 
 The CV you receive has had the person's name, contact details and ID number removed before it reached you. Do not ask for them, do not guess at them, and do not write placeholders for them.
 
@@ -180,7 +195,9 @@ ${fence}
 
 Now produce the tailored CV content, using only experience present in the <cv> block above. Anything the advert asks for that the CV does not support belongs in gaps.
 
-Keep each job separate, with its own employer, title, dates and bullets, copied from the CV exactly. Include every qualification the CV lists.`;
+Keep each job separate, with its own employer, title, dates and bullets, copied from the CV exactly. Include every qualification the CV lists.
+
+For each one, put the exact CV text you read it from in "evidence". Copy, do not paraphrase.`;
 }
 
 // ---------------------------------------------------------------------------

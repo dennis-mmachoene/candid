@@ -56,6 +56,7 @@ const COMPROMISED_DRAFT: TailoredDraft = {
         'Managed container orchestration with Kubernetes and Terraform',
         'Worked at Google from 2015 on large-scale infrastructure',
       ],
+      evidence: 'Senior Developer, Absa Bank (2020 - present)',
     },
     {
       // And the invented one the advert asked for.
@@ -64,6 +65,8 @@ const COMPROMISED_DRAFT: TailoredDraft = {
       startDate: '2015',
       endDate: '2020',
       bullets: ['Ran large-scale infrastructure'],
+      // Nothing like this is in the CV, so the quote itself is the fabrication.
+      evidence: 'Infrastructure Engineer, Google (2015 - 2020)',
     },
   ],
   qualifications: [],
@@ -168,6 +171,7 @@ describe('employers and dates the CV does name', () => {
           startDate: '2020',
           endDate: 'present',
           bullets: ['Delivered a payments API at Absa Bank in Java'],
+          evidence: 'Senior Developer, Absa Bank (2020 - present)',
         },
       ],
       qualifications: [],
@@ -193,6 +197,7 @@ describe('employers and dates the CV does name', () => {
           startDate: '2020',
           endDate: 'present',
           bullets: ['Senior Developer at Absa Bank delivering payments'],
+          evidence: 'Senior Developer, Absa Bank (2020 - present)',
         },
       ],
       qualifications: [],
@@ -215,6 +220,7 @@ describe('employers and dates the CV does name', () => {
           startDate: '2020',
           endDate: 'present',
           bullets: ['Senior Developer at Absa Bank since 2020'],
+          evidence: 'Senior Developer, Absa Bank (2020 - present)',
         },
       ],
       qualifications: [],
@@ -273,10 +279,13 @@ describe('the advert reaches the provider as data', () => {
  * background check, which makes it the most damaging thing the product could
  * quietly produce.
  */
-describe('dates cannot be moved between jobs', () => {
+describe('a date cannot be moved between jobs', () => {
   const twoJobs = buildInventory(CV_TWO_JOBS);
 
-  const position = (over: Partial<Position> = {}): TailoredDraft => ({
+  const ABSA = 'Senior Developer, Absa Bank (2020 - present)';
+  const DIMENSION = 'Developer, Dimension Data (2017 - 2020)';
+
+  const draftOf = (over: Partial<Position>): TailoredDraft => ({
     summary: '',
     positions: [
       {
@@ -285,6 +294,7 @@ describe('dates cannot be moved between jobs', () => {
         startDate: '2020',
         endDate: 'present',
         bullets: ['Delivered a payments API'],
+        evidence: ABSA,
         ...over,
       },
     ],
@@ -293,66 +303,112 @@ describe('dates cannot be moved between jobs', () => {
     gaps: [],
   });
 
-  const verdictFor = (draft: TailoredDraft) => {
+  const judge = (over: Partial<Position>) => {
+    const draft = draftOf(over);
     const report = reviewDraft(draft, twoJobs);
-    return [...report.accepted, ...report.borderline, ...report.blocked].find(
-      (claim) => claim.claim.source === 'position',
-    )?.verdict;
+    const all = [...report.accepted, ...report.borderline, ...report.blocked];
+    const { document } = assembleResumeDocument({
+      identity: { fullName: null, email: null, phone: null, otherLines: [] },
+      draft,
+      report,
+      approved: new Set<string>(),
+    });
+    return {
+      job: all.find((c) => c.claim.kind !== 'date' && c.claim.source === 'position')
+        ?.verdict,
+      badDates: all
+        .filter((c) => c.claim.kind === 'date' && c.verdict === 'blocked')
+        .map((c) => c.claim.text),
+      text: JSON.stringify(document),
+    };
   };
 
-  it('accepts a position exactly as the CV states it', () => {
-    expect(verdictFor(position())).toBe('accepted');
+  it('accepts a job quoted exactly as the CV states it', () => {
+    const { job, badDates } = judge({});
+    expect(job).toBe('accepted');
+    expect(badDates).toEqual([]);
   });
 
-  it('accepts the second job exactly as the CV states it', () => {
-    expect(
-      verdictFor(
-        position({
-          employer: 'Dimension Data',
-          title: 'Developer',
-          startDate: '2017',
-          endDate: '2020',
-        }),
-      ),
-    ).toBe('accepted');
+  it('accepts the second job, quoted from its own line', () => {
+    const { job, badDates } = judge({
+      employer: 'Dimension Data',
+      title: 'Developer',
+      startDate: '2017',
+      endDate: '2020',
+      evidence: DIMENSION,
+    });
+    expect(job).toBe('accepted');
+    expect(badDates).toEqual([]);
   });
 
-  it('blocks a finished job stretched to the present', () => {
-    // The CV says Dimension Data ended in 2020. "present" belongs to Absa.
-    expect(
-      verdictFor(
-        position({
-          employer: 'Dimension Data',
-          title: 'Developer',
-          startDate: '2020',
-          endDate: 'present',
-        }),
-      ),
-    ).toBe('blocked');
+  /**
+   * The job stays. The borrowed date does not.
+   *
+   * This is the change that matters most. Refusing the whole job for one
+   * unverifiable date is how somebody with eight years of history downloaded a
+   * CV showing three. Their employer is real, so it is printed — without the
+   * date the CV does not support.
+   */
+  it('keeps a job but drops an end date its own quote does not support', () => {
+    const { job, badDates, text } = judge({
+      employer: 'Dimension Data',
+      title: 'Developer',
+      startDate: '2017',
+      endDate: 'present',
+      evidence: DIMENSION,
+    });
+
+    expect(job).toBe('accepted');
+    expect(badDates).toContain('present');
+    expect(text).toContain('Dimension Data');
+    expect(text).not.toContain('present');
   });
 
-  it('blocks a start date borrowed from another job to erase a gap', () => {
-    // 2017 is real, but it belongs to Dimension Data. Backdating Absa to 2017
-    // hides the fact that the two jobs did not run continuously.
-    expect(verdictFor(position({ startDate: '2017' }))).toBe('blocked');
+  it('drops a start date borrowed from the other job', () => {
+    // 2017 is real, but it belongs to Dimension Data. Backdating Absa hides
+    // that the two jobs did not run continuously.
+    const { job, badDates, text } = judge({ startDate: '2017' });
+
+    expect(job).toBe('accepted');
+    expect(badDates).toContain('2017');
+    expect(text).toContain('Absa Bank');
+    expect(text).not.toContain('2017');
   });
 
-  it('blocks an invented title beside a genuine employer', () => {
-    expect(
-      verdictFor(position({ title: 'Chief Technology Officer' })),
-    ).toBe('blocked');
+  it('blocks a job whose quote is not in the CV at all', () => {
+    const { job } = judge({
+      employer: 'Standard Bank',
+      evidence: 'Senior Developer, Standard Bank (2020 - present)',
+    });
+    expect(job).toBe('blocked');
   });
 
-  it('blocks an employer the CV never names', () => {
-    expect(verdictFor(position({ employer: 'Standard Bank' }))).toBe('blocked');
+  it('blocks an invented title, even beside a real employer', () => {
+    const { job } = judge({ title: 'Chief Technology Officer' });
+    expect(job).toBe('blocked');
   });
 
   it('blocks a fragment of a real employer', () => {
-    // "Bank" is a genuine word inside "Absa Bank". A fragment of a name must
-    // not satisfy a check for the name.
-    expect(verdictFor(position({ employer: 'Bank', title: 'Senior' }))).toBe(
-      'blocked',
+    // "Bank" is a real word inside "Absa Bank". A fragment must not satisfy a
+    // check for the name.
+    const { job } = judge({ employer: 'Bank', title: 'Senior' });
+    expect(job).toBe('blocked');
+  });
+
+  it('accepts a name the CV writes with a legal suffix', () => {
+    // Dropping "Limited" is a person shortening their employer, not inventing
+    // one. Blocking that was a regression.
+    const cv = buildInventory(
+      'Experience\nSenior Developer, Absa Bank Limited (2020 - present)\n',
     );
+    const draft = draftOf({
+      evidence: 'Senior Developer, Absa Bank Limited (2020 - present)',
+    });
+    const report = reviewDraft(draft, cv);
+    const job = [...report.accepted, ...report.blocked].find(
+      (c) => c.claim.kind !== 'date' && c.claim.source === 'position',
+    );
+    expect(job?.verdict).toBe('accepted');
   });
 });
 
@@ -369,6 +425,8 @@ describe('a rejected position takes its bullets with it', () => {
           startDate: '2020',
           endDate: 'present',
           bullets: ['Delivered a payments API in Java and PostgreSQL'],
+          // No such line in the CV.
+          evidence: 'Senior Developer, Standard Bank (2020 - present)',
         },
       ],
       qualifications: [],

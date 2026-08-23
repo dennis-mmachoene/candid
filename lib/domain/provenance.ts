@@ -208,101 +208,71 @@ export function appearsInSource(mention: string, sourceText: string): boolean {
 }
 
 // ---------------------------------------------------------------------------
-// Scoped provenance — a position judged as a whole
+// Quoted provenance — the model shows its working
 // ---------------------------------------------------------------------------
 
 /**
- * Why `appearsInSource` is not enough for a position.
+ * Why this replaced the previous approach entirely.
  *
- * That function asks one question: does this text appear anywhere in the CV.
- * For an employer invented out of nothing that is sufficient — "Standard Bank"
- * is absent, so it is blocked. For a date it is close to useless.
+ * Verification used to work by position: find the employer's line, decide which
+ * nearby lines belonged to that job, and require the title and dates to fall
+ * inside. It read well and it was wrong, because position is a property of
+ * formatting rather than of truth.
  *
- * Measured against a CV listing Absa Bank from 2020 and Dimension Data from
- * 2017 to 2020, every one of these passed the flat check:
+ * Measured against three real layouts:
  *
- *   Dimension Data, 2020 to present   — stretches a finished job to today
- *   Absa Bank, 2017 to present        — erases a real employment gap
- *   Bank / Senior / Pretoria          — fragments, and a city
+ *   employer, title and dates on one line          accepted
+ *   title on one line, employer on the next        REFUSED
+ *   a Word table, one field per cell               REFUSED
  *
- * The years exist in the CV. They simply belong to a different employer. A flat
- * containment check cannot tell which date goes with which job, and a CV with
- * quietly wrong dates is precisely what a background check catches — the exact
- * failure this module's header says it exists to prevent.
+ * Two of three. And it failed in the worst direction — an unrecognised layout
+ * did not degrade, it deleted the job. A person with eight years of history
+ * downloaded a CV showing three, with no error and one number in a count.
  *
- * So a position is judged as a unit. Find the employer in the source, work out
- * which block of lines belongs to that job, and require the title and the dates
- * to be inside it.
+ * A quote is layout-independent. The model reads the document however it is
+ * shaped and reports the text it took each fact from. The only question here is
+ * whether that text is genuinely in the CV, and whether it says what the model
+ * claims it says.
  */
 
-/** How a position's own assertions fared. */
-export interface PositionTrace {
-  /** The employer was found in the source as a whole organisation name. */
-  employerTraced: boolean;
-  /** The title appears within this employer's own block of the CV. */
-  titleTraced: boolean;
-  /** Dates claimed that are not supported inside this employer's block. */
+/** How the quoted text held up. */
+export interface EvidenceCheck {
+  /** The quote appears in the CV. */
+  quoteFound: boolean;
+  /** The quote contains the employer or institution being claimed. */
+  employerInQuote: boolean;
+  /** The quote contains the job title or award. Absent counts as fine. */
+  titleInQuote: boolean;
+  /** Dates claimed that the quote does not support. */
   untracedDates: readonly string[];
 }
 
-/**
- * How far above the employer line a header may reach.
- *
- * Two covers "title on one line, employer and dates on the next", which is the
- * common two-line header. It is bounded by a blank line as well, so this is a
- * cap rather than the rule.
- */
-const HEADER_LOOKBACK = 2;
-
-/** Words a CV uses to say a job has not ended. */
+/** Words a CV uses to say something has not ended. */
 const OPEN_ENDED = /\b(present|current|currently|to\s?date|ongoing|now)\b/i;
 
-function isOpenEnded(value: string): boolean {
-  return OPEN_ENDED.test(value.trim());
+/**
+ * Whitespace-insensitive containment.
+ *
+ * A quote is compared with line breaks, tabs and runs of spaces flattened,
+ * because a PDF extractor and a table cell will not reproduce them the way the
+ * model saw them. Everything else must match.
+ */
+function flatten(value: string): string {
+  return value.toLowerCase().replace(/\s+/g, ' ').trim();
 }
-
-/** Lines that name an organisation, with the names they name. */
-function organisationLines(
-  lines: readonly string[],
-): { index: number; names: string[] }[] {
-  const found: { index: number; names: string[] }[] = [];
-  lines.forEach((line, index) => {
-    const names = extractProvenanceMentions(line)
-      .filter((mention) => mention.kind === 'employer')
-      .map((mention) => normalise(mention.text));
-    if (names.length > 0) found.push({ index, names });
-  });
-  return found;
-}
-
-/** Lowercase words that sit inside a name rather than ending it. */
-const NAME_CONNECTOR = /^(of|for|and|the|de|van|der|du|el|da|dos|&)$/i;
 
 /**
- * Is this name present in the line *in full*, rather than as a fragment of a
+ * Is `name` present in `text` as a whole name rather than a fragment of a
  * longer one?
  *
- * Matching against extracted organisation phrases was the first attempt and it
- * was wrong. The extractor looks for runs of capitalised words, so it reports
- * "BSc Computer Science" and never "University of Pretoria" — the lowercase
- * "of" ends the run. Requiring equality with an extracted phrase therefore
- * blocked every institution whose name contains a connector, which is most of
- * them. The round-trip test caught it by finding no Education section at all.
- *
- * So the check works on the raw line and asks a narrower question: does the
- * text immediately either side of the match extend it into a longer name? A
- * capitalised word before or after does, and so does a lowercase connector
- * before. Punctuation does not — a comma or a bracket ends a name.
- *
- *   "Absa Bank"            in "Senior Developer, Absa Bank (2020 - present)"
- *                          -> comma before, bracket after. In full.
- *   "Bank"                 -> preceded by "Absa". A fragment.
- *   "Senior"               -> followed by "Developer". A fragment.
- *   "University of Pretoria" in "BSc Computer Science, University of Pretoria (2017)"
- *                          -> comma before, bracket after. In full.
- *   "Pretoria"             -> preceded by "of". A fragment.
+ * "Bank" is a real word inside "Absa Bank", so a word-boundary match is not
+ * enough. A capitalised word either side extends the name, and so does a
+ * lowercase connector before it — which is what lets "University of Pretoria"
+ * match while "Pretoria" does not. Punctuation ends a name.
  */
-function namedInFull(line: string, name: string): boolean {
+const NAME_CONNECTOR = /^(of|for|and|the|de|van|der|du|el|da|dos|&)$/i;
+
+export function namedInFull(text: string, name: string): boolean {
   const parts = name.trim().split(/\s+/).filter(Boolean);
   if (parts.length === 0) return false;
 
@@ -311,12 +281,11 @@ function namedInFull(line: string, name: string): boolean {
     'gi',
   );
 
-  for (const match of line.matchAll(pattern)) {
+  for (const match of text.matchAll(pattern)) {
     const index = match.index ?? 0;
-    const before = line.slice(0, index);
-    const after = line.slice(index + match[0].length);
+    const before = text.slice(0, index);
+    const after = text.slice(index + match[0].length);
 
-    // Only a space separates them — punctuation is a boundary, not an extension.
     const previous = /([A-Za-z&]+)\s+$/.exec(before)?.[1];
     const next = /^\s+([A-Za-z&]+)/.exec(after)?.[1];
 
@@ -330,108 +299,85 @@ function namedInFull(line: string, name: string): boolean {
   return false;
 }
 
-/** Whole-token containment, used for titles and dates inside a known region. */
-function containsToken(haystack: string, needle: string): boolean {
-  const n = normalise(needle);
-  if (!n) return false;
-  return new RegExp(`(?:^|\\s)${n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?:\\s|$)`).test(
-    normalise(haystack),
-  );
+/**
+ * A shortened employer is the same employer.
+ *
+ * "Absa Bank" where the CV says "Absa Bank Limited" is a person dropping a
+ * legal suffix, not inventing a company. Blocking that was a regression and it
+ * is exactly the sort of thing a job seeker does without thinking.
+ *
+ * The rule is one-directional on purpose: the claim may be shorter than the CV,
+ * never longer. Shortening drops detail. Extending adds it.
+ */
+const LEGAL_SUFFIX =
+  /\s+(limited|ltd|pty|proprietary|inc|incorporated|plc|llc|llp|group|holdings|sa|za|npc|cc)\b\.?/gi;
+
+function withoutSuffixes(name: string): string {
+  return flatten(name.replace(LEGAL_SUFFIX, ' '));
+}
+
+function sameOrganisation(claimed: string, quote: string): boolean {
+  if (namedInFull(quote, claimed)) return true;
+
+  /*
+   * The claim dropped a legal suffix the CV carries.
+   *
+   * The check is `namedInFull` again, against a copy of the quote with the
+   * suffixes removed — not a plain substring test. A substring test was the
+   * first attempt and it quietly undid the fragment rule: "Bank" is inside
+   * "Absa Bank", so it matched, and a fragment satisfied a check for a name.
+   *
+   * Stripping "Limited" out of the quote and re-running the same whole-name
+   * test keeps both properties. "Absa Bank" matches "Absa Bank Limited";
+   * "Bank" still does not.
+   */
+  const shortened = withoutSuffixes(claimed);
+  if (!shortened) return false;
+  return namedInFull(quote.replace(LEGAL_SUFFIX, ' '), claimed.replace(LEGAL_SUFFIX, ' '));
 }
 
 /**
- * Judge one position against the CV it claims to come from.
+ * Check one fact against the text the model says it came from.
  *
- * The block belonging to a job runs from the line naming its employer up to the
- * line naming the next one. Bounding it that way rather than by a fixed number
- * of lines is what makes this work on both common CV layouts — the one that
- * puts title, employer and dates on a single line, and the one that splits them
- * across two.
+ * `organisation` is the employer or the institution, `label` the job title or
+ * the award. Both are handled the same way because both are claims about
+ * somebody's history that the CV either supports or does not.
  */
-export function tracePosition(
-  position: {
-    employer: string;
-    title: string;
-    startDate: string;
-    endDate: string;
+export function checkEvidence(
+  claim: {
+    evidence: string;
+    organisation: string;
+    label: string;
+    dates: readonly string[];
   },
-  sourceLines: readonly string[],
-): PositionTrace {
-  const employer = position.employer.trim();
-  const anchorIndex = sourceLines.findIndex((line) =>
-    namedInFull(line, employer),
-  );
+  sourceCv: string,
+): EvidenceCheck {
+  const quote = claim.evidence.trim();
+  const quoteFound = quote !== '' && flatten(sourceCv).includes(flatten(quote));
 
-  if (!employer || anchorIndex === -1) {
-    // No employer, or one the CV never names. Everything else is moot: the
-    // whole position is going to be dropped.
+  if (!quoteFound) {
     return {
-      employerTraced: false,
-      titleTraced: false,
-      untracedDates: [position.startDate, position.endDate].filter(
-        (d) => d.trim() !== '',
-      ),
+      quoteFound: false,
+      employerInQuote: false,
+      titleInQuote: false,
+      untracedDates: claim.dates.filter((date) => date.trim() !== ''),
     };
   }
 
-  // The block belonging to this job runs from its own line to the line naming
-  // the next organisation. Bounding it that way rather than by a fixed number
-  // of lines is what makes a borrowed date visible: the other job's years are
-  // outside the region, however close they sit on the page.
-  const boundaries = organisationLines(sourceLines)
-    .map((entry) => entry.index)
-    .filter((index) => index > anchorIndex);
-  const end = boundaries.length > 0 ? boundaries[0] : sourceLines.length;
+  const employerInQuote =
+    claim.organisation.trim() === '' ? false : sameOrganisation(claim.organisation, quote);
 
-  /*
-   * The block also reaches backwards, and this was learned the hard way.
-   *
-   * Plenty of CVs put the job title on the line *above* the employer:
-   *
-   *     Software Developer & Researcher
-   *     Council for Scientific and Industrial Research (CSIR) | April 2025 – Present
-   *
-   * Looking only forwards meant the title was never inside the region, so every
-   * genuine position was refused for a title sitting one line away, and the
-   * exported document came out as a name and a skills list. Worse than what it
-   * replaced.
-   *
-   * The reach stops at a blank line, which is how CVs separate one job from the
-   * next. That is what keeps the date scoping intact: walking back from the
-   * second job cannot reach the first job's years, because there is a blank
-   * line in between.
-   */
-  let start = anchorIndex;
-  for (let back = 1; back <= HEADER_LOOKBACK; back += 1) {
-    const index = anchorIndex - back;
-    if (index < 0) break;
-    if (sourceLines[index].trim() === '') break;
-    start = index;
-  }
+  const titleInQuote =
+    claim.label.trim() === '' || flatten(quote).includes(flatten(claim.label));
 
-  const region = sourceLines
-    .slice(start, Math.max(anchorIndex + 1, end))
-    .join('\n');
+  const untracedDates = claim.dates
+    .map((date) => date.trim())
+    .filter((date) => {
+      if (!date) return false;
+      // "present" says the job has not ended. The quote has to say so too.
+      if (OPEN_ENDED.test(date)) return !OPEN_ENDED.test(quote);
+      return !flatten(quote).includes(flatten(date));
+    });
 
-  const titleTraced =
-    position.title.trim() === '' || containsToken(region, position.title);
-
-  const untracedDates: string[] = [];
-  for (const date of [position.startDate, position.endDate]) {
-    const value = date.trim();
-    if (!value) continue;
-
-    if (isOpenEnded(value)) {
-      // "present" is a claim that the job has not ended. It is legitimate only
-      // if the CV says so in this job's own block. Letting it through because
-      // the word appears against a *different* job is how a finished job gets
-      // stretched to today.
-      if (!isOpenEnded(region)) untracedDates.push(value);
-      continue;
-    }
-
-    if (!containsToken(region, value)) untracedDates.push(value);
-  }
-
-  return { employerTraced: true, titleTraced, untracedDates };
+  return { quoteFound, employerInQuote, titleInQuote, untracedDates };
 }
