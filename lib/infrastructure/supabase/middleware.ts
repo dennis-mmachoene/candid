@@ -2,6 +2,7 @@ import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
 import { NOINDEX_HEADER, buildCsp } from '../security-headers';
+import { TIMED_OUT, withDeadline } from '../with-deadline';
 import type { Database } from '@/lib/database.types';
 
 /**
@@ -24,6 +25,25 @@ import type { Database } from '@/lib/database.types';
 
 /** Routes a signed-out user may reach. */
 const PUBLIC_PATHS = ['/', '/privacy', '/terms', '/goodbye', '/auth'];
+
+/**
+ * How long the auth check may take before we give up on it.
+ *
+ * This exists because catching an error is not the same as bounding a wait,
+ * and the difference took production down.
+ *
+ * When Supabase is unreachable the client does not reject — it raises
+ * `AuthRetryableFetchError` internally and retries. The promise simply stays
+ * pending. A try/catch never fires, the platform kills the function at its own
+ * limit, and every route returns 504 including the landing page, which needs no
+ * authentication at all. Middleware runs on every request, so a slow dependency
+ * is a total outage rather than a degraded feature.
+ *
+ * Three seconds is far more than a JWT verification against cached keys needs
+ * and far less than the platform's ceiling. Exceeding it means "not signed in",
+ * which is the same safe direction the catch below takes.
+ */
+const AUTH_TIMEOUT_MS = 3_000;
 
 function isPublicPath(pathname: string): boolean {
   return PUBLIC_PATHS.some(
@@ -62,6 +82,17 @@ export async function updateSession(
    * On a public path that renders the page as a visitor would see it. On a
    * protected path it redirects to sign-in, which is the safe direction: an
    * outage locks people out rather than letting them through.
+   *
+   * That reasoning was right and the implementation was incomplete, and the
+   * gap became an outage. Catching an error bounds a call that *fails*; it does
+   * nothing for a call that *never returns*. Supabase Auth, unable to reach its
+   * host, raises AuthRetryableFetchError internally and retries rather than
+   * rejecting — so the promise stayed pending, the platform killed the function
+   * at its 25-second limit, and every route answered 504 including the landing
+   * page. The catch below never ran.
+   *
+   * The deadline is what makes the paragraph above true rather than merely
+   * intended. Both silence and failure now end at "not signed in".
    */
   const supabase = createServerClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL ?? '',
@@ -90,10 +121,25 @@ export async function updateSession(
   );
 
   // Do not remove. This call is what performs the refresh.
+  //
+  // Two independent failure modes, and both must end at "not signed in":
+  // the call rejecting, and the call never returning. The second is the one
+  // that caused an outage, because only a deadline catches it.
   let signedIn = false;
   try {
-    const { data } = await supabase.auth.getClaims();
-    signedIn = Boolean(data?.claims?.sub);
+    const result = await withDeadline(
+      supabase.auth.getClaims(),
+      AUTH_TIMEOUT_MS,
+    );
+
+    if (result === TIMED_OUT) {
+      console.error('[middleware] auth check timed out', {
+        ms: AUTH_TIMEOUT_MS,
+        pathname,
+      });
+    } else {
+      signedIn = Boolean(result.data?.claims?.sub);
+    }
   } catch (cause) {
     // Shape only — never the error object, which can carry request detail.
     console.error('[middleware] auth check failed', {
