@@ -25,12 +25,18 @@ import { cn } from '@/lib/utils';
  *
  * ---
  *
- * `wide` grows on large monitors and `prose` deliberately does not.
+ * The widths themselves live in `app/globals.css` as `.shell*`, written with
+ * real media queries. Two reasons.
  *
- * On a 2560px screen a fixed 1152px shell leaves 45% of the display empty and
- * the app reads as a phone layout that has been stretched. A card grid has no
- * reading-measure constraint, so it can use that space: 1280px above 1536, and
- * 1440px above 1920.
+ * The order is stated rather than inferred. The previous version read
+ * `max-w-6xl 2xl:max-w-[80rem] min-[1920px]:max-w-[90rem]`, which only works
+ * if the build sorts an arbitrary variant after a named one — an assumption
+ * about a tool, in a file that never says so.
+ *
+ * And `wide` now grows a long way: 1440, then 1600 above 1600, then 1792 above
+ * 1920, which is about 93% of a 1920 screen. The header, the footer and the
+ * dashboards all use it, so the shell follows the monitor instead of sitting
+ * in the middle of it.
  *
  * `prose` stays at 48rem, and this is the part worth not "fixing" later. Its
  * 704px of content already runs to roughly 78 characters per line at the body
@@ -38,13 +44,16 @@ import { cn } from '@/lib/utils';
  * which reading measurably slows. Widening it to 56rem would give 92 to 104.
  * The empty space beside a paragraph on a large monitor is the correct
  * outcome, not a gap to be filled.
+ *
+ * Below 1024px none of this changes anything. The width is 100% and the gutter
+ * is 1rem, exactly as before, so the mobile-first layout is untouched.
  */
-const containerVariants = cva('mx-auto w-full px-4 sm:px-6 lg:px-8', {
+const containerVariants = cva('shell', {
   variants: {
     width: {
-      wide: 'max-w-6xl 2xl:max-w-[80rem] min-[1920px]:max-w-[90rem]',
-      prose: 'max-w-3xl',
-      narrow: 'max-w-xl',
+      wide: 'shell-wide',
+      prose: 'shell-prose',
+      narrow: 'shell-narrow',
     },
   },
   defaultVariants: { width: 'wide' },

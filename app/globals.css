@@ -342,6 +342,80 @@
   }
 
   /**
+   * Page shell widths.
+   *
+   * Written as real media queries rather than Tailwind variants on purpose.
+   * A class list like `max-w-6xl 2xl:max-w-[80rem] min-[1920px]:max-w-[90rem]`
+   * depends on the build sorting an arbitrary variant after a named one, which
+   * is an assumption about a tool rather than something stated in the file.
+   * Here the order is the order.
+   *
+   * The rule this encodes: the shell follows the screen, the reading column
+   * does not. A dashboard of cards has no reading measure and should use the
+   * space a large monitor gives it. A paragraph has one — past roughly 75
+   * characters reading measurably slows — so `shell-prose` stays put and the
+   * space beside it on a wide screen is the correct outcome, not a gap.
+   *
+   * Below 1024px nothing here changes anything: the width is 100% and the
+   * gutter is 1rem, exactly as before. The mobile layout is untouched.
+   */
+  .shell {
+    width: 100%;
+    margin-inline: auto;
+    padding-inline: 1rem;
+  }
+  @media (min-width: 640px) {
+    .shell {
+      padding-inline: 1.5rem;
+    }
+  }
+  @media (min-width: 1024px) {
+    .shell {
+      padding-inline: 2rem;
+    }
+  }
+  @media (min-width: 1536px) {
+    .shell {
+      padding-inline: 2.75rem;
+    }
+  }
+  @media (min-width: 1920px) {
+    .shell {
+      padding-inline: 3.5rem;
+    }
+  }
+
+  /* Working areas: header, footer, landing sections, dashboards. */
+  .shell-wide {
+    max-width: 90rem; /* 1440 */
+  }
+  @media (min-width: 1600px) {
+    .shell-wide {
+      max-width: 100rem; /* 1600 */
+    }
+  }
+  @media (min-width: 1920px) {
+    .shell-wide {
+      max-width: 112rem; /* 1792 — about 93% of a 1920 screen */
+    }
+  }
+  @media (min-width: 2560px) {
+    .shell-wide {
+      max-width: 128rem; /* 2048 — so an ultrawide is not mostly margin */
+    }
+  }
+
+  /* Reading column. Deliberately fixed. See the note above. */
+  .shell-prose {
+    max-width: 48rem; /* 768 */
+  }
+
+  /* Single-column focus, such as the goodbye page. */
+  .shell-narrow {
+    max-width: 36rem;
+  }
+
+  /**
    * Anything that might contain a string we did not write: an email address, a
    * URL pasted into an advert, a skill the model invented a long name for.
    */

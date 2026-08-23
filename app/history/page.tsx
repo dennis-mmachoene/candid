@@ -64,11 +64,11 @@ export default async function HistoryPage() {
         </Card>
       ) : (
         /*
-          Two columns to 1920, three above it. A history card carries a job
-          title that can be long, so it needs more room than a dashboard card
-          and gets a column fewer at every step.
+          Two columns from 1280, three from 1536. A history card carries a job
+          title that can run long, so it needs more room than a dashboard card
+          and gets one column fewer at every step.
         */
-        <ul className="mt-8 grid gap-4 sm:mt-10 xl:grid-cols-2 min-[1920px]:grid-cols-3">
+        <ul className="mt-8 grid gap-4 sm:mt-10 xl:grid-cols-2 2xl:grid-cols-3">
           {tailorings.map((item) => (
             <li key={item.id}>
               <Card className="card-hover">
