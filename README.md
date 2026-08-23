@@ -62,6 +62,10 @@ set up Google sign-in, and fill in `.env.local`. To put it online, see
 screen naming the Supabase project, see
 [`SETUP-VANITY-SUBDOMAIN.md`](./SETUP-VANITY-SUBDOMAIN.md).
 
+To check the whole thing works by hand, follow [`TESTING.md`](./TESTING.md).
+It comes with a CV built to trigger every verdict and an advert that tries to
+make the system lie.
+
 ```bash
 npm install
 npm run dev        # http://localhost:3000

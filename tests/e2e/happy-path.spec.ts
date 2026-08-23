@@ -186,7 +186,17 @@ test.describe('tailoring and export', () => {
     const tailorLink = page.getByRole('link', {
       name: /tailor to a job advert/i,
     });
-    await expect(tailorLink).toBeVisible();
+
+    /*
+     * The link needs the same 30 seconds the upload assertion above it uses,
+     * and for a reason worth separating from the compile cost below.
+     *
+     * "CV processed" is the Server Action reporting back. The card carrying
+     * this link comes from the dashboard revalidating, which is a second round
+     * trip that finishes later. Waiting for the message and then expecting the
+     * card immediately is expecting the wrong thing to have happened.
+     */
+    await expect(tailorLink).toBeVisible({ timeout: 30_000 });
     await tailorLink.click();
     await expect(page).toHaveURL(/\/tailor\//, { timeout: 30_000 });
 
