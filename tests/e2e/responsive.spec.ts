@@ -189,19 +189,21 @@ test.describe('content width', () => {
       .boundingBox();
     const paragraph = await page.locator('main p').first().boundingBox();
 
-    // At 2560 the wide shell caps at 128rem = 2048px. Anything near the old
-    // 1152 means the growth steps were dropped or their order was inverted.
-    expect(header?.width).toBeGreaterThan(1900);
+    // At 2560 the wide shell caps at 100rem = 1600px. Anything near the old
+    // 1152 means the growth step was dropped.
+    expect(header?.width).toBeGreaterThan(1500);
 
     // The paragraph is still held at the reading measure regardless.
     expect(paragraph?.width).toBeLessThan(900);
   });
 
   /**
-   * The shell should use most of a large screen rather than floating in the
-   * middle of it. At 2560 the header spans 2048 of 2560, which is 80%.
+   * The shell should follow a large screen rather than floating in the middle
+   * of it, without running to the glass. At 2560 the header spans 1600, which
+   * is 62% — the cap is deliberate: past about 1600 the hero's two columns
+   * pull apart and a void opens between them.
    */
-  test('the shell uses most of the width of a large screen', async ({
+  test('the shell uses a good share of a large screen', async ({
     page,
   }) => {
     // The landing page, not /dashboard: a signed-out visitor is redirected
@@ -213,6 +215,9 @@ test.describe('content width', () => {
       .first()
       .boundingBox();
 
-    expect((header?.width ?? 0) / 2560).toBeGreaterThan(0.75);
+    const share = (header?.width ?? 0) / 2560;
+    expect(share).toBeGreaterThan(0.55);
+    // And does not simply run to the edges, which is the other failure mode.
+    expect(share).toBeLessThan(0.9);
   });
 });

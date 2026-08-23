@@ -147,7 +147,17 @@ export default async function Home({
       {/* ---------------------------------------------------------------- */}
       <section className="border-b">
         <Container className="py-14 sm:py-20 lg:py-24">
-          <div className="grid items-center gap-12 lg:grid-cols-[1.05fr_0.95fr] lg:gap-16">
+          {/*
+            Both columns are capped and the pair is centred, rather than each
+            taking a share of whatever the shell is.
+
+            Fractional columns looked fine at 1152 and broke at 1792: the text
+            held its readable width on the left, the card sat against the right,
+            and a void opened in the middle. Sizing each column to its content
+            and centring what results keeps the composition together at any
+            width the shell reaches.
+          */}
+          <div className="grid items-center justify-center gap-12 lg:grid-cols-[minmax(0,42rem)_minmax(0,30rem)] lg:gap-16">
             <div className="animate-rise flex max-w-2xl flex-col items-start gap-6">
               <Badge variant="brand">
                 <Lock className="size-3" aria-hidden />

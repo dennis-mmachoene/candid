@@ -385,23 +385,27 @@
     }
   }
 
-  /* Working areas: header, footer, landing sections, dashboards. */
+  /*
+   * Working areas: header, footer, landing sections, dashboards.
+   *
+   * This caps at 1600 rather than running to the glass, and the cap is the
+   * point rather than a leftover. Taking the shell to 1792 did use the screen,
+   * and it pulled the hero's two columns so far apart that a void opened
+   * between them: the text held its readable width on the left, the card sat
+   * on the right, and the middle was nothing. Using the whole viewport and
+   * composing well are different goals, and past about 1600 they stop
+   * agreeing.
+   *
+   * So the shell follows the monitor up to 1600 and then stops. On a 1920
+   * screen that is 83%. On a 2560 it is 63%, and the margin either side is a
+   * composition rather than waste.
+   */
   .shell-wide {
     max-width: 90rem; /* 1440 */
   }
   @media (min-width: 1600px) {
     .shell-wide {
       max-width: 100rem; /* 1600 */
-    }
-  }
-  @media (min-width: 1920px) {
-    .shell-wide {
-      max-width: 112rem; /* 1792 — about 93% of a 1920 screen */
-    }
-  }
-  @media (min-width: 2560px) {
-    .shell-wide {
-      max-width: 128rem; /* 2048 — so an ultrawide is not mostly margin */
     }
   }
 
