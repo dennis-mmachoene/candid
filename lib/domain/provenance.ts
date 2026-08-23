@@ -245,6 +245,15 @@ export interface PositionTrace {
   untracedDates: readonly string[];
 }
 
+/**
+ * How far above the employer line a header may reach.
+ *
+ * Two covers "title on one line, employer and dates on the next", which is the
+ * common two-line header. It is bounded by a blank line as well, so this is a
+ * cap rather than the rule.
+ */
+const HEADER_LOOKBACK = 2;
+
 /** Words a CV uses to say a job has not ended. */
 const OPEN_ENDED = /\b(present|current|currently|to\s?date|ongoing|now)\b/i;
 
@@ -373,8 +382,35 @@ export function tracePosition(
     .map((entry) => entry.index)
     .filter((index) => index > anchorIndex);
   const end = boundaries.length > 0 ? boundaries[0] : sourceLines.length;
+
+  /*
+   * The block also reaches backwards, and this was learned the hard way.
+   *
+   * Plenty of CVs put the job title on the line *above* the employer:
+   *
+   *     Software Developer & Researcher
+   *     Council for Scientific and Industrial Research (CSIR) | April 2025 – Present
+   *
+   * Looking only forwards meant the title was never inside the region, so every
+   * genuine position was refused for a title sitting one line away, and the
+   * exported document came out as a name and a skills list. Worse than what it
+   * replaced.
+   *
+   * The reach stops at a blank line, which is how CVs separate one job from the
+   * next. That is what keeps the date scoping intact: walking back from the
+   * second job cannot reach the first job's years, because there is a blank
+   * line in between.
+   */
+  let start = anchorIndex;
+  for (let back = 1; back <= HEADER_LOOKBACK; back += 1) {
+    const index = anchorIndex - back;
+    if (index < 0) break;
+    if (sourceLines[index].trim() === '') break;
+    start = index;
+  }
+
   const region = sourceLines
-    .slice(anchorIndex, Math.max(anchorIndex + 1, end))
+    .slice(start, Math.max(anchorIndex + 1, end))
     .join('\n');
 
   const titleTraced =
