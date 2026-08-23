@@ -41,10 +41,25 @@ const inventory = buildInventory(content);
 const DRAFT: TailoredDraft = {
   summary:
     'Backend developer with six years building payment systems in Java and PostgreSQL for financial services.',
-  bullets: [
-    'Delivered a payments API in Java and PostgreSQL at Absa Bank',
-    'Reduced settlement turnaround time by 40% through automating reconciliation',
-    'Orchestrated container deployments with Kubernetes across three regions',
+  positions: [
+    {
+      employer: 'Absa Bank',
+      title: 'Senior Developer',
+      startDate: '2020',
+      endDate: 'present',
+      bullets: [
+        'Delivered a payments API in Java and PostgreSQL at Absa Bank',
+        'Reduced settlement turnaround time by 40% through automating reconciliation',
+        'Orchestrated container deployments with Kubernetes across three regions',
+      ],
+    },
+  ],
+  qualifications: [
+    {
+      award: 'BSc Computer Science',
+      institution: 'University of Pretoria',
+      year: '2017',
+    },
   ],
   skills: ['Java', 'PostgreSQL', 'Docker', 'Kubernetes'],
   gaps: [{ skill: 'Kubernetes', note: 'The advert asks for it; your CV does not mention it.' }],
@@ -257,5 +272,50 @@ describe('text preparation', () => {
       expect(measure(line)).toBeLessThanOrEqual(50);
     }
     expect(lines.join('')).toBe('supercalifragilistic');
+  });
+});
+
+/**
+ * The assertion whose absence let the real defect ship.
+ *
+ * The suite already proved an export could be re-parsed. It could not fail on
+ * a CV that had no employment history in it, because the fixture had none
+ * either — so it was faithfully proving that a document with no employers, no
+ * dates and no education survived a round trip. It did survive. It was also
+ * useless to the person sending it.
+ *
+ * A recruiter reading bullets with no employer attached assumes concealment,
+ * and an applicant tracking system cannot extract a work history from it at
+ * all — which is the one thing this product exists to get past.
+ */
+describe.each(TEMPLATES)('a real CV survives: $name', (template) => {
+  it('keeps the employer, the job title and both dates in the PDF', async () => {
+    const text = flatten(await readPdf(await renderPdf(document, template)));
+
+    expect(text).toContain('absa bank');
+    expect(text).toContain('senior developer');
+    expect(text).toContain('2020');
+    expect(text).toContain('present');
+  });
+
+  it('keeps the employer, the job title and both dates in the DOCX', async () => {
+    const text = flatten(await readDocx(await renderDocx(document, template)));
+
+    expect(text).toContain('absa bank');
+    expect(text).toContain('senior developer');
+    expect(text).toContain('2020');
+    expect(text).toContain('present');
+  });
+
+  it('keeps the qualification, under a heading a parser recognises', async () => {
+    const pdf = flatten(await readPdf(await renderPdf(document, template)));
+    const docx = flatten(await readDocx(await renderDocx(document, template)));
+
+    for (const text of [pdf, docx]) {
+      expect(text).toContain('education');
+      expect(text).toContain('bsc computer science');
+      expect(text).toContain('university of pretoria');
+      expect(text).toContain('2017');
+    }
   });
 });

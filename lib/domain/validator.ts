@@ -23,7 +23,11 @@ import {
   canonicalise,
   evidenceFor,
 } from './inventory';
-import { appearsInSource, extractProvenanceMentions } from './provenance';
+import {
+  appearsInSource,
+  extractProvenanceMentions,
+  tracePosition,
+} from './provenance';
 import type {
   Claim,
   IntegrityReport,
@@ -188,19 +192,83 @@ export interface ClaimSpecification {
   evaluate(claim: Claim, inventory: SkillInventory): SpecificationMatch | null;
 }
 
+/** "Senior Developer, Absa Bank (2020 – present)" — one legible line. */
+export function describePosition(position: {
+  employer: string;
+  title: string;
+  startDate: string;
+  endDate: string;
+}): string {
+  const who = [position.title, position.employer].filter((s) => s.trim()).join(', ');
+  const when = [position.startDate, position.endDate]
+    .filter((s) => s.trim())
+    .join(' – ');
+  return when ? `${who} (${when})` : who;
+}
+
+/** "BSc Computer Science, University of Pretoria (2017)". */
+export function describeQualification(qualification: {
+  award: string;
+  institution: string;
+  year: string;
+}): string {
+  const what = [qualification.award, qualification.institution]
+    .filter((s) => s.trim())
+    .join(', ');
+  return qualification.year.trim() ? `${what} (${qualification.year})` : what;
+}
+
 /**
- * Employers and dates: named in the source CV, or blocked.
+ * A position or a qualification, judged as a whole against its own block of the
+ * CV rather than field by field.
  *
- * No inference path exists for these, deliberately. "Led a team of five"
- * evidences team leadership; nothing evidences an employer the CV never
- * mentions. This runs first in the chain so an employer name that happens to
- * collide with a skill term cannot be waved through by the skill rules.
+ * Runs before the skill rules and has no borderline path. An employer cannot be
+ * inferred, a date cannot be inferred, and a job title cannot be inferred. The
+ * CV says so or it does not.
+ */
+export const PositionMatchesSource: ClaimSpecification = {
+  name: 'PositionMatchesSource',
+  verdict: 'accepted',
+  evaluate(claim, inventory) {
+    if (!claim.position) return null;
+
+    const trace = tracePosition(claim.position, inventory.lines);
+    if (!trace.employerTraced || !trace.titleTraced) return null;
+    if (trace.untracedDates.length > 0) return null;
+
+    const anchor = inventory.lines.find((line) =>
+      appearsInSource(claim.position!.employer, line),
+    );
+
+    return {
+      canonical: `${claim.kind}:${normaliseKey(claim.text)}`,
+      reason:
+        claim.source === 'education'
+          ? 'This qualification, institution and year all appear together in your CV.'
+          : 'This employer, job title and both dates all appear together in your CV.',
+      evidence: anchor ? [{ surface: claim.text, line: anchor.trim() }] : [],
+    };
+  },
+};
+
+/**
+ * An organisation or date named inside a bullet or the summary.
+ *
+ * Positions and qualifications no longer come through here — they carry their
+ * own fields and are judged by PositionMatchesSource above, scoped to their own
+ * block of the CV. What is left is prose: "built the integration with Absa",
+ * "since 2019". A flat containment check is the right tool for those, because
+ * there is no structure to scope them to.
+ *
+ * No inference path exists here either. "Led a team of five" evidences team
+ * leadership; nothing evidences an employer the CV never mentions.
  */
 export const NamedInSourceCv: ClaimSpecification = {
   name: 'NamedInSourceCv',
   verdict: 'accepted',
   evaluate(claim, inventory) {
     if (claim.kind === 'skill') return null;
+    if (claim.position) return null;
     if (!appearsInSource(claim.text, inventory.lines.join('\n'))) return null;
 
     const line = inventory.lines.find((candidate) =>
@@ -212,7 +280,9 @@ export const NamedInSourceCv: ClaimSpecification = {
       reason:
         claim.kind === 'employer'
           ? 'This organisation is named in your original CV.'
-          : 'This date appears in your original CV.',
+          : claim.kind === 'institution'
+            ? 'This institution is named in your original CV.'
+            : 'This date appears in your original CV.',
       evidence: line ? [{ surface: claim.text, line: line.trim() }] : [],
     };
   },
@@ -265,6 +335,7 @@ export const FairInferenceFromExperience: ClaimSpecification = {
  * blocked fallthrough.
  */
 export const SPECIFICATION_CHAIN: readonly ClaimSpecification[] = [
+  PositionMatchesSource,
   NamedInSourceCv,
   TraceableToInventory,
   FairInferenceFromExperience,
@@ -294,9 +365,11 @@ export function validateClaim(
   const reason =
     claim.kind === 'employer'
       ? 'Your CV does not name this organisation. Candid will not add an employer you did not list.'
-      : claim.kind === 'date'
-        ? 'This date does not appear in your CV. Candid will not change your employment dates.'
-        : 'Nothing in your CV supports this. Candid will not add it — if you do have this experience, add it to your CV and upload again.';
+      : claim.kind === 'institution'
+        ? 'Your CV does not name this institution. Candid will not add a qualification you did not list.'
+        : claim.kind === 'date'
+          ? 'This date does not appear in your CV. Candid will not change your employment dates.'
+          : 'Nothing in your CV supports this. Candid will not add it — if you do have this experience, add it to your CV and upload again.';
 
   return {
     claim,
@@ -320,6 +393,11 @@ export function validateClaims(
 // ---------------------------------------------------------------------------
 // Extracting claims from a draft
 // ---------------------------------------------------------------------------
+
+/** Stable canonical key for a claim whose text is a whole descriptive line. */
+function normaliseKey(value: string): string {
+  return value.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+}
 
 function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -345,6 +423,14 @@ function claimsInProse(text: string): string[] {
  * skill buried in a bullet — "used Kubernetes to orchestrate deployments" — is
  * exactly as dishonest as one in the skills array, and checking only the array
  * would leave the obvious hole open.
+ *
+ * Employers, titles, dates and institutions are now fields rather than prose,
+ * and that is a real strengthening of the guarantee rather than a tidy-up.
+ * Previously the only way to catch an invented employer was to scrape it out of
+ * a sentence with a regular expression, which is why the documentation had to
+ * describe employer detection as heuristic: a lowercase name, or a company
+ * whose name is an ordinary word, slipped through. A field can be compared to
+ * the source CV exactly. Nothing is guessed at any more.
  */
 export function extractClaims(draft: TailoredDraft): readonly Claim[] {
   const claims: Claim[] = [];
@@ -354,20 +440,65 @@ export function extractClaims(draft: TailoredDraft): readonly Claim[] {
     if (text) claims.push({ text, kind: 'skill', source: 'skill' });
   }
 
-  draft.bullets.forEach((bullet, bulletIndex) => {
-    for (const term of claimsInProse(bullet)) {
-      claims.push({ text: term, kind: 'skill', source: 'bullet', bulletIndex });
-    }
-    // Organisations and dates are asserted in prose, not in the skills array,
-    // so this is the only place they can be caught.
-    for (const mention of extractProvenanceMentions(bullet)) {
+  draft.positions.forEach((position, positionIndex) => {
+    // A record written before structured history has no employer to check and
+    // never will. Raising a claim against it would block it and erase the
+    // document, so it is carried through as-is.
+    if (!position.legacy) {
       claims.push({
-        text: mention.text,
-        kind: mention.kind,
-        source: 'bullet',
-        bulletIndex,
+        text: describePosition(position),
+        kind: 'employer',
+        source: 'position',
+        positionIndex,
+        position: {
+          employer: position.employer,
+          title: position.title,
+          startDate: position.startDate,
+          endDate: position.endDate,
+        },
       });
     }
+
+    position.bullets.forEach((bullet, bulletIndex) => {
+      for (const term of claimsInProse(bullet)) {
+        claims.push({
+          text: term,
+          kind: 'skill',
+          source: 'bullet',
+          positionIndex,
+          bulletIndex,
+        });
+      }
+      // An organisation named inside a bullet is still worth catching — "built
+      // the integration with Absa" is an employer claim wherever it sits.
+      for (const mention of extractProvenanceMentions(bullet)) {
+        claims.push({
+          text: mention.text,
+          kind: mention.kind,
+          source: 'bullet',
+          positionIndex,
+          bulletIndex,
+        });
+      }
+    });
+  });
+
+  // A qualification is judged as a unit for the same reason a position is: the
+  // award, the institution and the year are only meaningful together.
+  draft.qualifications.forEach((qualification, qualificationIndex) => {
+    if (!qualification.institution.trim() && !qualification.award.trim()) return;
+    claims.push({
+      text: describeQualification(qualification),
+      kind: 'institution',
+      source: 'education',
+      qualificationIndex,
+      position: {
+        employer: qualification.institution,
+        title: qualification.award,
+        startDate: qualification.year,
+        endDate: '',
+      },
+    });
   });
 
   for (const term of claimsInProse(draft.summary)) {

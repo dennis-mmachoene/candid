@@ -53,6 +53,33 @@ export const INVALID_CHECKSUM_ID = '8001015009084';
  */
 export const IMPOSSIBLE_DATE_ID = '8019015009089';
 
+
+/**
+ * Two jobs, so a date can be tested against the employer it does NOT belong to.
+ *
+ * The single-job fixture above cannot express the failure that matters most:
+ * a date that exists in the CV, but against a different employer. With one job
+ * every date in the document belongs to it, so a flat containment check looks
+ * correct. Reassignment only becomes visible when there is somewhere to
+ * reassign from.
+ */
+export const CV_TWO_JOBS = `Professional Summary
+Backend developer with eight years in payments.
+
+Experience
+Senior Developer, Absa Bank (2020 - present)
+- Led a team of five engineers delivering a payments API in Java and PostgreSQL
+- Reduced settlement turnaround time by 40% by automating the reconciliation process
+
+Developer, Dimension Data (2017 - 2020)
+- Built internal reporting tools in Java, backed by PostgreSQL
+
+Skills
+Java, PostgreSQL, Docker, Git
+
+Education
+BSc Computer Science, University of Pretoria (2017)`;
+
 /**
  * A draft containing, deliberately, one of each: a claim that traces straight
  * to the CV, the same claim under a different spelling, a fair inference, and
@@ -61,10 +88,25 @@ export const IMPOSSIBLE_DATE_ID = '8019015009089';
 export const MIXED_DRAFT: TailoredDraft = {
   summary:
     'Backend developer with six years building payment systems for financial services.',
-  bullets: [
-    'Delivered a payments API in Java and PostgreSQL for a national bank',
-    'Orchestrated container deployments with Kubernetes across three regions',
-    'Reduced settlement turnaround time by 40% through automation',
+  positions: [
+    {
+      employer: 'Absa Bank',
+      title: 'Senior Developer',
+      startDate: '2020',
+      endDate: 'present',
+      bullets: [
+        'Delivered a payments API in Java and PostgreSQL for a national bank',
+        'Orchestrated container deployments with Kubernetes across three regions',
+        'Reduced settlement turnaround time by 40% through automation',
+      ],
+    },
+  ],
+  qualifications: [
+    {
+      award: 'BSc Computer Science',
+      institution: 'University of Pretoria',
+      year: '2017',
+    },
   ],
   skills: ['PostgreSQL', 'Postgres', 'team leadership', 'Kubernetes'],
   gaps: [

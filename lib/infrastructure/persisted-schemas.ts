@@ -29,11 +29,21 @@ const skillEvidenceSchema = z.object({
   line: z.string(),
 });
 
+/**
+ * The enums are supersets of what older records can contain, deliberately.
+ *
+ * A record written before structured employment history carries `kind` from
+ * three values and `source` from three. Widening rather than replacing means
+ * those rows still parse. Narrowing would have turned every stored tailoring
+ * into a corrupt-record error the moment the new shape shipped.
+ */
 const claimSchema = z.object({
   text: z.string(),
-  kind: z.enum(['skill', 'employer', 'date']),
-  source: z.enum(['skill', 'bullet', 'summary']),
+  kind: z.enum(['skill', 'employer', 'date', 'institution']),
+  source: z.enum(['skill', 'bullet', 'summary', 'position', 'education']),
+  positionIndex: z.number().int().nonnegative().optional(),
   bulletIndex: z.number().int().nonnegative().optional(),
+  qualificationIndex: z.number().int().nonnegative().optional(),
 });
 
 const validatedClaimSchema = z.object({
@@ -44,12 +54,82 @@ const validatedClaimSchema = z.object({
   evidence: z.array(skillEvidenceSchema),
 });
 
-export const persistedDraftSchema = z.object({
+const gapSchema = z.object({ skill: z.string(), note: z.string() });
+
+const positionSchema = z.object({
+  employer: z.string(),
+  title: z.string(),
+  startDate: z.string(),
+  endDate: z.string(),
+  bullets: z.array(z.string()),
+  legacy: z.literal(true).optional(),
+});
+
+const qualificationSchema = z.object({
+  award: z.string(),
+  institution: z.string(),
+  year: z.string(),
+});
+
+/** What the current code writes. */
+const currentDraftSchema = z.object({
+  summary: z.string(),
+  positions: z.array(positionSchema),
+  qualifications: z.array(qualificationSchema),
+  skills: z.array(z.string()),
+  gaps: z.array(gapSchema),
+});
+
+/**
+ * What every row written before structured employment history looks like: a
+ * summary, a flat list of bullets belonging to nobody, skills and gaps.
+ */
+const legacyDraftSchema = z.object({
   summary: z.string(),
   bullets: z.array(z.string()),
   skills: z.array(z.string()),
-  gaps: z.array(z.object({ skill: z.string(), note: z.string() })),
+  gaps: z.array(gapSchema),
 });
+
+/**
+ * Read either shape, and map the old one forward in memory.
+ *
+ * The two are unambiguous — a current record has no `bullets` key and a legacy
+ * one has no `positions` — so the union cannot pick the wrong branch.
+ *
+ * The old bullets become one position with no employer, no title and no dates,
+ * marked `legacy`. The record opens and shows exactly what it showed before.
+ *
+ * Nothing is rewritten in the database, and that is the deliberate part. A
+ * migration would have to put *something* in those employer fields, and the
+ * information to put there does not exist — it was never stored. Writing a
+ * plausible employer into a user's history, in a product whose whole claim is
+ * that it does not invent things, is not a trade worth making for tidier rows.
+ */
+export const persistedDraftSchema: z.ZodType<TailoredDraft> = z.union([
+  currentDraftSchema,
+  legacyDraftSchema.transform(
+    (old): TailoredDraft => ({
+      summary: old.summary,
+      positions:
+        old.bullets.length > 0
+          ? [
+              {
+                employer: '',
+                title: '',
+                startDate: '',
+                endDate: '',
+                bullets: old.bullets,
+                legacy: true,
+              },
+            ]
+          : [],
+      qualifications: [],
+      skills: old.skills,
+      gaps: old.gaps,
+    }),
+  ),
+]);
 
 export const persistedReportSchema = z.object({
   accepted: z.array(validatedClaimSchema),

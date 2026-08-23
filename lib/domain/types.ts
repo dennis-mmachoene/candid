@@ -79,10 +79,19 @@ export interface SkillInventory {
 // ---------------------------------------------------------------------------
 
 /**
- * Where in the model's draft a claim was made. Both matter: a fabricated skill
- * buried in a bullet is exactly as dishonest as one in the skills list.
+ * Where in the model's draft a claim was made. All of them matter: a fabricated
+ * skill buried in a bullet is exactly as dishonest as one in the skills list,
+ * and an invented employer is worse than either.
+ *
+ * `position` is the employer, title and dates of a job. `education` is a
+ * qualification and the institution that awarded it.
  */
-export type ClaimSource = 'skill' | 'bullet' | 'summary';
+export type ClaimSource =
+  | 'skill'
+  | 'bullet'
+  | 'summary'
+  | 'position'
+  | 'education';
 
 /**
  * What kind of assertion this is. The distinction matters because the rules
@@ -90,19 +99,50 @@ export type ClaimSource = 'skill' | 'bullet' | 'summary';
  * employer or a date cannot be inferred from anything. Either the CV names it
  * or the model invented it.
  */
-export type ClaimKind = 'skill' | 'employer' | 'date';
+export type ClaimKind = 'skill' | 'employer' | 'date' | 'institution';
 
-/** A single assertion extracted from the model's draft, awaiting judgement. */
+/**
+ * Where inside the draft a claim came from, precisely enough to remove the
+ * right thing when it fails.
+ *
+ * `positionIndex` alone means the claim is about the position itself — its
+ * employer, its title, its dates. That is the case where the whole position
+ * has to go, because bullets with no employer attached are worse than no
+ * bullets at all.
+ *
+ * `positionIndex` with `bulletIndex` means one bullet inside that position,
+ * and only that bullet is dropped.
+ */
 export interface Claim {
-  /** The skill, employer or date being asserted, as the model wrote it. */
+  /** The skill, employer, date or institution being asserted, as written. */
   text: string;
   kind: ClaimKind;
   source: ClaimSource;
-  /**
-   * Index of the bullet this claim came from, when `source` is 'bullet'.
-   * Lets us drop the whole bullet if the claim inside it is blocked.
-   */
+  /** Which position this claim belongs to, when source is 'position'. */
+  positionIndex?: number;
+  /** Which bullet inside that position, when the claim came from a bullet. */
   bulletIndex?: number;
+  /** Which qualification, when source is 'education'. */
+  qualificationIndex?: number;
+  /**
+   * The position's own assertions, carried with the claim so they can be
+   * judged together rather than one at a time.
+   *
+   * A position raises **one** claim, not four. Checking the employer, the
+   * title and the two dates separately is what allowed a date belonging to
+   * another job to pass — each field existed somewhere in the CV, so each
+   * passed on its own. They only make sense judged as a unit.
+   *
+   * It also fixes something the user sees. Splitting a position into fragments
+   * meant the review screen could ask someone to approve the word "presenting"
+   * with no context. One claim per position gives them one legible line.
+   */
+  position?: {
+    employer: string;
+    title: string;
+    startDate: string;
+    endDate: string;
+  };
 }
 
 /**
@@ -153,12 +193,67 @@ export interface SkillGap {
 }
 
 /**
+ * One job. The employer, the title and the dates are facts about the person's
+ * history, not phrasing — they are copied from the source CV and never
+ * rewritten. Only the bullets are the model's work.
+ *
+ * An absent date stays absent. A model that cannot find an end date must leave
+ * it empty rather than reach for a plausible one, because a plausible date on a
+ * CV is a lie with a background check waiting behind it.
+ */
+export interface Position {
+  employer: string;
+  title: string;
+  /** As written in the CV — "2020", "March 2020", "" if the CV does not say. */
+  startDate: string;
+  /** "present" is a legitimate value. Empty means the CV did not state one. */
+  endDate: string;
+  bullets: readonly string[];
+  /**
+   * Set only when a tailoring stored before structured history was read back.
+   *
+   * Those records hold a flat list of bullets and no employer, because there
+   * was nowhere to put one. The reader maps them forward into a single position
+   * so the record still opens, and marks it: no provenance claims are raised
+   * against it, and the drop-untraceable-position rule does not apply — which
+   * would otherwise erase every old document entirely.
+   *
+   * Nothing sets this on a new draft. An employer that was never stored cannot
+   * be recovered, and inventing one to fill the gap would be the exact thing
+   * this product exists not to do.
+   */
+  legacy?: true;
+}
+
+/** One qualification. Same rule: the award, the institution and the year are copied. */
+export interface Qualification {
+  award: string;
+  institution: string;
+  /** Empty when the CV does not give one. */
+  year: string;
+}
+
+/**
  * The shape we require back from any AI provider. Validated with Zod at the
  * infrastructure boundary before it is ever handed to the domain.
+ *
+ * There is deliberately no flat `bullets` field any more, and this is the whole
+ * point of the type rather than a tidy-up.
+ *
+ * The previous version had one, with nowhere to record an employer, a title, a
+ * date or a qualification. All of that reached the model intact and was thrown
+ * away on the way out, so the exported document was a summary and an
+ * ownerless list of bullets under a heading reading EXPERIENCE. A recruiter
+ * reads that as concealment and an applicant tracking system cannot extract a
+ * work history from it at all — which is the one job this product exists to do.
+ *
+ * Keeping the old field alongside the new one would guarantee that something
+ * eventually read from it. So it is gone.
  */
 export interface TailoredDraft {
   summary: string;
-  bullets: readonly string[];
+  positions: readonly Position[];
+  qualifications: readonly Qualification[];
   skills: readonly string[];
   gaps: readonly SkillGap[];
 }
@@ -172,9 +267,17 @@ export interface TailoredDraft {
  * column block and no header/footer — a structure that cannot express them
  * cannot accidentally emit them. §9 of the spec is enforced by this type, not
  * by reviewer vigilance.
+ *
+ * `entry` is one emphasised line: the job title, employer and dates that sit
+ * above a position's bullets, or the award and institution above a
+ * qualification. It renders as bold text and nothing else. Bold is the one
+ * piece of formatting an applicant tracking system reads reliably, which is
+ * why the alternative — a two-column layout with dates on the right, the way a
+ * designer would do it — is not expressible here and never will be.
  */
 export type DocumentBlock =
   | { kind: 'paragraph'; text: string }
+  | { kind: 'entry'; text: string }
   | { kind: 'bullets'; items: readonly string[] };
 
 export interface DocumentSection {

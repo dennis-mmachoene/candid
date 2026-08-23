@@ -16,8 +16,10 @@
  *      only way through.
  */
 
+import { describePosition, describeQualification } from './validator';
 import type {
   ApprovedClaims,
+  DocumentBlock,
   DocumentSection,
   IdentityHeader,
   IntegrityReport,
@@ -39,6 +41,7 @@ import type {
 export const ATS_SECTION_HEADINGS = {
   summary: 'Professional Summary',
   experience: 'Experience',
+  education: 'Education',
   skills: 'Skills',
   gaps: 'Development Areas',
 } as const;
@@ -181,33 +184,95 @@ export function assembleResumeDocument(input: {
     skills.push(claim.claim.text);
   }
 
-  // --- Bullets ------------------------------------------------------------
-  const excludedBullets = new Map<number, ValidatedClaim>();
+  // --- Positions ----------------------------------------------------------
+  //
+  // A position whose own claim did not survive is dropped entire — the header
+  // line and every bullet under it.
+  //
+  // Keeping the bullets and discarding only the employer line is the tempting
+  // half-measure and it is strictly worse than doing nothing. It produces
+  // achievements attached to nobody, which is the exact document this product
+  // was shipping before positions existed, and a recruiter reads it as
+  // concealment.
+  const rejectedPositions = new Map<number, ValidatedClaim>();
+  const excludedBullets = new Map<string, ValidatedClaim>();
+
   for (const claim of all) {
-    if (claim.claim.source !== 'bullet') continue;
-    if (claim.claim.bulletIndex === undefined) continue;
+    const { source, positionIndex, bulletIndex } = claim.claim;
     if (includable(claim, approved)) continue;
-    if (!excludedBullets.has(claim.claim.bulletIndex)) {
-      excludedBullets.set(claim.claim.bulletIndex, claim);
+
+    if (source === 'position' && positionIndex !== undefined) {
+      if (!rejectedPositions.has(positionIndex)) {
+        rejectedPositions.set(positionIndex, claim);
+      }
+      continue;
+    }
+    if (source === 'bullet' && bulletIndex !== undefined) {
+      const key = `${positionIndex ?? 0}:${bulletIndex}`;
+      if (!excludedBullets.has(key)) excludedBullets.set(key, claim);
     }
   }
 
-  const bullets: string[] = [];
-  draft.bullets.forEach((bullet, index) => {
-    const offending = excludedBullets.get(index);
-    if (offending) {
+  const experienceBlocks: DocumentBlock[] = [];
+
+  draft.positions.forEach((position, positionIndex) => {
+    const rejected = rejectedPositions.get(positionIndex);
+    if (rejected) {
       omissions.push({
-        what: bullet,
-        reason: `Removed because of the claim "${offending.claim.text}". ${offending.reason}`,
+        what: rejected.claim.text,
+        reason: `This whole job was left out. ${rejected.reason}`,
         verdict:
-          offending.verdict === 'blocked'
-            ? 'blocked'
-            : 'borderline-not-approved',
+          rejected.verdict === 'blocked' ? 'blocked' : 'borderline-not-approved',
       });
       return;
     }
-    const text = bullet.trim();
-    if (text) bullets.push(text);
+
+    const bullets: string[] = [];
+    position.bullets.forEach((bullet, bulletIndex) => {
+      const offending = excludedBullets.get(`${positionIndex}:${bulletIndex}`);
+      if (offending) {
+        omissions.push({
+          what: bullet,
+          reason: `Removed because of the claim "${offending.claim.text}". ${offending.reason}`,
+          verdict:
+            offending.verdict === 'blocked'
+              ? 'blocked'
+              : 'borderline-not-approved',
+        });
+        return;
+      }
+      const text = bullet.trim();
+      if (text) bullets.push(text);
+    });
+
+    // A record written before structured history has no header line to print.
+    // Its bullets are all it ever had, and printing an empty "(  )" above them
+    // would be worse than printing nothing.
+    const heading = position.legacy ? '' : describePosition(position);
+    if (heading) experienceBlocks.push({ kind: 'entry', text: heading });
+    if (bullets.length > 0) experienceBlocks.push({ kind: 'bullets', items: bullets });
+  });
+
+  // --- Education ----------------------------------------------------------
+  const educationBlocks: DocumentBlock[] = [];
+  draft.qualifications.forEach((qualification, qualificationIndex) => {
+    const rejected = all.find(
+      (claim) =>
+        claim.claim.source === 'education' &&
+        claim.claim.qualificationIndex === qualificationIndex &&
+        !includable(claim, approved),
+    );
+    if (rejected) {
+      omissions.push({
+        what: rejected.claim.text,
+        reason: `This qualification was left out. ${rejected.reason}`,
+        verdict:
+          rejected.verdict === 'blocked' ? 'blocked' : 'borderline-not-approved',
+      });
+      return;
+    }
+    const line = describeQualification(qualification);
+    if (line) educationBlocks.push({ kind: 'entry', text: line });
   });
 
   // --- Summary ------------------------------------------------------------
@@ -237,10 +302,19 @@ export function assembleResumeDocument(input: {
     });
   }
 
-  if (bullets.length > 0) {
+  if (experienceBlocks.length > 0) {
     sections.push({
       heading: ATS_SECTION_HEADINGS.experience,
-      blocks: [{ kind: 'bullets', items: bullets }],
+      blocks: experienceBlocks,
+    });
+  }
+
+  // Education sits after experience, which is the convention for anyone past
+  // their first job and the order every parser expects.
+  if (educationBlocks.length > 0) {
+    sections.push({
+      heading: ATS_SECTION_HEADINGS.education,
+      blocks: educationBlocks,
     });
   }
 
@@ -292,7 +366,7 @@ export function validateAtsDocument(document: ResumeDocument): readonly string[]
     }
     for (const block of section.blocks) {
       const texts =
-        block.kind === 'paragraph' ? [block.text] : [...block.items];
+        block.kind === 'bullets' ? [...block.items] : [block.text];
       for (const text of texts) {
         if (/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/.test(text)) {
           problems.push(
