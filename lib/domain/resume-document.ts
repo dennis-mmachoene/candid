@@ -131,6 +131,11 @@ export interface AssemblyResult {
   omissions: readonly Omission[];
 }
 
+/** Date keys for qualifications are prefixed so they cannot collide with jobs. */
+function qualificationKey(claim: ValidatedClaim): string {
+  return `q${claim.claim.qualificationIndex ?? 0}`;
+}
+
 function includable(
   claim: ValidatedClaim,
   approved: ApprovedClaims,
@@ -196,10 +201,22 @@ export function assembleResumeDocument(input: {
   // concealment.
   const rejectedPositions = new Map<number, ValidatedClaim>();
   const excludedBullets = new Map<string, ValidatedClaim>();
+  const droppedDates = new Set<string>();
 
   for (const claim of all) {
-    const { source, positionIndex, bulletIndex } = claim.claim;
+    const { source, kind, positionIndex, bulletIndex, dateSlot } = claim.claim;
     if (includable(claim, approved)) continue;
+
+    // A date that could not be confirmed removes the date. Only an employer
+    // that could not be confirmed removes the job.
+    //
+    // This distinction is the whole reason dates are separate claims. Dropping
+    // a job because one date failed is how somebody with eight years of history
+    // downloaded a CV showing three, with nothing on screen to say so.
+    if (kind === 'date' && dateSlot !== undefined) {
+      droppedDates.add(`${positionIndex ?? qualificationKey(claim)}:${dateSlot}`);
+      continue;
+    }
 
     if (source === 'position' && positionIndex !== undefined) {
       if (!rejectedPositions.has(positionIndex)) {
@@ -248,7 +265,12 @@ export function assembleResumeDocument(input: {
     // A record written before structured history has no header line to print.
     // Its bullets are all it ever had, and printing an empty "(  )" above them
     // would be worse than printing nothing.
-    const heading = position.legacy ? '' : describePosition(position);
+    const shown = {
+      ...position,
+      startDate: droppedDates.has(`${positionIndex}:start`) ? '' : position.startDate,
+      endDate: droppedDates.has(`${positionIndex}:end`) ? '' : position.endDate,
+    };
+    const heading = position.legacy ? '' : describePosition(shown);
     if (heading) experienceBlocks.push({ kind: 'entry', text: heading });
     if (bullets.length > 0) experienceBlocks.push({ kind: 'bullets', items: bullets });
   });
@@ -259,6 +281,7 @@ export function assembleResumeDocument(input: {
     const rejected = all.find(
       (claim) =>
         claim.claim.source === 'education' &&
+        claim.claim.kind !== 'date' &&
         claim.claim.qualificationIndex === qualificationIndex &&
         !includable(claim, approved),
     );
@@ -271,7 +294,10 @@ export function assembleResumeDocument(input: {
       });
       return;
     }
-    const line = describeQualification(qualification);
+    const line = describeQualification({
+      ...qualification,
+      year: droppedDates.has(`q${qualificationIndex}:year`) ? '' : qualification.year,
+    });
     if (line) educationBlocks.push({ kind: 'entry', text: line });
   });
 

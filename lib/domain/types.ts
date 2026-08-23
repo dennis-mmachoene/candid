@@ -26,6 +26,27 @@ export interface IdentityHeader {
   email: string | null;
   phone: string | null;
   /**
+   * City and province, and nothing more precise.
+   *
+   * This was being thrown away with the rest of the header, and it costs
+   * people interviews. South African adverts filter on location before they
+   * filter on anything else, so a CV that does not say where you are reads as
+   * a CV from somewhere inconvenient.
+   *
+   * The street address is still discarded. An employer needs to know you are
+   * in Pretoria; nobody needs your house number, and keeping it would be
+   * collecting more than the purpose requires.
+   */
+  location: string | null;
+  /**
+   * Profile links — LinkedIn, GitHub and the like.
+   *
+   * Same problem as the location. They sat in the discarded header lines, so a
+   * developer's GitHub never reached the document that was meant to get them
+   * hired. Never sent to the model; reattached on export like the rest.
+   */
+  links: string[];
+  /**
    * Remaining lines of the CV's header block (address, portfolio links, and so
    * on). We keep these server-side rather than forwarding them, on the
    * principle that anything sitting in the header block is presumed
@@ -125,6 +146,15 @@ export interface Claim {
   /** Which qualification, when source is 'education'. */
   qualificationIndex?: number;
   /**
+   * Which date this claim is about, when it is a date claim on a position.
+   *
+   * A date that cannot be verified removes the date, not the job. Knowing which
+   * one is what makes that possible. Dropping an entire job because one date
+   * could not be confirmed is how somebody with eight years of history
+   * downloaded a CV showing three.
+   */
+  dateSlot?: 'start' | 'end' | 'year';
+  /**
    * The position's own assertions, carried with the claim so they can be
    * judged together rather than one at a time.
    *
@@ -138,10 +168,13 @@ export interface Claim {
    * with no context. One claim per position gives them one legible line.
    */
   position?: {
-    employer: string;
-    title: string;
-    startDate: string;
-    endDate: string;
+    /** Employer, or the institution for a qualification. */
+    organisation: string;
+    /** Job title, or the award for a qualification. */
+    label: string;
+    dates: readonly string[];
+    /** The CV text the model says this came from. Verified, never trusted. */
+    evidence: string;
   };
 }
 
@@ -210,6 +243,27 @@ export interface Position {
   endDate: string;
   bullets: readonly string[];
   /**
+   * The exact text from the CV this job's header was read from.
+   *
+   * This replaces every layout rule the validator used to have, and the reason
+   * is worth keeping. Verification used to work by position — find the employer
+   * line, decide which nearby lines belonged to that job, check the title and
+   * dates fell inside. Position is a property of *formatting*, not of truth, so
+   * the moment a CV was laid out differently the checks failed on true facts
+   * and deleted real jobs. Two of three common layouts broke. One of them was
+   * a Word table, where every field lands on its own line.
+   *
+   * A quote does not care how the document is laid out. The model reads the CV
+   * however it is shaped, and says which text it drew the job from. All the
+   * validator asks is whether that text is really in the CV, and whether it
+   * contains what the model claims it contains.
+   *
+   * It is also stricter than the old rule. A date cannot be moved from one job
+   * to another, because doing so means quoting text that does not contain this
+   * job's employer.
+   */
+  evidence: string;
+  /**
    * Set only when a tailoring stored before structured history was read back.
    *
    * Those records hold a flat list of bullets and no employer, because there
@@ -231,6 +285,8 @@ export interface Qualification {
   institution: string;
   /** Empty when the CV does not give one. */
   year: string;
+  /** The exact CV text this qualification was read from. See Position.evidence. */
+  evidence: string;
 }
 
 /**

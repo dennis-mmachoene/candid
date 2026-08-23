@@ -44,6 +44,15 @@ const claimSchema = z.object({
   positionIndex: z.number().int().nonnegative().optional(),
   bulletIndex: z.number().int().nonnegative().optional(),
   qualificationIndex: z.number().int().nonnegative().optional(),
+  dateSlot: z.enum(['start', 'end', 'year']).optional(),
+  position: z
+    .object({
+      organisation: z.string(),
+      label: z.string(),
+      dates: z.array(z.string()),
+      evidence: z.string(),
+    })
+    .optional(),
 });
 
 const validatedClaimSchema = z.object({
@@ -62,6 +71,8 @@ const positionSchema = z.object({
   startDate: z.string(),
   endDate: z.string(),
   bullets: z.array(z.string()),
+  // Older rows predate citations; a missing quote reads as an empty one.
+  evidence: z.string().default(''),
   legacy: z.literal(true).optional(),
 });
 
@@ -69,6 +80,7 @@ const qualificationSchema = z.object({
   award: z.string(),
   institution: z.string(),
   year: z.string(),
+  evidence: z.string().default(''),
 });
 
 /** What the current code writes. */
@@ -120,6 +132,7 @@ export const persistedDraftSchema: z.ZodType<TailoredDraft> = z.union([
                 startDate: '',
                 endDate: '',
                 bullets: old.bullets,
+                evidence: '',
                 legacy: true,
               },
             ]

@@ -52,6 +52,7 @@ const DRAFT: TailoredDraft = {
         'Reduced settlement turnaround time by 40% through automating reconciliation',
         'Orchestrated container deployments with Kubernetes across three regions',
       ],
+      evidence: 'Senior Developer, Absa Bank (2020 - present)',
     },
   ],
   qualifications: [
@@ -59,6 +60,7 @@ const DRAFT: TailoredDraft = {
       award: 'BSc Computer Science',
       institution: 'University of Pretoria',
       year: '2017',
+      evidence: 'BSc Computer Science, University of Pretoria (2017)',
     },
   ],
   skills: ['Java', 'PostgreSQL', 'Docker', 'Kubernetes'],

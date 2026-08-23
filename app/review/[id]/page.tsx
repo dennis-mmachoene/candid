@@ -57,7 +57,14 @@ export default async function ReviewPage({
   // function produces the export in Phase 4, so what is previewed and what is
   // downloaded cannot drift apart.
   const { document, omissions } = assembleResumeDocument({
-    identity: { fullName: null, email: null, phone: null, otherLines: [] },
+    identity: {
+        fullName: null,
+        email: null,
+        phone: null,
+        location: null,
+        links: [],
+        otherLines: [],
+      },
     draft: tailoring.draft,
     report,
     approved,

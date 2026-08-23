@@ -25,8 +25,8 @@ import {
 } from './inventory';
 import {
   appearsInSource,
+  checkEvidence,
   extractProvenanceMentions,
-  tracePosition,
 } from './provenance';
 import type {
   Claim,
@@ -232,37 +232,38 @@ export const PositionMatchesSource: ClaimSpecification = {
   evaluate(claim, inventory) {
     if (!claim.position) return null;
 
-    const trace = tracePosition(claim.position, inventory.lines);
-    if (!trace.employerTraced || !trace.titleTraced) return null;
-    if (trace.untracedDates.length > 0) return null;
+    const source = inventory.lines.join('\n');
+    const check = checkEvidence(claim.position, source);
 
-    const anchor = inventory.lines.find((line) =>
-      appearsInSource(claim.position!.employer, line),
-    );
+    // Nothing is judged without a real quote. A quote that is not in the CV
+    // means the model wrote it rather than read it.
+    if (!check.quoteFound) return null;
+
+    const cite = [{ surface: claim.text, line: claim.position.evidence.trim() }];
+
+    // A date is checked on its own so that failing one removes the date and
+    // not the job. It is still safe: it is checked against this job's own
+    // quote, so a date borrowed from elsewhere would need a quote that does
+    // not name this employer.
+    if (claim.kind === 'date') {
+      if (check.untracedDates.length > 0) return null;
+      return {
+        canonical: `date:${claim.positionIndex ?? claim.qualificationIndex ?? 0}:${claim.dateSlot ?? ''}:${normaliseKey(claim.text)}`,
+        reason: 'This date appears in the words your CV uses for this entry.',
+        evidence: cite,
+      };
+    }
+
+    if (!check.employerInQuote || !check.titleInQuote) return null;
 
     return {
       canonical: `${claim.kind}:${normaliseKey(claim.text)}`,
-      reason:
-        claim.source === 'education'
-          ? 'This qualification, institution and year all appear together in your CV.'
-          : 'This employer, job title and both dates all appear together in your CV.',
-      evidence: anchor ? [{ surface: claim.text, line: anchor.trim() }] : [],
+      reason: 'Your CV says this, in these words.',
+      evidence: cite,
     };
   },
 };
 
-/**
- * An organisation or date named inside a bullet or the summary.
- *
- * Positions and qualifications no longer come through here — they carry their
- * own fields and are judged by PositionMatchesSource above, scoped to their own
- * block of the CV. What is left is prose: "built the integration with Absa",
- * "since 2019". A flat containment check is the right tool for those, because
- * there is no structure to scope them to.
- *
- * No inference path exists here either. "Led a team of five" evidences team
- * leadership; nothing evidences an employer the CV never mentions.
- */
 export const NamedInSourceCv: ClaimSpecification = {
   name: 'NamedInSourceCv',
   verdict: 'accepted',
@@ -445,18 +446,48 @@ export function extractClaims(draft: TailoredDraft): readonly Claim[] {
     // never will. Raising a claim against it would block it and erase the
     // document, so it is carried through as-is.
     if (!position.legacy) {
+      // The job itself: employer and title, judged against the quoted text.
       claims.push({
         text: describePosition(position),
         kind: 'employer',
         source: 'position',
         positionIndex,
         position: {
-          employer: position.employer,
-          title: position.title,
-          startDate: position.startDate,
-          endDate: position.endDate,
+          organisation: position.employer,
+          label: position.title,
+          dates: [],
+          evidence: position.evidence,
         },
       });
+
+      // Each date as its own claim, checked against the same quote.
+      //
+      // Separate claims are what let an unverifiable date remove the date
+      // instead of the job. They stay safe because both are judged against
+      // this job's own quoted text: a date borrowed from another job would
+      // need a quote that does not name this employer.
+      const dates = [
+        ['start', position.startDate],
+        ['end', position.endDate],
+      ] as const;
+
+      for (const [slot, value] of dates) {
+        const date = value.trim();
+        if (!date) continue;
+        claims.push({
+          text: date,
+          kind: 'date',
+          source: 'position',
+          positionIndex,
+          dateSlot: slot,
+          position: {
+            organisation: position.employer,
+            label: '',
+            dates: [date],
+            evidence: position.evidence,
+          },
+        });
+      }
     }
 
     position.bullets.forEach((bullet, bulletIndex) => {
@@ -483,22 +514,39 @@ export function extractClaims(draft: TailoredDraft): readonly Claim[] {
     });
   });
 
-  // A qualification is judged as a unit for the same reason a position is: the
-  // award, the institution and the year are only meaningful together.
+  // Same split as a position: the qualification itself, then its year.
   draft.qualifications.forEach((qualification, qualificationIndex) => {
     if (!qualification.institution.trim() && !qualification.award.trim()) return;
+
     claims.push({
       text: describeQualification(qualification),
       kind: 'institution',
       source: 'education',
       qualificationIndex,
       position: {
-        employer: qualification.institution,
-        title: qualification.award,
-        startDate: qualification.year,
-        endDate: '',
+        organisation: qualification.institution,
+        label: qualification.award,
+        dates: [],
+        evidence: qualification.evidence,
       },
     });
+
+    const year = qualification.year.trim();
+    if (year) {
+      claims.push({
+        text: year,
+        kind: 'date',
+        source: 'education',
+        qualificationIndex,
+        dateSlot: 'year',
+        position: {
+          organisation: qualification.institution,
+          label: '',
+          dates: [year],
+          evidence: qualification.evidence,
+        },
+      });
+    }
   });
 
   for (const term of claimsInProse(draft.summary)) {

@@ -61,8 +61,10 @@ function headingText(heading: string, template: TemplateSpec): string {
 
 /** The identity line: name, then contact details on one row beneath it. */
 function contactLine(identity: IdentityHeader): string {
-  return [identity.email, identity.phone]
-    .filter((part): part is string => Boolean(part))
+  // Location sits with the contact details because that is where a recruiter
+  // looks for it, and because a South African advert filters on it first.
+  return [identity.email, identity.phone, identity.location, ...identity.links]
+    .filter((part): part is string => Boolean(part && part.trim()))
     .join('  |  ');
 }
 
