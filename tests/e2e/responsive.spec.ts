@@ -170,15 +170,15 @@ test.describe('content width', () => {
   });
 
   /**
-   * The wide shell uses the space a large monitor gives it; prose refuses to.
+   * The shell follows the monitor; the reading column does not.
    *
-   * These two assertions belong together because the temptation is to "fix"
-   * the second one by widening prose to match. A card grid has no reading
-   * measure and should grow. A paragraph has one and must not: 704px already
-   * runs to roughly 78 characters at the body size in use, and widening to
+   * These two assertions belong together because the tempting way to make the
+   * second one pass is to widen prose until it matches the first. A card grid
+   * has no reading measure and should grow. A paragraph has one and must not:
+   * 704px already runs to roughly 78 characters at the body size in use, and
    * 56rem would give over 90.
    */
-  test('the wide shell grows on a large monitor and prose does not', async ({
+  test('the shell follows the monitor and the reading column does not', async ({
     page,
   }) => {
     await page.goto('/privacy', { waitUntil: 'networkidle' });
@@ -189,12 +189,30 @@ test.describe('content width', () => {
       .boundingBox();
     const paragraph = await page.locator('main p').first().boundingBox();
 
-    // Above 1920 the wide container is capped at 90rem, so its content box is
-    // 1440px less the 32px gutters. Anything near 1152 means the growth steps
-    // were dropped.
-    expect(header?.width).toBeGreaterThan(1300);
+    // At 2560 the wide shell caps at 128rem = 2048px. Anything near the old
+    // 1152 means the growth steps were dropped or their order was inverted.
+    expect(header?.width).toBeGreaterThan(1900);
 
-    // And the paragraph is still held at the reading measure regardless.
+    // The paragraph is still held at the reading measure regardless.
     expect(paragraph?.width).toBeLessThan(900);
+  });
+
+  /**
+   * The shell should use most of a large screen rather than floating in the
+   * middle of it. At 2560 the header spans 2048 of 2560, which is 80%.
+   */
+  test('the shell uses most of the width of a large screen', async ({
+    page,
+  }) => {
+    // The landing page, not /dashboard: a signed-out visitor is redirected
+    // away from /dashboard, and this spec runs without a session.
+    await page.goto('/', { waitUntil: 'networkidle' });
+
+    const header = await page
+      .locator('header [data-slot="container"]')
+      .first()
+      .boundingBox();
+
+    expect((header?.width ?? 0) / 2560).toBeGreaterThan(0.75);
   });
 });
