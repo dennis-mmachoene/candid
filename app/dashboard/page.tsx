@@ -1,6 +1,8 @@
 import Link from 'next/link';
 import { ArrowRight, FileText, ShieldCheck, Upload } from 'lucide-react';
 
+import { DeleteResumeButton } from '@/components/delete-resume-button';
+
 import { UploadForm } from '@/components/upload-form';
 import { Badge } from '@/components/ui/badge';
 import { Container } from '@/components/ui/container';
@@ -27,117 +29,66 @@ export default async function DashboardPage() {
   // caller's own rows.
   const resumes = await resumeRepository.listResumes();
 
+  const hasCvs = resumes.length > 0;
+
   return (
     <main className="py-10 sm:py-14">
       <Container width="wide">
       <header className="animate-rise flex flex-col gap-2">
-        <Badge variant="brand">Your workspace</Badge>
         <h1 className="text-fluid-2xl font-semibold tracking-tight">
-          {resumes.length === 0
-            ? `Welcome, ${user.firstName}`
-            : `Welcome back, ${user.firstName}`}
+          {hasCvs ? `Welcome back, ${user.firstName}` : `Welcome, ${user.firstName}`}
         </h1>
         <p className="text-muted-foreground">
-          {resumes.length === 0
-            ? 'Upload your CV to get started. It is de-identified the moment it arrives.'
-            : 'Upload once, then tailor it to as many adverts as you like.'}
+          {hasCvs
+            ? 'Pick a CV and tailor it to an advert.'
+            : 'Upload your CV to get started. It is de-identified the moment it arrives.'}
         </p>
       </header>
 
-      <div className="mt-8 grid gap-5 sm:mt-10 sm:gap-6 lg:grid-cols-[1.1fr_1fr] lg:items-start">
-        <Card className="card-hover">
-          <CardHeader>
-            <span className="border-brand-500/25 bg-brand-500/10 mb-1 grid size-11 place-items-center rounded-md border">
-              <Upload className="text-brand-700 dark:text-brand-300 size-5" aria-hidden />
-            </span>
-            <CardTitle asChild className="text-fluid-lg">
-              <h2>Upload a CV</h2>
-            </CardTitle>
-            <CardDescription>
-              It is de-identified the moment it arrives. Only the experience,
-              skills and education part is stored.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <UploadForm />
-          </CardContent>
-        </Card>
+      {/*
+        Your CVs come first, and the upload sits underneath.
 
-        <Card className="border-accepted/25 bg-accepted-surface/25">
-          <CardHeader>
-            <span className="border-accepted/30 bg-accepted/10 mb-1 grid size-11 place-items-center rounded-md border">
-              <ShieldCheck className="text-accepted size-5" aria-hidden />
-            </span>
-            <CardTitle asChild className="text-fluid-lg">
-              <h2>What happens to your file</h2>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ol className="text-muted-foreground flex flex-col gap-3 text-sm leading-relaxed">
-              <li className="flex gap-3">
-                <span className="text-accepted font-mono text-xs">01</span>
-                Your name, email and phone are lifted out and encrypted
-                separately.
-              </li>
-              <li className="flex gap-3">
-                <span className="text-accepted font-mono text-xs">02</span>
-                Any South African ID number is redacted and thrown away. It is
-                never stored.
-              </li>
-              <li className="flex gap-3">
-                <span className="text-accepted font-mono text-xs">03</span>
-                The original file is discarded. Only the de-identified text is
-                kept.
-              </li>
-              <li className="flex gap-3">
-                <span className="text-accepted font-mono text-xs">04</span>
-                Your skills are recorded as the list every future claim gets
-                checked against.
-              </li>
-            </ol>
-          </CardContent>
-        </Card>
-      </div>
+        The old order had a large upload card and a four-point privacy
+        explainer filling the screen, with the stored CVs below the fold. That
+        is the right layout exactly once — the first visit. Every visit after
+        it, the person is here to tailor a CV they have already given us, and
+        they had to scroll past the explanation of a thing they did last week
+        to reach it.
 
-      <section className="mt-14 flex flex-col gap-4">
-        <div className="flex items-baseline justify-between gap-4">
-          <h2 className="text-fluid-xl font-semibold tracking-tight">Stored CVs</h2>
-          {resumes.length > 0 ? (
+        The privacy note is now one line with a link. It is the third time this
+        is being explained: the landing page says it, the consent gate says it,
+        and repeating it in full here reads as a warning rather than a promise.
+      */}
+      {hasCvs ? (
+        <section className="mt-8 flex flex-col gap-4 sm:mt-10">
+          <div className="flex flex-wrap items-baseline justify-between gap-3">
+            <h2 className="text-fluid-xl font-semibold tracking-tight">
+              Your CVs
+            </h2>
             <span className="text-muted-foreground text-sm tabular-nums">
               {resumes.length} stored
             </span>
-          ) : null}
-        </div>
+          </div>
 
-        {resumes.length === 0 ? (
-          <Card className="border-dashed">
-            <CardContent className="flex flex-col items-center gap-2 py-14 text-center">
-              <FileText className="text-muted-foreground/50 size-8" aria-hidden />
-              <p className="font-medium">Nothing here yet</p>
-              <p className="text-muted-foreground max-w-sm text-sm">
-                Upload a CV above and it will appear here, ready to tailor
-                against any advert.
-              </p>
-            </CardContent>
-          </Card>
-        ) : (
-          /*
-            A fourth column from 1536 up. The extra width the wider shell
-            gives us is better spent on another card than on making three
-            cards wider — a CV card holds a fixed amount of information, so
-            stretching it only moves the badge further from the title.
-          */
-          <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+          <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {resumes.map((resume) => (
               <li key={resume.id}>
-                <Card className="card-hover h-full">
+                <Card className="card-hover flex h-full flex-col">
                   <CardHeader>
                     <div className="flex items-start justify-between gap-3">
-                      <CardTitle className="flex items-center gap-2 text-base">
-                        <FileText className="text-brand-600 dark:text-brand-300 size-4" aria-hidden />
-                        {resume.format.toUpperCase()} CV
+                      <CardTitle asChild className="min-w-0 text-base">
+                        {/* The person's own filename. It is the only label they
+                            recognise, and three cards reading "DOCX CV" were
+                            indistinguishable. */}
+                        <h3 className="break-anywhere flex items-start gap-2">
+                          <FileText
+                            className="text-brand-600 dark:text-brand-300 mt-0.5 size-4 shrink-0"
+                            aria-hidden
+                          />
+                          {resume.originalFilename ?? `${resume.format.toUpperCase()} CV`}
+                        </h3>
                       </CardTitle>
-                      <Badge variant="accepted">
+                      <Badge variant="accepted" className="shrink-0">
                         <ShieldCheck className="size-3" aria-hidden />
                         de-identified
                       </Badge>
@@ -151,25 +102,71 @@ export default async function DashboardPage() {
                       })}
                     </CardDescription>
                   </CardHeader>
-                  <CardContent className="flex flex-col gap-4">
-                    <pre className="bg-muted/60 text-muted-foreground break-anywhere max-h-28 overflow-hidden rounded-lg p-3 font-mono text-[0.7rem] leading-relaxed whitespace-pre-wrap">
-                      {resume.content.slice(0, 260)}
-                      {resume.content.length > 260 ? '…' : ''}
-                    </pre>
-                    <Button asChild size="sm" className="self-start">
-                      <Link href={`/tailor/${resume.id}`}>
-                        Tailor to a job advert
-                        <ArrowRight className="size-4" aria-hidden />
-                      </Link>
-                    </Button>
+
+                  <CardContent className="flex flex-1 flex-col gap-4">
+                    {/*
+                      Rendered as prose rather than in a monospace block.
+
+                      The stored text is a CV, and showing it in a terminal font
+                      made a successful upload look like a parser error — which
+                      is a bad thing to feel about the one screen that is meant
+                      to reassure you the file was read properly.
+                    */}
+                    <p
+                      data-testid="cv-preview"
+                      className="text-muted-foreground line-clamp-4 flex-1 text-sm leading-relaxed"
+                    >
+                      {resume.content.replace(/\s+/g, ' ').slice(0, 220)}
+                      {resume.content.length > 220 ? '…' : ''}
+                    </p>
+
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <Button asChild size="sm">
+                        <Link href={`/tailor/${resume.id}`}>
+                          Tailor to a job advert
+                          <ArrowRight className="size-4" aria-hidden />
+                        </Link>
+                      </Button>
+                      <DeleteResumeButton
+                        id={resume.id}
+                        label={resume.originalFilename ?? 'this CV'}
+                      />
+                    </div>
                   </CardContent>
                 </Card>
               </li>
             ))}
           </ul>
-        )}
+        </section>
+      ) : null}
+
+      <section className={hasCvs ? 'mt-12' : 'mt-8 sm:mt-10'}>
+        <Card>
+          <CardHeader>
+            <span className="border-brand-500/25 bg-brand-500/10 mb-1 grid size-11 place-items-center rounded-md border">
+              <Upload className="text-brand-700 dark:text-brand-300 size-5" aria-hidden />
+            </span>
+            <CardTitle asChild className="text-fluid-lg">
+              <h2>{hasCvs ? 'Upload another CV' : 'Upload your CV'}</h2>
+            </CardTitle>
+            <CardDescription>
+              PDF or Word, up to 5 MB. Your name, contact details and any ID
+              number are removed before anything is stored, and the original
+              file is discarded.{' '}
+              <Link
+                href="/privacy"
+                className="underline underline-offset-4"
+              >
+                What happens to your file
+              </Link>
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <UploadForm />
+          </CardContent>
+        </Card>
       </section>
-    </Container>
+      </Container>
     </main>
   );
 }

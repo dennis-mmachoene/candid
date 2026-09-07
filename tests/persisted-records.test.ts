@@ -11,15 +11,17 @@
  * claim ends up with no record refusing it.
  */
 
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import {
   CorruptRecordError,
   readApprovals,
   readDraft,
+  readFilename,
   readReport,
   toJson,
 } from '@/lib/infrastructure/persisted-schemas';
+import { encrypt, resetKeyCache } from '@/lib/infrastructure/crypto';
 import type { Json } from '@/lib/database.types';
 import type { IntegrityReport, TailoredDraft } from '@/lib/domain/types';
 
@@ -178,5 +180,59 @@ describe('approvals fail in the safe direction', () => {
     expect(readApprovals(['team leadership'] as Json)).toEqual([
       'team leadership',
     ]);
+  });
+});
+
+/**
+ * The uploaded filename.
+ *
+ * People name a CV after themselves — "thabo-mokoena-cv.docx" — so this column
+ * carries identity, and it used to carry it in plain text. That is the one
+ * place a database dump would have found a name, sitting between a body we had
+ * de-identified and a header we had encrypted.
+ */
+describe('the stored filename', () => {
+  const TEST_KEY = Buffer.alloc(32, 7).toString('base64');
+  let previousKey: string | undefined;
+
+  beforeEach(() => {
+    previousKey = process.env.ENCRYPTION_KEY;
+    process.env.ENCRYPTION_KEY = TEST_KEY;
+    resetKeyCache();
+  });
+
+  afterEach(() => {
+    process.env.ENCRYPTION_KEY = previousKey;
+    resetKeyCache();
+  });
+
+  it('round-trips an encrypted filename', () => {
+    expect(readFilename(encrypt('thabo-mokoena-cv.docx'))).toBe(
+      'thabo-mokoena-cv.docx',
+    );
+  });
+
+  it('leaks no name into the stored value', () => {
+    const stored = encrypt('Dennis-Mmachoene-Ramara-CV.pdf');
+    expect(stored).not.toContain('Dennis');
+    expect(stored).not.toContain('Ramara');
+  });
+
+  it('keeps a null null, rather than encrypting the absence of a name', () => {
+    expect(readFilename(null)).toBeNull();
+  });
+
+  /*
+   * The branch that matters for anyone who uploaded before this change. Their
+   * filename is plain text, decrypt() throws on it, and the card must still
+   * show something rather than the whole dashboard failing to render.
+   */
+  it('still reads a row written before the column was encrypted', () => {
+    expect(readFilename('my-old-cv.pdf')).toBe('my-old-cv.pdf');
+  });
+
+  it('does not confuse a legacy name for a decryption failure', () => {
+    // Shaped like a payload — three dot-separated parts — but not ours.
+    expect(readFilename('not.a.payload')).toBe('not.a.payload');
   });
 });

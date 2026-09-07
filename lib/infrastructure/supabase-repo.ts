@@ -1,11 +1,12 @@
 import 'server-only';
 
 import { createClient } from './supabase/server';
-import { decryptIdentityHeader, encryptIdentityHeader } from './crypto';
+import { decryptIdentityHeader, encrypt, encryptIdentityHeader } from './crypto';
 import {
   persistedDraftSchema,
   persistedReportSchema,
   readApprovals,
+  readFilename,
   readDraft,
   readReport,
   toJson,
@@ -85,10 +86,13 @@ export class SupabaseResumeRepository implements ResumeRepository {
         content: input.content,
         format: input.format,
         identity_header_enc: encryptIdentityHeader(input.identity),
-        original_filename: input.originalFilename ?? null,
+        original_filename:
+          input.originalFilename === undefined
+            ? null
+            : encrypt(input.originalFilename),
         redacted_id_count: input.redactedIdCount ?? 0,
       })
-      .select('id, created_at, content, format')
+      .select('id, created_at, content, format, original_filename')
       .single();
 
     if (error || !data) fail('saveResume', error);
@@ -98,6 +102,7 @@ export class SupabaseResumeRepository implements ResumeRepository {
       createdAt: new Date(data.created_at),
       content: data.content,
       format: data.format,
+      originalFilename: readFilename(data.original_filename),
     };
   }
 
@@ -135,7 +140,7 @@ export class SupabaseResumeRepository implements ResumeRepository {
     const supabase = await createClient();
     const { data, error } = await supabase
       .from('resumes')
-      .select('id, created_at, content, format')
+      .select('id, created_at, content, format, original_filename')
       .eq('id', id)
       .maybeSingle();
 
@@ -151,6 +156,7 @@ export class SupabaseResumeRepository implements ResumeRepository {
       createdAt: new Date(data.created_at),
       content: data.content,
       format: data.format,
+      originalFilename: readFilename(data.original_filename),
     };
   }
 
@@ -182,7 +188,7 @@ export class SupabaseResumeRepository implements ResumeRepository {
     const supabase = await createClient();
     const { data, error } = await supabase
       .from('resumes')
-      .select('id, created_at, content, format')
+      .select('id, created_at, content, format, original_filename')
       .order('created_at', { ascending: false });
 
     if (error) fail('listResumes', error);
@@ -192,6 +198,7 @@ export class SupabaseResumeRepository implements ResumeRepository {
       createdAt: new Date(row.created_at),
       content: row.content,
       format: row.format,
+      originalFilename: readFilename(row.original_filename),
     }));
   }
 
@@ -333,6 +340,19 @@ export class SupabaseResumeRepository implements ResumeRepository {
    * table cascades from auth.users, so this is belt to that braces: it makes
    * the rows go away even if auth deletion is what fails.
    */
+  /**
+   * One CV. Everything tailored from it goes with it, by cascade.
+   *
+   * No user id in the filter, and none needed — Row-Level Security scopes the
+   * delete to the caller's own rows, so somebody else's id simply matches
+   * nothing.
+   */
+  async deleteResume(id: string): Promise<void> {
+    const supabase = await createClient();
+    const { error } = await supabase.from('resumes').delete().eq('id', id);
+    if (error) fail('deleteResume', error);
+  }
+
   async deleteEverything(): Promise<void> {
     const supabase = await createClient();
 
