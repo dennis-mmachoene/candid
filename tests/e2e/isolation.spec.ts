@@ -91,7 +91,23 @@ test.describe('two accounts cannot see each other', () => {
     await page.getByRole('button', { name: /i understand and agree/i }).click();
     await expect(page).toHaveURL(/\/dashboard/);
 
-    await expect(page.getByText(/nothing here yet/i)).toBeVisible();
+    /*
+     * The dashboard no longer carries a "Nothing here yet" placeholder — with
+     * the upload card sitting right there on a first visit, it said nothing.
+     *
+     * These two assertions replace it, and both are closer to the thing this
+     * test is actually about. The heading reads "Upload your CV" only when the
+     * account has none; once it has one it reads "Upload another CV". And no
+     * tailor link means no CV card was rendered at all, which is a direct
+     * statement about B's data rather than a statement about B's decoration.
+     */
+    await expect(
+      page.getByRole('heading', { name: /^upload your cv$/i }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole('link', { name: /tailor to a job advert/i }),
+    ).toHaveCount(0);
+
     await expect(page.getByText('Ayanda')).toHaveCount(0);
     await expect(page.getByText('ayanda@example.co.za')).toHaveCount(0);
 

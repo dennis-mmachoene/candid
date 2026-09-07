@@ -88,8 +88,15 @@ test.describe('the happy path', () => {
       timeout: 30_000,
     });
 
-    // And the stored preview must carry none of the identifiers.
-    const preview = page.locator('pre').first();
+    /*
+     * And the stored preview must carry none of the identifiers.
+     *
+     * Located by test id rather than by tag. This assertion is about what the
+     * preview *contains*, and it broke once already because the preview
+     * stopped being a <pre> — a styling decision silently disabled a check on
+     * de-identification. The hook now survives the next restyle.
+     */
+    const preview = page.getByTestId('cv-preview').first();
     await expect(preview).toBeVisible();
     const text = (await preview.textContent()) ?? '';
 

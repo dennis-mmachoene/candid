@@ -80,6 +80,14 @@ export interface StoredResume {
   /** De-identified content. The identity header is stored encrypted, apart. */
   content: string;
   format: CvFormat;
+  /**
+   * What the person called the file when they uploaded it.
+   *
+   * Stored since the first migration and never read back, so three CVs all
+   * showed as "DOCX CV" and were impossible to tell apart. It is the only
+   * label the user recognises.
+   */
+  originalFilename: string | null;
 }
 
 export interface StoredTailoring {
@@ -124,6 +132,15 @@ export interface ResumeRepository {
   ): Promise<void>;
 
   getTailoring(id: string): Promise<StoredTailoring | null>;
+
+  /**
+   * Remove one CV and everything tailored from it.
+   *
+   * "Delete my whole account" was the only way to remove a bad upload, which
+   * is not a reasonable thing to ask of someone whose parser output looked
+   * wrong once.
+   */
+  deleteResume(id: string): Promise<void>;
 
   /** POPIA §24. Deletes every row the user owns; auth deletion is separate. */
   deleteEverything(): Promise<void>;

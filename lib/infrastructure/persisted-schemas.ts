@@ -2,6 +2,7 @@ import 'server-only';
 
 import { z } from 'zod';
 
+import { decrypt } from './crypto';
 import type { Json } from '@/lib/database.types';
 import type { IntegrityReport, TailoredDraft } from '@/lib/domain/types';
 
@@ -208,4 +209,37 @@ export function readApprovals(value: Json): string[] {
  */
 export function toJson(value: unknown): Json {
   return JSON.parse(JSON.stringify(value)) as Json;
+}
+
+/**
+ * The uploaded filename, encrypted.
+ *
+ * A CV is very often saved as the person's own name — "Dennis-Ramara-CV.pdf",
+ * "thabo-mokoena-cv.docx". So this column holds identity data, and leaving it
+ * as plain text put a name in the clear right beside a body we had gone to the
+ * trouble of de-identifying and a header we had gone to the trouble of
+ * encrypting. Against a database dump, the careful work either side of it
+ * counted for nothing.
+ */
+export function readFilename(stored: string | null): string | null {
+  if (stored === null) return null;
+  try {
+    return decrypt(stored);
+  } catch {
+    /*
+     * Rows written before this change hold the filename as plain text, and
+     * decrypt() throws on anything that is not a well-formed payload.
+     *
+     * Returning it as-is is the honest reading: that is what the value is. The
+     * alternative — a migration — would need the encryption key inside a SQL
+     * script, and would rewrite user rows to fix a problem the user cannot see.
+     * Old rows stay readable, new rows are encrypted, and the column empties of
+     * plaintext as CVs are re-uploaded or deleted.
+     *
+     * Note this cannot mask a real decryption failure into silent data loss:
+     * a genuine tampered payload also lands here, and lands as the ciphertext
+     * string, which is visibly wrong rather than quietly absent.
+     */
+    return stored;
+  }
 }
