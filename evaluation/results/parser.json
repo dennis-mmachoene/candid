@@ -1,0 +1,20 @@
+{
+  "key": "parser",
+  "title": "Measurement 1 — parser success rate",
+  "question": "Of real resume PDFs drawn from 24 professions, how many yield usable text?",
+  "figures": {
+    "PDFs attempted": 500,
+    "Parsed successfully": 499,
+    "Success rate": "99.80%",
+    "Refused with a reason": 1,
+    "Unexpected failures": 0,
+    "Mean characters extracted": 6015
+  },
+  "detail": {
+    "refusalsByReason": {
+      "No readable text was found. If your CV is a scan or a photo, please upload a version with selectable text.": 1
+    },
+    "unexpected": []
+  },
+  "runAt": "2026-09-13T15:28:49.356Z"
+}

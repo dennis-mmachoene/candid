@@ -1,0 +1,18 @@
+{
+  "key": "deidentification-natural",
+  "title": "Measurement 2a — residual identifiers in published data",
+  "question": "Of the identifiers left in the public dataset, how many survive de-identification?",
+  "figures": {
+    "Resumes processed": 2483,
+    "Email addresses before": 36,
+    "Email addresses after": 0,
+    "Telephone numbers before": 147,
+    "Telephone numbers after": 0,
+    "Identifiers removed": 183,
+    "Removal rate": "100.00%"
+  },
+  "detail": {
+    "survivingExamples": []
+  },
+  "runAt": "2026-09-13T15:28:50.971Z"
+}

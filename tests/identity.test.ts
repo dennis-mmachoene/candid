@@ -12,6 +12,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   ID_REDACTION,
+  PHONE_REDACTION,
   deidentify,
   extractIdentity,
   isPlausibleYyMmDd,
@@ -19,6 +20,7 @@ import {
   looksLikeName,
   luhnIsValid,
   redactSaIdNumbers,
+  scrubResidualIdentifiers,
   splitHeaderBlock,
 } from '@/lib/domain/identity';
 import { tailorCv } from '@/lib/domain/tailoring';
@@ -121,6 +123,68 @@ describe('header block detection', () => {
     expect(looksLikeName('Senior Developer at a national bank in Gauteng')).toBe(
       false,
     );
+  });
+});
+
+/**
+ * Telephone numbers that are not South African.
+ *
+ * These cases came out of a measurement rather than out of anybody's
+ * imagination. Running de-identification across 2483 published resumes left 107
+ * telephone numbers standing, and every one of them was North American: ten
+ * digits in three-three-four, with no country code for the international
+ * pattern to catch.
+ *
+ * A South African job seeker carries these. A reference at a previous employer
+ * abroad, a contact at an international client. The promise on the consent
+ * screen says the telephone number is removed, with no clause about which
+ * country issued it.
+ */
+describe('telephone numbers from outside South Africa', () => {
+  const scrub = (text: string): string =>
+    scrubResidualIdentifiers(text, {
+      fullName: null,
+      email: null,
+      phone: null,
+      location: null,
+      links: [],
+      otherLines: [],
+    });
+
+  it('removes the standard North American forms', () => {
+    for (const number of ['(217) 097-5477', '304-264-5413', '225 344 8930']) {
+      expect(scrub(`Reference: ${number}`)).toContain(PHONE_REDACTION);
+      expect(scrub(`Reference: ${number}`)).not.toContain(number);
+    }
+  });
+
+  /**
+   * PDF extraction loses a bracket surprisingly often, and both of these are
+   * verbatim from the dataset. A pattern that required brackets to be paired
+   * would have walked straight past them.
+   */
+  it('removes the forms a PDF extractor mangles', () => {
+    for (const number of ['(910-432-2392', '865) 336-4800']) {
+      expect(scrub(`Call ${number} for details`)).toContain(PHONE_REDACTION);
+    }
+  });
+
+  /**
+   * The guard against the failure the pattern list warns about: a rule loose
+   * enough to catch a telephone number can start eating reference numbers.
+   * The separator requirement is what holds that line.
+   */
+  it('leaves numbers that are not telephone numbers alone', () => {
+    const safe = [
+      'Invoice 1234567890 was settled',
+      'Reference 9912310000000 on file',
+      'Reduced turnaround from 2019-01-01 to 2020-12-31',
+      'Managed a budget of R1 200 000 over three years',
+    ];
+
+    for (const text of safe) {
+      expect(scrub(text)).toBe(text);
+    }
   });
 });
 
