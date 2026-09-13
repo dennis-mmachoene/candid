@@ -19,6 +19,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
+    "evaluate": "vitest run --config vitest.eval.config.ts evaluation/offline.eval.ts",
+    "evaluate:ai": "vitest run --config vitest.eval.config.ts evaluation/tailoring.eval.ts",
     "e2e": "playwright test",
     "e2e:install": "playwright install --with-deps chromium"
   },
@@ -49,6 +51,7 @@
     "@types/node": "22.20.1",
     "@types/react": "19.2.18",
     "@types/react-dom": "19.2.4",
+    "csv-parse": "7.0.2",
     "eslint": "9.39.5",
     "eslint-config-next": "15.5.22",
     "jszip": "3.10.1",
