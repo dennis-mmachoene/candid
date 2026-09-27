@@ -32,9 +32,25 @@ import type { TailoredDraft } from '@/lib/domain/types';
  */
 
 export class AIProviderError extends Error {
-  constructor(message: string) {
+  /**
+   * The failure this wraps, kept for diagnosis and never shown to a user.
+   *
+   * The message above is deliberately vague and the log above records only a
+   * status and an error name, because on a real request the detail can echo
+   * part of somebody's CV. That is right for production and it made a live
+   * failure impossible to diagnose: 14 of 25 evaluation runs failed with
+   * nothing recorded but the word "Error".
+   *
+   * Attaching the original here costs nothing and leaks nothing. It is never
+   * logged and never rendered. Only a caller that already holds the data, such
+   * as the evaluation harness running on a public corpus, can read it.
+   */
+  readonly original?: unknown;
+
+  constructor(message: string, original?: unknown) {
     super(message);
     this.name = 'AIProviderError';
+    this.original = original;
   }
 }
 
@@ -48,11 +64,49 @@ export class AIProviderError extends Error {
  * process it. `.strict()` refuses unexpected keys instead of passing them
  * inward.
  */
+/**
+ * How long an evidence quote may be.
+ *
+ * This was 600 characters and it was the single largest cause of failure in
+ * production. Measured against real resumes, 14 of 25 tailorings were thrown
+ * away because the model's quote ran past it. The user was told the tailoring
+ * service was unavailable, when what actually happened is that we rejected our
+ * own reply.
+ *
+ * A job entry quoted together with its bullets passes 600 characters easily and
+ * honestly, so the old cap was not protecting anything. It is a sanity bound
+ * against runaway output, not a rule about truthfulness. The quote still has to
+ * appear in the CV word for word, which is what checkEvidence enforces and what
+ * length never had any bearing on.
+ */
+const MAX_EVIDENCE_CHARS = 2_000;
+
+/*
+ * The rest of the caps, raised for the same reason and measured the same way.
+ *
+ * Every one of these was a guess. Run against real resumes, the guesses were
+ * wrong in the same direction: 600 characters of evidence failed 14 of 25
+ * documents, and once that was fixed a limit of 10 bullet points failed 6 more.
+ * Each failure threw the entire reply away and told the user the service was
+ * unavailable.
+ *
+ * None of these numbers protect honesty. That job belongs to the validator,
+ * which checks every claim against the CV no matter how many claims arrive.
+ * These are only a bound against runaway output, so they should sit well above
+ * what a real document produces rather than just above what a tidy one does.
+ */
+const MAX_SUMMARY_CHARS = 2_000;
+const MAX_BULLETS_PER_POSITION = 25;
+const MAX_BULLET_CHARS = 600;
+const MAX_POSITIONS = 20;
+const MAX_QUALIFICATIONS = 15;
+const MAX_SKILLS = 80;
+
 const draftSchema = z
   .object({
     summary: z
       .string()
-      .max(1200)
+      .max(MAX_SUMMARY_CHARS)
       .describe(
         'A two or three sentence professional summary, drawn only from the supplied experience.',
       ),
@@ -83,21 +137,21 @@ const draftSchema = z
                 'End date exactly as the CV writes it. "present" is valid. Empty string if the CV does not give one. Never estimate.',
               ),
             bullets: z
-              .array(z.string().max(400))
-              .max(10)
+              .array(z.string().max(MAX_BULLET_CHARS))
+              .max(MAX_BULLETS_PER_POSITION)
               .describe(
                 'What this person did in THIS job, rephrased from the CV. Never new achievements, and never moved here from another job.',
               ),
             evidence: z
               .string()
-              .max(600)
+              .max(MAX_EVIDENCE_CHARS)
               .describe(
                 'COPY the exact text from the CV that names this employer, title and dates. Character for character, including punctuation. If they span two lines, include both. This is checked against the CV and the job is dropped if it does not match.',
               ),
           })
           .strict(),
       )
-      .max(12)
+      .max(MAX_POSITIONS)
       .describe(
         'One entry per job in the CV, newest first. Employer, title and dates are copied, not rewritten.',
       ),
@@ -119,18 +173,18 @@ const draftSchema = z
               .describe('Year as written. Empty string if the CV does not give one.'),
             evidence: z
               .string()
-              .max(600)
+              .max(MAX_EVIDENCE_CHARS)
               .describe(
                 'COPY the exact text from the CV naming this qualification and institution. Character for character.',
               ),
           })
           .strict(),
       )
-      .max(10)
+      .max(MAX_QUALIFICATIONS)
       .describe('Education from the CV. Empty array if the CV lists none.'),
     skills: z
       .array(z.string().max(80))
-      .max(40)
+      .max(MAX_SKILLS)
       .describe(
         'Skills that appear in the supplied CV, worded to match the advert where honest.',
       ),
@@ -281,6 +335,7 @@ export class ClaudeProvider implements AIProvider {
 
       throw new AIProviderError(
         'The tailoring service is unavailable right now. Please try again in a moment.',
+        cause,
       );
     }
 

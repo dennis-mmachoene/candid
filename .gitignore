@@ -59,3 +59,15 @@ next-env.d.ts
 # while it is open, and it is gone the moment the document is closed.
 # One was committed by accident before this line existed.
 ~$*
+
+# Evaluation datasets. These are thousands of real people's resumes, published
+# under CC0 by somebody else. They belong beside the repository, not inside it.
+# CANDID_DATASET_DIR points at wherever they live; evaluation/README.md says
+# where to get them and under which licence.
+#
+# The measurement results in evaluation/results/ are deliberately NOT ignored.
+# They are the evidence for the figures quoted in the project documentation,
+# and a reader should be able to open the file and check the number.
+/Datasets/
+/datasets/
+/data/
