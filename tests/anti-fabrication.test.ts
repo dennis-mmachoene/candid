@@ -13,6 +13,7 @@ import { describe, expect, it } from 'vitest';
 import { buildInventory, canonicalise, inventoryHas } from '@/lib/domain/inventory';
 import { deidentify } from '@/lib/domain/identity';
 import { assembleResumeDocument } from '@/lib/domain/resume-document';
+import { checkEvidence, namedInFull } from '@/lib/domain/provenance';
 import { extractClaims, reviewDraft, validateClaim } from '@/lib/domain/validator';
 import type { ApprovedClaims, IdentityHeader, ValidatedClaim } from '@/lib/domain/types';
 import { CV_WITH_IDENTIFIERS, MIXED_DRAFT } from './fixtures';
@@ -194,5 +195,108 @@ describe('what reaches the document', () => {
     });
     const reattached: IdentityHeader = document.identity;
     expect(reattached.fullName).toBe('Thabo Mokoena');
+  });
+});
+
+/**
+ * Employer names across a line break.
+ *
+ * These came out of a real CV, not out of imagination. Candid deleted both of
+ * this person's jobs and told them "Your CV does not name this organisation"
+ * about employers printed plainly on the page. The cause was that the whole
+ * name test treated a newline as an ordinary space, so the last word of the
+ * job title on the line above looked like the first word of the company name.
+ *
+ * Every CV that puts the title above the employer hit this, which is most of
+ * them. The measurement that found it ran the real product against a real
+ * document; no fixture we had written happened to use that layout.
+ */
+describe('an employer named on its own line', () => {
+  const csir =
+    'Software Developer & Researcher\nCouncil for Scientific and Industrial Research (CSIR), Pretoria, South Africa | April 2025 - Present';
+
+  it('is recognised when the title sits on the line above', () => {
+    expect(
+      namedInFull(csir, 'Council for Scientific and Industrial Research (CSIR)'),
+    ).toBe(true);
+  });
+
+  it('is recognised when the line above ends in another capitalised word', () => {
+    const icep =
+      'Backend Developer | Full Stack Developer | Scrum Master\nInformatic and Community Engagement Projects (ICEP), Mpumalanga, South Africa | June 2024 - June 2025';
+    expect(
+      namedInFull(icep, 'Informatic and Community Engagement Projects (ICEP)'),
+    ).toBe(true);
+  });
+
+  /**
+   * The rule this function exists for has to survive the fix. Within a single
+   * line, a capitalised word either side still extends the name, so a fragment
+   * is still a fragment.
+   */
+  it('still refuses a fragment of a longer name on the same line', () => {
+    expect(namedInFull('Absa Bank Limited paid the invoice', 'Bank')).toBe(false);
+    expect(namedInFull('I worked at Standard Bank Group', 'Standard')).toBe(false);
+  });
+
+  /*
+   * The legal-suffix case belongs to sameOrganisation, not to namedInFull.
+   *
+   * namedInFull refuses "Absa Bank" inside "Absa Bank Limited" on purpose,
+   * because "Limited" extends the name. sameOrganisation is what strips the
+   * suffix and retries, and checkEvidence is the exported way to reach it. An
+   * earlier version of this test asserted the wrong function and failed; the
+   * code was right.
+   */
+  it('accepts an employer the CV writes out with a legal suffix', () => {
+    const quote =
+      'Senior Analyst\nAbsa Bank Limited, Johannesburg | 2019 - 2022';
+    const source = `Work Experience\n${quote}\nBuilt reporting tools.`;
+
+    const check = checkEvidence(
+      {
+        evidence: quote,
+        organisation: 'Absa Bank',
+        label: 'Senior Analyst',
+        dates: ['2019', '2022'],
+      },
+      source,
+    );
+
+    expect(check.quoteFound).toBe(true);
+    expect(check.employerInQuote).toBe(true);
+  });
+
+  /*
+   * The whole failure, end to end, at the point the product actually uses.
+   * This is the case that shipped a CV with no work history on it.
+   */
+  it('traces a real job whose employer sits below its title', () => {
+    const quote =
+      'Software Developer & Researcher\nCouncil for Scientific and Industrial Research (CSIR), Pretoria, South Africa | April 2025 - Present';
+    const source = `Work Experience\n${quote}\n- Refactored report modules.`;
+
+    const check = checkEvidence(
+      {
+        evidence: quote,
+        organisation: 'Council for Scientific and Industrial Research (CSIR)',
+        label: 'Software Developer & Researcher',
+        dates: ['April 2025', 'Present'],
+      },
+      source,
+    );
+
+    expect(check.quoteFound).toBe(true);
+    expect(check.employerInQuote).toBe(true);
+    expect(check.titleInQuote).toBe(true);
+    expect(check.untracedDates).toEqual([]);
+  });
+
+  /**
+   * A line break separates, but it must not invent a match that is not there.
+   */
+  it('does not match an organisation the text never names', () => {
+    expect(namedInFull(csir, 'University of Pretoria')).toBe(false);
+    expect(namedInFull(csir, 'Eskom')).toBe(false);
   });
 });

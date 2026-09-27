@@ -286,8 +286,29 @@ export function namedInFull(text: string, name: string): boolean {
     const before = text.slice(0, index);
     const after = text.slice(index + match[0].length);
 
-    const previous = /([A-Za-z&]+)\s+$/.exec(before)?.[1];
-    const next = /^\s+([A-Za-z&]+)/.exec(after)?.[1];
+    /*
+     * A line break ends a name. Ordinary spaces do not.
+     *
+     * `\s` matched newlines, and that deleted real jobs. A CV that puts the
+     * title on one line and the employer on the next reads, to this function,
+     * as one run of text:
+     *
+     *   Software Developer & Researcher
+     *   Council for Scientific and Industrial Research (CSIR)
+     *
+     * "Researcher" is capitalised and sits immediately before "Council", so the
+     * organisation looked like a fragment of a longer name, the match was
+     * refused, and the whole job was dropped from the CV with the message "Your
+     * CV does not name this organisation". The CV named it plainly.
+     *
+     * The comment above already says punctuation ends a name. A line break is
+     * a stronger separator than a comma, not a weaker one: two facts on two
+     * lines are two facts. `[^\S\n]` is whitespace excluding newlines, which
+     * keeps the fragment rule intact within a line and stops it reaching across
+     * one.
+     */
+    const previous = /([A-Za-z&]+)[^\S\n]+$/.exec(before)?.[1];
+    const next = /^[^\S\n]+([A-Za-z&]+)/.exec(after)?.[1];
 
     const extendedBefore =
       previous !== undefined &&
