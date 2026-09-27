@@ -16,6 +16,7 @@
  *      only way through.
  */
 
+import { carriedOverSections, isConventionalHeading } from './sections';
 import { describePosition, describeQualification } from './validator';
 import type {
   ApprovedClaims,
@@ -154,11 +155,57 @@ function includable(
  * meaning still rests on the claim, so the honest move is to drop the sentence.
  * The same applies to the summary.
  */
+/**
+ * Turn a carried section's raw lines into document blocks.
+ *
+ * A run of bullet lines becomes one bullets block, matching how experience is
+ * rendered, and anything else becomes an entry. The bullet character itself is
+ * stripped because the renderer draws its own; leaving it produces two.
+ */
+function blocksFromLines(lines: readonly string[]): DocumentBlock[] {
+  const blocks: DocumentBlock[] = [];
+  let bullets: string[] = [];
+
+  const flush = (): void => {
+    if (bullets.length > 0) {
+      blocks.push({ kind: 'bullets', items: bullets });
+      bullets = [];
+    }
+  };
+
+  for (const line of lines) {
+    const text = line.trim();
+    if (text === '') continue;
+
+    const bullet = /^[\u2022\u00b7\u25aa\u25e6\u2023*\-\u2013\u2014]\s+(.*)$/.exec(text);
+    if (bullet) {
+      const item = bullet[1].trim();
+      if (item) bullets.push(item);
+      continue;
+    }
+
+    flush();
+    blocks.push({ kind: 'entry', text });
+  }
+
+  flush();
+  return blocks;
+}
+
 export function assembleResumeDocument(input: {
   identity: IdentityHeader;
   draft: TailoredDraft;
   report: IntegrityReport;
   approved: ApprovedClaims;
+  /**
+   * The de-identified CV the applicant uploaded.
+   *
+   * Sections Candid has no field for are copied from here word for word, so
+   * that tailoring a CV cannot make it shorter than the one that went in.
+   * Optional so that every existing caller and test keeps working; when it is
+   * absent nothing is carried and the behaviour is exactly as before.
+   */
+  sourceCv?: string;
 }): AssemblyResult {
   const { identity, draft, report, approved } = input;
   const omissions: Omission[] = [];
@@ -351,6 +398,22 @@ export function assembleResumeDocument(input: {
     });
   }
 
+  /*
+   * Everything else the applicant wrote, carried across untouched.
+   *
+   * Projects, certifications, awards and the rest have no field in the model's
+   * reply, so before this they simply disappeared. They are not validated
+   * because nothing about them was generated: this is the applicant's own text
+   * going from the uploaded document to the exported one without passing
+   * through the model at all.
+   */
+  for (const carried of carriedOverSections(input.sourceCv ?? '')) {
+    const blocks = blocksFromLines(carried.lines);
+    if (blocks.length > 0) {
+      sections.push({ heading: carried.heading, blocks });
+    }
+  }
+
   return { document: { identity, sections }, omissions };
 }
 
@@ -387,7 +450,14 @@ export function validateAtsDocument(document: ResumeDocument): readonly string[]
   }
 
   for (const section of document.sections) {
-    if (!recognised.has(section.heading)) {
+    /*
+     * A carried section keeps the applicant's own heading, so "Projects &
+     * Hackathons" arrives here rather than a normalised "Projects". It is
+     * still a heading an applicant tracking system reads, which is what this
+     * check is actually for, so conventional headings pass alongside the five
+     * Candid writes itself. A heading nobody recognises is still a problem.
+     */
+    if (!recognised.has(section.heading) && !isConventionalHeading(section.heading)) {
       problems.push(`Unrecognised section heading: "${section.heading}".`);
     }
     for (const block of section.blocks) {

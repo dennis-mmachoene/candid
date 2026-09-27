@@ -56,6 +56,10 @@ export default async function ReviewPage({
   // Assembled here purely to show the user what would be printed. The same
   // function produces the export in Phase 4, so what is previewed and what is
   // downloaded cannot drift apart.
+  // The same uploaded CV the export reads, so the preview shows the carried
+  // sections too and what is on screen matches what downloads.
+  const resume = await resumeRepository.getResume(tailoring.resumeId);
+
   const { document, omissions } = assembleResumeDocument({
     identity: {
         fullName: null,
@@ -68,6 +72,7 @@ export default async function ReviewPage({
     draft: tailoring.draft,
     report,
     approved,
+    sourceCv: resume?.content,
   });
 
   return (
