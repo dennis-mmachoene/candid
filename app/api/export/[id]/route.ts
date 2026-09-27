@@ -69,11 +69,19 @@ export async function GET(
 
     const template = findTemplate(query.data.template ?? 'modern');
 
+    /*
+     * The uploaded CV, so the sections Candid has no field for travel into the
+     * export unchanged. Missing it is survivable: the document is built without
+     * them, which is what happened before this existed.
+     */
+    const resume = await resumeRepository.getResume(tailoring.resumeId);
+
     const { document } = assembleResumeDocument({
       identity,
       draft: tailoring.draft,
       report: tailoring.report as IntegrityReport,
       approved: new Set(tailoring.approvedClaims),
+      sourceCv: resume?.content,
     });
 
     if (document.sections.length === 0) {
