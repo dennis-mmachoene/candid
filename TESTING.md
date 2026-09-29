@@ -52,8 +52,31 @@ touching it.
 
 **Things that should be accepted**
 
-Java, PostgreSQL, Docker, Git, JavaScript. They are written in the CV in as many
-words.
+Java, PostgreSQL, Docker, Git, TypeScript, React, Linux. They are written in the
+CV in as many words.
+
+**AWS, and why it is worth pointing at**
+
+The skills line reads `DevOps / Deployment: Docker, AWS (EC2, S3, RDS, Lambda),
+Linux, Git, CI/CD`. AWS must be accepted.
+
+It was not always. Candid split that line on the comma before it looked at the
+bracket, so it recorded `aws ec2` and never plain `aws`, and a live tailoring
+refused AWS on a CV that lists it, for a cloud job. That was found by running
+the real product against a real CV, not by a test. Worth thirty seconds in front
+of a marker.
+
+**The layout is deliberate too**
+
+Every job puts the title on one line and the employer on the next:
+
+    Senior Software Developer
+    Nedbank Group, Sandton, Gauteng | March 2023 - Present
+
+That layout used to delete the entire job. The check that decides whether an
+employer is named in full treated a newline as an ordinary space, so "Developer"
+read as the first word of the company name and the match was refused as a
+fragment. A real CV came out of the product with no work history at all.
 
 **Things that should come back as "your call"**
 
@@ -63,14 +86,24 @@ should appear with the line it was inferred from, and each needs you to tick it:
 - team leadership — from "Led a team of five engineers"
 - mentoring — from "Mentored three graduate developers"
 - stakeholder management — from "Liaised with clients across three departments"
-- public speaking — from "Presented to the executive committee"
+- public speaking — from "Presented quarterly service reports to the executive committee"
 - agile methodologies — from "two-week sprints with retrospectives"
-- budget management — from "Managed a budget of R1.2 million"
+- budget management — from "Managed a tooling and licensing budget of R1.2 million"
+
+**A section that must survive to the export**
+
+`Projects & Community` has no field in the model's reply. It is carried into the
+exported CV word for word, along with `Certifications` and `References`.
+
+Before that existed, sections like these were not refused, they were
+unrepresentable, and they vanished. One real CV lost a high-performance
+computing project with monitoring work in it, while being tailored to an advert
+asking for monitoring experience.
 
 **Things that should be refused**
 
-Kubernetes, AWS, Kotlin and Terraform appear nowhere in the CV. The advert below
-demands all four.
+Kubernetes, Kotlin, Terraform and GraphQL appear nowhere in the CV. The advert
+below demands them.
 
 ---
 

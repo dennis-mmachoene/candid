@@ -16,6 +16,7 @@
  *      only way through.
  */
 
+import { restoreLinks } from './identity';
 import { carriedOverSections, isConventionalHeading } from './sections';
 import { describePosition, describeQualification } from './validator';
 import type {
@@ -49,9 +50,17 @@ export const ATS_SECTION_HEADINGS = {
 
 /**
  * A template may change how the document looks and nothing about what it
- * contains. There is deliberately no field here for columns, borders, rules,
- * background colours, icons or logos — the properties an ATS chokes on are the
- * properties a template cannot set.
+ * contains. There is deliberately no field here for columns, tables, text
+ * boxes, background colours, icons or logos — the properties an ATS chokes on
+ * are the properties a template cannot set.
+ *
+ * `sectionRule` is the one piece of decoration allowed through, and the line
+ * between it and the rest is not taste. A column or a table carries text, and
+ * carrying text is how a layout destroys reading order: the parser recovers the
+ * words in the wrong sequence, or attributes them to the wrong job. A rule
+ * carries none. It is a paragraph border in the DOCX and a drawn line in the
+ * PDF, and on the way back through a parser it comes out as nothing at all,
+ * which is what the ATS round-trip tests assert.
  */
 export interface TemplateSpec {
   id: string;
@@ -68,9 +77,36 @@ export interface TemplateSpec {
   sectionSpacing: number;
   headingTransform: 'uppercase' | 'titlecase';
   marginPoints: number;
+  /** Draw a thin horizontal line above each section heading. */
+  sectionRule?: boolean;
 }
 
 export const TEMPLATES: readonly TemplateSpec[] = [
+  {
+    /*
+     * The layout of an ordinary South African developer's CV, because that is
+     * what people upload and getting a different-looking document back reads as
+     * the tool having rewritten more than it did.
+     *
+     * Name large, title under it, contact details on one row, a rule between
+     * every section, headings in title case. Nothing structural differs from
+     * the other three: same single column, same bold entry lines, same literal
+     * hyphen bullets.
+     */
+    id: 'original',
+    name: 'Original',
+    description:
+      'Name, title, and a rule between sections. Closest to a CV you already have.',
+    fontFamily: 'Helvetica',
+    baseFontSize: 10,
+    headingFontSize: 14,
+    nameFontSize: 22,
+    lineSpacing: 1.3,
+    sectionSpacing: 14,
+    headingTransform: 'titlecase',
+    marginPoints: 50,
+    sectionRule: true,
+  },
   {
     id: 'classic',
     name: 'Classic',
@@ -112,8 +148,13 @@ export const TEMPLATES: readonly TemplateSpec[] = [
   },
 ];
 
+/** The one an unrecognised id falls back to, named rather than indexed. */
+export const DEFAULT_TEMPLATE_ID = 'original';
+
 export function findTemplate(id: string): TemplateSpec {
-  return TEMPLATES.find((template) => template.id === id) ?? TEMPLATES[1];
+  const byId = (wanted: string): TemplateSpec | undefined =>
+    TEMPLATES.find((template) => template.id === wanted);
+  return byId(id) ?? byId(DEFAULT_TEMPLATE_ID) ?? TEMPLATES[0];
 }
 
 // ---------------------------------------------------------------------------
@@ -414,7 +455,39 @@ export function assembleResumeDocument(input: {
     }
   }
 
-  return { document: { identity, sections }, omissions };
+  /*
+   * The withheld links go back in, here, last.
+   *
+   * De-identification replaced every web address with a numbered marker before
+   * the model saw the text, so that the name scrub could not take a name out of
+   * the middle of a URL. This is the same reunion the rest of the identity gets,
+   * at the same point, and it is applied across the whole document rather than
+   * only to carried sections because a marker can also reach here inside a
+   * bullet the model quoted.
+   *
+   * Nothing is validated on the way through, and nothing needs to be. A link is
+   * only ever restored to the exact text it was lifted from.
+   */
+  const restored =
+    identity.links.length === 0
+      ? sections
+      : sections.map((section) => ({
+          heading: section.heading,
+          blocks: withLinksRestored(section.blocks, identity.links),
+        }));
+
+  return { document: { identity, sections: restored }, omissions };
+}
+
+function withLinksRestored(
+  blocks: readonly DocumentBlock[],
+  links: readonly string[],
+): DocumentBlock[] {
+  return blocks.map((block) =>
+    block.kind === 'bullets'
+      ? { ...block, items: block.items.map((item) => restoreLinks(item, links)) }
+      : { ...block, text: restoreLinks(block.text, links) },
+  );
 }
 
 // ---------------------------------------------------------------------------

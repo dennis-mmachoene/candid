@@ -23,6 +23,17 @@
  */
 export interface IdentityHeader {
   fullName: string | null;
+  /**
+   * The line under the name: "Full-Stack Developer".
+   *
+   * A job title, not an identifier, but it lived in the header block and so was
+   * withheld along with the street address. Its absence was the most visible
+   * difference between the CV somebody uploaded and the one Candid gave back.
+   *
+   * Optional because records written before this field existed decrypt without
+   * it, and a missing title should print nothing rather than fail an export.
+   */
+  headline?: string | null;
   email: string | null;
   phone: string | null;
   /**
