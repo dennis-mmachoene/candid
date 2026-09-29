@@ -145,6 +145,26 @@ class Layout {
     this.gap(2);
   }
 
+  /**
+   * A thin full-width line.
+   *
+   * Drawn, not typed, so there is no text in it for a parser to recover and no
+   * reading order for it to disturb. It is the only decoration a template can
+   * ask for; see the note on `TemplateSpec`.
+   */
+  rule(): void {
+    const space = 7;
+    this.ensure(space * 2);
+    this.y -= space / 2;
+    this.page.drawLine({
+      start: { x: this.template.marginPoints, y: this.y },
+      end: { x: PAGE_WIDTH - this.template.marginPoints, y: this.y },
+      thickness: 0.75,
+      color: INK,
+    });
+    this.y -= space / 2;
+  }
+
   bullet(text: string): void {
     const size = this.template.baseFontSize;
     const marker = '- ';
@@ -192,6 +212,15 @@ export async function renderPdf(
     layout.gap(2);
   }
 
+  // The job title under the name, the way people write it themselves.
+  if (document.identity.headline) {
+    layout.line(document.identity.headline, {
+      size: template.baseFontSize + 1,
+      colour: MUTED,
+    });
+    layout.gap(1);
+  }
+
   const contact = contactLine(document.identity);
   if (contact) {
     layout.line(contact, { size: template.baseFontSize, colour: MUTED });
@@ -200,6 +229,7 @@ export async function renderPdf(
   // --- Sections ------------------------------------------------------------
   for (const section of document.sections) {
     layout.gap(template.sectionSpacing);
+    if (template.sectionRule) layout.rule();
     layout.heading(section.heading);
 
     for (const block of section.blocks) {

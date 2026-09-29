@@ -2,6 +2,7 @@ import 'server-only';
 
 import {
   AlignmentType,
+  BorderStyle,
   Document,
   Packer,
   Paragraph,
@@ -80,6 +81,7 @@ export async function renderDocx(
       spacingBefore?: number;
       spacingAfter?: number;
       indent?: boolean;
+      ruleAbove?: boolean;
     },
   ): Paragraph =>
     new Paragraph({
@@ -89,6 +91,24 @@ export async function renderDocx(
         after: twips(options.spacingAfter ?? 2),
         line: Math.round(240 * template.lineSpacing),
       },
+      /*
+       * A paragraph border, not a drawing and not a one-cell table.
+       *
+       * Both of those would put the line in the document as an object with
+       * content, which is how a layout costs somebody their reading order. A
+       * border is a property of this paragraph and carries no text, so it comes
+       * back out of a parser as nothing.
+       */
+      border: options.ruleAbove
+        ? {
+            top: {
+              style: BorderStyle.SINGLE,
+              size: 6,
+              color: '333333',
+              space: 6,
+            },
+          }
+        : undefined,
       indent: options.indent
         ? { left: convertInchesToTwip(0.25), hanging: convertInchesToTwip(0.15) }
         : undefined,
@@ -109,6 +129,16 @@ export async function renderDocx(
         size: halfPoints(template.nameFontSize),
         bold: true,
         spacingAfter: 2,
+      }),
+    );
+  }
+
+  // The job title under the name, the way people write it themselves.
+  if (document.identity.headline) {
+    children.push(
+      paragraph(document.identity.headline, {
+        size: halfPoints(template.baseFontSize + 1),
+        spacingAfter: 1,
       }),
     );
   }
@@ -140,6 +170,7 @@ export async function renderDocx(
           bold: true,
           spacingBefore: template.sectionSpacing,
           spacingAfter: 3,
+          ruleAbove: template.sectionRule,
         },
       ),
     );

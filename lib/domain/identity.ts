@@ -378,6 +378,170 @@ export function extractLinks(headerLines: readonly string[]): string[] {
   return links;
 }
 
+// ---------------------------------------------------------------------------
+// Links in the body
+// ---------------------------------------------------------------------------
+
+/**
+ * A web address anywhere below the header block.
+ *
+ * `PROFILE_LINK` above only has to know the profile sites, because everything
+ * in the header block is withheld whatever it is. The body is different. A link
+ * can sit in a project bullet, and one did:
+ *
+ *   GitHub: https://github.com/dennis-mmachoene/smart-crops-solutions
+ *
+ * The residual scrub then removed the applicant's name from it, on word
+ * boundaries, exactly as designed, and the exported CV carried
+ *
+ *   github.com/[NAME REDACTED]-[NAME REDACTED]/smart-crops-solutions
+ *
+ * which is worse than either keeping the link or dropping it. The scrub was
+ * right; it simply ran on text that should not have been there to scrub.
+ *
+ * So links are lifted out before the scrub runs, and put back at export. The
+ * second branch matches a bare domain with a path, because PDF extraction drops
+ * the scheme often enough to matter. Its list of endings is short on purpose: a
+ * pattern that accepted any dotted word followed by a slash would eat
+ * "Node.js/React" and "Agile/Scrum".
+ */
+const BODY_LINK =
+  /\b(?:https?:\/\/|www\.)[^\s<>"'|)\]]+|\b(?:[a-z0-9-]+\.)+(?:com|co\.za|org|net|io|dev|ai|app|me)\/[^\s<>"'|)\]]+/gi;
+
+/** Trailing punctuation belongs to the sentence, not to the address. */
+const LINK_TAIL = /[.,;:!?)\]]+$/;
+
+/** How a withheld link appears in the text the model is given. */
+export function linkMarker(index: number): string {
+  return `[LINK ${index + 1}]`;
+}
+
+const LINK_MARKER_PATTERN = /\[LINK (\d+)\]/g;
+
+/**
+ * Compare two spellings of the same address.
+ *
+ * A CV routinely writes its own GitHub twice, once with the scheme in the
+ * header and once without it in a project. Those are one link and must get one
+ * marker, or the numbering drifts apart from `identity.links`.
+ */
+function sameLink(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/^https?:\/\//, '')
+    .replace(/^www\./, '')
+    .replace(/\/+$/, '');
+}
+
+/**
+ * Replace every address in `text` with a numbered marker.
+ *
+ * `known` is the list already lifted out of the header. Markers are numbered
+ * against the returned list, so `[LINK 1]` is always `links[0]` and the two
+ * halves can be reunited by position alone.
+ */
+export function withholdLinks(
+  text: string,
+  known: readonly string[] = [],
+): { text: string; links: string[] } {
+  const links = [...known];
+  const positions = new Map<string, number>();
+  links.forEach((link, index) => positions.set(sameLink(link), index));
+
+  const output = text.replace(BODY_LINK, (match) => {
+    const link = match.replace(LINK_TAIL, '');
+    if (!link) return match;
+
+    const key = sameLink(link);
+    let index = positions.get(key);
+    if (index === undefined) {
+      index = links.length;
+      links.push(link);
+      positions.set(key, index);
+    }
+
+    // The punctuation that followed the address stays where it was.
+    return `${linkMarker(index)}${match.slice(link.length)}`;
+  });
+
+  return { text: output, links };
+}
+
+/**
+ * Put the addresses back.
+ *
+ * Called at export, on the server, at the same moment and for the same reason
+ * as the rest of the identity. A marker with no matching link is left alone
+ * rather than blanked, so a mismatch shows up as a visible `[LINK 4]` instead of
+ * silently deleting a line.
+ */
+export function restoreLinks(text: string, links: readonly string[]): string {
+  if (links.length === 0) return text;
+  return text.replace(LINK_MARKER_PATTERN, (match, digits: string) => {
+    return links[Number(digits) - 1] ?? match;
+  });
+}
+
+// ---------------------------------------------------------------------------
+// The professional title
+// ---------------------------------------------------------------------------
+
+/**
+ * The line most people put directly under their name: "Full-Stack Developer".
+ *
+ * It was going into `otherLines` and being withheld with the address, which is
+ * correct as a default and wrong for this one line — it is a job title, not an
+ * identifier, and its absence is the most obvious difference between the CV
+ * somebody uploads and the CV Candid gives back.
+ *
+ * Taken only from the header block, only above the first line carrying contact
+ * details, and only when it reads like a title: a few words, no digits, no
+ * punctuation that would make it a sentence.
+ */
+export function extractHeadline(
+  headerLines: readonly string[],
+  fullName: string | null,
+): string | null {
+  for (const raw of headerLines) {
+    const line = raw.trim();
+    if (!line) continue;
+    if (fullName && line === fullName) continue;
+
+    // Once contact details appear we are past the title. Stop rather than skip:
+    // anything below the contact line is an address or a footer, not a title.
+    if (line.includes('@') || URL_PATTERN.test(line) || findPhone(line)) return null;
+
+    // A redaction marker means this line held an identifier. Leave it withheld.
+    if (line.includes('[')) continue;
+
+    if (/\d/.test(line)) continue;
+    if (line.length > 50) continue;
+    if (/[.!?,;:]$/.test(line)) continue;
+    if (line.split(/\s+/).length > 6) continue;
+    if (isOnlyALocation(line)) continue;
+
+    return line;
+  }
+  return null;
+}
+
+/**
+ * True when a line is a place and nothing else.
+ *
+ * "Pretoria, Gauteng" under a name is where the person is, not what they do,
+ * and printing it as a job title would read as a mistake.
+ */
+function isOnlyALocation(line: string): boolean {
+  let remainder = line;
+  for (const place of SA_LOCATIONS) {
+    remainder = remainder.replace(
+      new RegExp(escapeRegExp(place), 'gi'),
+      ' ',
+    );
+  }
+  return remainder.replace(/[^A-Za-z]/g, '') === '';
+}
+
 export function extractIdentity(headerLines: readonly string[]): IdentityHeader {
   const headerText = headerLines.join('\n');
   const email = firstMatch(headerText, EMAIL_PATTERN);
@@ -406,6 +570,7 @@ export function extractIdentity(headerLines: readonly string[]): IdentityHeader 
 
   return {
     fullName,
+    headline: extractHeadline(headerLines, fullName),
     email,
     phone,
     location: extractLocation(headerLines),
@@ -466,17 +631,32 @@ export function scrubResidualIdentifiers(
 /**
  * Turn raw parsed CV text into the only thing an AI provider may ever see.
  *
- * Order is load-bearing. ID numbers are redacted first so that no later step
- * can copy one into the header record; the header is then withheld; residual
- * identifiers are scrubbed last, once we know what to look for.
+ * Order is load-bearing, and every step is here because of the step after it:
+ *
+ *   1. ID numbers first, so no later step can copy one into the header record.
+ *   2. The header block is split off and withheld.
+ *   3. Links in the body are replaced by markers, so that the next step cannot
+ *      take a name out of the middle of a web address.
+ *   4. Residual identifiers are scrubbed last, once we know what to look for.
+ *
+ * Swapping 3 and 4 is the defect this ordering was written to fix.
  */
 export function deidentify(rawText: string): DeidentificationResult {
   const { text: withoutIds, count } = redactSaIdNumbers(rawText);
   const { headerLines, bodyLines } = splitHeaderBlock(withoutIds);
   const identity = extractIdentity(headerLines);
-  const content = scrubResidualIdentifiers(bodyLines.join('\n'), identity).trim();
 
-  return { identity, content, redactedIdCount: count };
+  const withheld = withholdLinks(bodyLines.join('\n'), identity.links);
+  const content = scrubResidualIdentifiers(
+    withheld.text,
+    identity,
+  ).trim();
+
+  return {
+    identity: { ...identity, links: withheld.links },
+    content,
+    redactedIdCount: count,
+  };
 }
 
 /**
