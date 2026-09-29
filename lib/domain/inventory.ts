@@ -83,6 +83,94 @@ export const SKILL_ALIASES: Readonly<Record<string, readonly string[]>> = {
   'business analysis': ['business analyst'],
   'supply chain management': ['supply chain', 'logistics'],
   'occupational health and safety': ['ohs', 'health and safety'],
+
+  /*
+   * The everyday words of software work.
+   *
+   * These were missing, and their absence was doing real damage. A CV reading
+   * "Implemented Zabbix for monitoring and Slurm for workload scheduling" was
+   * refused a claim to monitoring, against an advert asking for monitoring
+   * experience, with the reason "your CV does not mention this". The CV
+   * mentions it. The vocabulary did not.
+   *
+   * Nothing here loosens the standard. A term still has to appear in the
+   * applicant's own words before it is recorded, exactly like every term above
+   * it. The gap was never about evidence; it was a list of technology names
+   * with no room in it for what people say they did with them.
+   */
+  monitoring: ['observability', 'system monitoring', 'application monitoring'],
+  logging: ['structured logging', 'log management'],
+  alerting: ['alerts'],
+  'incident management': [
+    'incident response',
+    'on-call',
+    'on call',
+    'postmortems',
+    'post-mortems',
+  ],
+  debugging: ['troubleshooting', 'fault finding'],
+  'software testing': [
+    'testing',
+    'unit testing',
+    'integration testing',
+    'test automation',
+    'automated testing',
+    'regression testing',
+  ],
+  'code review': ['peer review', 'pull request review'],
+  'backend development': [
+    'backend',
+    'back end',
+    'back-end',
+    'backend developer',
+    'server-side development',
+  ],
+  'frontend development': [
+    'frontend',
+    'front end',
+    'front-end',
+    'frontend developer',
+    'client-side development',
+  ],
+  'full stack development': ['full stack', 'full-stack', 'fullstack'],
+  'mobile development': [
+    'mobile app development',
+    'mobile application development',
+  ],
+  'web development': ['web application development'],
+  'database design': [
+    'schema design',
+    'data modelling',
+    'data modeling',
+    'database modelling',
+  ],
+  'database administration': ['dba', 'database management'],
+  'system administration': [
+    'sysadmin',
+    'systems administration',
+    'server administration',
+  ],
+  deployment: ['release management'],
+  automation: ['scripting', 'process automation'],
+  'performance optimisation': [
+    'performance optimization',
+    'performance tuning',
+    'query optimisation',
+    'query optimization',
+  ],
+  microservices: ['microservice architecture'],
+  'software architecture': ['system architecture', 'solution architecture'],
+  'technical support': ['user support', 'help desk', 'helpdesk'],
+  'requirements gathering': ['requirements analysis', 'business requirements'],
+  prototyping: ['wireframing', 'rapid prototyping'],
+  'cloud computing': ['cloud infrastructure', 'cloud-native'],
+  'infrastructure as code': ['iac'],
+  'workload scheduling': ['job scheduling', 'batch scheduling'],
+  'high performance computing': ['hpc', 'cluster computing'],
+  virtualisation: ['virtualization'],
+  authentication: ['user authentication'],
+  authorisation: ['authorization', 'access control'],
+  encryption: ['cryptography'],
 };
 
 /** alias -> canonical, built once from SKILL_ALIASES. */
@@ -216,10 +304,58 @@ export function normaliseTerm(term: string): string {
     .replace(/^[-.\s]+|[-.\s]+$/g, '');
 }
 
-/** Normalise, then resolve through the alias map to a canonical key. */
+/**
+ * Fold a plural to its singular, where doing so is safe.
+ *
+ * The guarded endings are the ones that are not plurals at all: "css", "ios",
+ * "analysis", "status". Removing their last letter would invent a word and, in
+ * the case of a skills list, silently stop two spellings of the same skill from
+ * matching.
+ */
+function singular(term: string): string {
+  if (/[^aeiou]ies$/.test(term)) return term.replace(/ies$/, 'y');
+  if (/(ss|us|is|as|os)$/.test(term)) return term;
+  if (/[^s]s$/.test(term)) return term.replace(/s$/, '');
+  return term;
+}
+
+/** The same term written in the other number, for a second look at the map. */
+function otherNumber(term: string): readonly string[] {
+  const forms = new Set<string>();
+
+  const one = singular(term);
+  if (one !== term) forms.add(one);
+
+  if (/[^aeiou]y$/.test(term)) forms.add(term.replace(/y$/, 'ies'));
+  else if (!/s$/.test(term)) forms.add(`${term}s`);
+
+  return [...forms];
+}
+
+/**
+ * Normalise, then resolve through the alias map to a canonical key.
+ *
+ * Number is folded because a live tailoring refused "Agile methodology" on a CV
+ * that says "Agile / Scrum coordination". The alias map holds the plural, the
+ * model wrote the singular, and nothing in between looked at the last letter.
+ * That is not a judgement about what the applicant can do; it is a spelling
+ * mismatch deciding it.
+ *
+ * Both sides of every comparison run through this function, so folding here
+ * keeps the inventory and the claims in step whichever number either uses.
+ */
 export function canonicalise(term: string): string {
   const normalised = normaliseTerm(term);
-  return ALIAS_TO_CANONICAL.get(normalised) ?? normalised;
+
+  const direct = ALIAS_TO_CANONICAL.get(normalised);
+  if (direct) return direct;
+
+  for (const variant of otherNumber(normalised)) {
+    const viaVariant = ALIAS_TO_CANONICAL.get(variant);
+    if (viaVariant) return viaVariant;
+  }
+
+  return singular(normalised);
 }
 
 // ---------------------------------------------------------------------------
