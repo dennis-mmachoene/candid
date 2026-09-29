@@ -245,6 +245,62 @@ const ENTRY_SEPARATOR = /[,;|/•·]|\s{3,}|\s+[-–—]\s+/;
  * own skills list is a first-person claim, so short terms ("Go", "R", "TS")
  * count here even though they are ignored in free text.
  */
+/**
+ * Split a skills line without cutting inside a bracket.
+ *
+ * The separator list contains a comma, and a real CV writes
+ * "AWS (EC2, S3, Route 53, CloudFront)". Splitting first produced "AWS (EC2",
+ * "S3", "Route 53" and "CloudFront)", so the inventory held `aws ec2` and never
+ * plain `aws`. A live tailoring then refused AWS as unsupported, on a CV that
+ * lists it, for a cloud infrastructure job.
+ *
+ * Bracketed spans are masked to a token carrying no separator, the existing
+ * rule does the splitting, and the spans come back afterwards.
+ */
+function splitOutsideBrackets(text: string): string[] {
+  const spans: string[] = [];
+  const masked = text.replace(/\([^()]*\)/g, (match) => {
+    spans.push(match);
+    return `\u0000${spans.length - 1}\u0000`;
+  });
+
+  return masked
+    .split(ENTRY_SEPARATOR)
+    .map((part) =>
+      part.replace(/\u0000(\d+)\u0000/g, (_, index: string) => spans[Number(index)] ?? ''),
+    );
+}
+
+/**
+ * The skills one part of a line actually claims.
+ *
+ * Two shapes need unpacking, and both appear on the same line of a real CV:
+ *
+ *   "Deployment: Docker"  the text before the colon is a category, not a skill
+ *   "AWS (EC2, S3)"       the bracket lists specifics, and the base term counts
+ *
+ * The bracket case returns both. Someone who writes that has AWS, and has EC2
+ * and S3, and a CV that says so should satisfy a claim to any of the three.
+ */
+function surfacesFrom(part: string): string[] {
+  let text = part.trim().replace(/^[-\u2022\u00b7*\s]+/, '');
+
+  const labelled = /^[^:]{1,40}:\s*(.+)$/.exec(text);
+  if (labelled) text = labelled[1].trim();
+  if (!text) return [];
+
+  const bracketed = /^(.+?)\s*\(([^()]*)\)\s*$/.exec(text);
+  if (!bracketed) return [text];
+
+  const base = bracketed[1].trim();
+  const inner = bracketed[2]
+    .split(/[,;]/)
+    .map((value) => value.trim())
+    .filter(Boolean);
+
+  return [base, ...inner].filter(Boolean);
+}
+
 export function extractSkillsSectionEntries(
   lines: readonly string[],
 ): { surface: string; line: string }[] {
@@ -254,9 +310,10 @@ export function extractSkillsSectionEntries(
   for (const line of lines) {
     const inline = INLINE_SKILLS_HEADING.exec(line);
     if (inline) {
-      for (const part of inline[3].split(ENTRY_SEPARATOR)) {
-        const surface = part.trim();
-        if (surface) entries.push({ surface, line: line.trim() });
+      for (const part of splitOutsideBrackets(inline[3])) {
+        for (const surface of surfacesFrom(part)) {
+          entries.push({ surface, line: line.trim() });
+        }
       }
       inSkills = false;
       continue;
@@ -274,10 +331,11 @@ export function extractSkillsSectionEntries(
       }
       if (!line.trim()) continue;
 
-      for (const part of line.split(ENTRY_SEPARATOR)) {
-        const surface = part.trim().replace(/^[-•·*\s]+/, '');
-        if (surface && surface.length <= 60) {
-          entries.push({ surface, line: line.trim() });
+      for (const part of splitOutsideBrackets(line)) {
+        for (const surface of surfacesFrom(part)) {
+          if (surface.length <= 60) {
+            entries.push({ surface, line: line.trim() });
+          }
         }
       }
     }

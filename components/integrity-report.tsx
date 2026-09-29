@@ -58,6 +58,36 @@ function Evidence({ claim }: { claim: ValidatedClaim }) {
   );
 }
 
+/**
+ * Group refused claims by the reason they were refused.
+ *
+ * Almost every refusal carries the same sentence, and one real tailoring
+ * printed it eighteen times down the page, once per card. The list was the
+ * first thing anyone complained about and it buried the two refusals that said
+ * something different.
+ *
+ * Grouping says each reason once and lists the claims under it as chips. The
+ * information is identical. The page stops shouting.
+ *
+ * Insertion order is kept, so the first reason to appear stays first.
+ */
+function groupByReason(
+  claims: readonly ValidatedClaim[],
+): { reason: string; claims: ValidatedClaim[] }[] {
+  const groups = new Map<string, ValidatedClaim[]>();
+
+  for (const claim of claims) {
+    const existing = groups.get(claim.reason);
+    if (existing) existing.push(claim);
+    else groups.set(claim.reason, [claim]);
+  }
+
+  return [...groups.entries()].map(([reason, grouped]) => ({
+    reason,
+    claims: grouped,
+  }));
+}
+
 export function IntegrityReport({
   tailoringId,
   accepted,
@@ -289,8 +319,8 @@ export function IntegrityReport({
             </CardTitle>
           </div>
           <CardDescription>
-            Candid would not add these, and there is no way to approve them. If
-            you do have this experience, put it in your CV and upload it again.
+            The advert asked for these and your CV does not support them, so
+            Candid left them out. There is nothing to approve here.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -299,21 +329,25 @@ export function IntegrityReport({
               Nothing was refused. The draft stayed inside what your CV supports.
             </p>
           ) : (
-            <ul className="flex flex-col gap-2">
-              {blocked.map((claim, index) => (
-                <li
-                  key={`${claim.canonical}-${index}`}
-                  className="border-border bg-blocked-surface/25 rounded-lg border p-4"
-                >
-                  <p className="break-anywhere font-medium">
-                    {claim.claim.text}
+            <div className="flex flex-col gap-5">
+              {groupByReason(blocked).map((group) => (
+                <div key={group.reason} className="flex flex-col gap-2">
+                  <ul className="flex flex-wrap gap-1.5">
+                    {group.claims.map((claim, index) => (
+                      <li
+                        key={`${claim.canonical}-${index}`}
+                        className="border-blocked/30 bg-blocked-surface/25 break-anywhere rounded-md border px-2.5 py-1 text-sm"
+                      >
+                        {claim.claim.text}
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="text-muted-foreground text-sm leading-relaxed">
+                    {group.reason}
                   </p>
-                  <p className="text-muted-foreground mt-0.5 text-sm leading-relaxed">
-                    {claim.reason}
-                  </p>
-                </li>
+                </div>
               ))}
-            </ul>
+            </div>
           )}
         </CardContent>
       </Card>
