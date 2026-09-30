@@ -31,7 +31,7 @@ See [`PLAN.md`](./PLAN.md) for the phased build plan and the audit gates.
 | 5 — History, retention, hardening (M6, M7) | **Done, awaiting audit** |
 | 6 — Tests, E2E and CI (M8) | **Done, awaiting audit** |
 
-**The full flow runs end to end.** 125 unit tests and 55 Playwright tests pass,
+**The full flow runs end to end.** 223 unit tests and 56 Playwright tests pass,
 the latter against real Supabase and real Anthropic: sign in, consent gate,
 upload a CV carrying a South African ID number, tailor against an advert
 containing a prompt-injection attempt, review the integrity report, download
@@ -40,6 +40,63 @@ to read each other's rows — through the application, and through an unfiltered
 query straight to the database. See `AUDIT-PHASE-6.md` for an honest assessment
 against the spec's definition of done, and `AUDIT-RESPONSE.md` for the reply to
 the independent full-build audit.
+
+## Measured against real data
+
+The tests above are written against fixtures this project invented. That proves
+the rules work; it does not prove they work on documents nobody here wrote. So
+the same code was run over two public Kaggle datasets released under CC0: 2483
+published resumes and 500 resume PDFs drawn across 24 occupational categories.
+
+| Measurement | Sample | Result |
+|---|---|---|
+| Parser success | 500 real resume PDFs | 99.80%, zero unhandled failures |
+| Injected identity removed in full | 500 resumes with a known header | 100% |
+| Identity-number over-redaction | 2483 resumes containing no SA IDs | 0.04% of documents |
+| Refused claims reaching a document | 23 live tailorings | 0.00% |
+| Identifiers reaching the model | 23 live tailorings | 0.00% |
+| Tailoring latency | 23 live tailorings | 13.4s mean, 18.8s at p95 |
+
+The live run attempted 25 pairs and completed 23. Two failed on a network
+error and are excluded rather than counted as passes. The harness refuses to
+report a rate at all until four fifths of the sample has completed, for the
+reason in the next section.
+
+Run it with `npm run evaluate` for the offline measurements and
+`npm run evaluate:ai` for the live ones. Results are written to
+`evaluation/results/` and committed, so any figure quoted here can be traced to
+a timestamped file.
+
+### What the measurement found
+
+Six defects that the tests in place at the time had missed. Every one of them
+is now covered by a test built from the document that exposed it.
+
+- **An evidence quote longer than 600 characters failed the whole tailoring.**
+  A cap chosen by guessing threw away 14 of 25 real CVs, and the user was told
+  the service was unavailable.
+- **A newline in an employer name deleted entire work histories.** A CV with
+  the job title on one line and the employer on the next was told "Your CV does
+  not name this organisation" about an employer printed plainly on the page.
+- **A bracket in a skills line refused AWS on a CV that lists it.** Splitting
+  `AWS (EC2, S3, Route 53, CloudFront)` on the comma recorded `aws ec2` and
+  never plain `aws`.
+- **Sections the model has no field for silently disappeared.** Projects,
+  certifications and awards had nowhere to go in the reply, so a tailored CV
+  came out shorter than the one that went in.
+- **The residual name scrub shredded a GitHub URL.** It removed the applicant's
+  name from the middle of a web address, on word boundaries, exactly as
+  designed, producing `github.com/[NAME REDACTED]-[NAME REDACTED]/project`.
+  Links are now withheld before the scrub runs and restored at export.
+- **Five skills were refused on a CV that states them.** Monitoring, logging,
+  code review and backend development were missing from the vocabulary, and
+  "Agile methodology" never met "agile methodologies" because nothing compared
+  the last letter. A wrong refusal is not a safe failure: it deletes true work
+  and tells the applicant their own document does not say what it says.
+
+The harness itself had a fifth: it asserted that no refused claim reached a
+document, which is trivially true when every request fails. It now refuses to
+report a rate until four fifths of the sample has actually completed.
 
 Account erasure shipped early, in Phase 4, because a settings page in a POPIA
 product without a delete button is not a settings page.

@@ -5,18 +5,18 @@ Across real resumes and unrelated adverts, does any refused claim reach a docume
 | Measure | Value |
 |---|---|
 | Pairs attempted | 25 |
-| Completed | 25 |
-| Provider errors | 0 |
-| Claims accepted | 690 |
+| Completed | 23 |
+| Provider errors | 2 |
+| Claims accepted | 592 |
 | Claims borderline | 1 |
-| Claims blocked | 530 |
-| Documents free of blocked claims | 25 |
+| Claims blocked | 523 |
+| Documents free of blocked claims | 23 |
 | Fabrication rate | 0.00% |
-| Documents with a blocked-claim echo | 6 |
-| Echo rate | 24.00% |
-| Payloads free of identifiers | 25 |
+| Documents with a blocked-claim echo | 3 |
+| Echo rate | 13.04% |
+| Payloads free of identifiers | 23 |
 | Identity leak rate | 0.00% |
-| Mean latency (ms) | 14699 |
-| p95 latency (ms) | 21168 |
+| Mean latency (ms) | 13430 |
+| p95 latency (ms) | 18845 |
 
-Measured 2026-09-27T14:39:35.748Z.
+Measured 2026-09-29T20:52:59.072Z.
