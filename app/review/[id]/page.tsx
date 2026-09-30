@@ -60,13 +60,28 @@ export default async function ReviewPage({
   // sections too and what is on screen matches what downloads.
   const resume = await resumeRepository.getResume(tailoring.resumeId);
 
+  /*
+   * Only the links, and only for the preview.
+   *
+   * De-identification replaces every web address in the CV body with a
+   * numbered marker, and the export puts them back. The preview was passing an
+   * empty list, so the applicant read "GitHub: [LINK 1]" on screen and got the
+   * real address in the downloaded file. The two are meant not to drift apart,
+   * and that is drift.
+   *
+   * The name, email address, phone number and location stay withheld here.
+   * That is FR-09, and it is why this is a field-by-field copy rather than the
+   * whole header.
+   */
+  const withheld = await resumeRepository.getIdentity(tailoring.resumeId);
+
   const { document, omissions } = assembleResumeDocument({
     identity: {
         fullName: null,
         email: null,
         phone: null,
         location: null,
-        links: [],
+        links: withheld?.links ?? [],
         otherLines: [],
       },
     draft: tailoring.draft,
