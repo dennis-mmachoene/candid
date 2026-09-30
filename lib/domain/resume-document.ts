@@ -196,12 +196,47 @@ function includable(
  * meaning still rests on the claim, so the honest move is to drop the sentence.
  * The same applies to the summary.
  */
+const LEADING_BULLET = /^[•·▪◦‣*\-–—]\s+(.*)$/;
+
+/**
+ * Lines that label a detail rather than head a group: the repository link under
+ * a project, the stack under a job. They are short and carry no full stop, so
+ * without naming them they would read as headings.
+ */
+const DETAIL_PREFIX =
+  /^\s*(github|gitlab|link|links|repo|repository|url|website|demo|tech\s*stack|stack|tools|technologies|role|duration|client)\s*:/i;
+
+/**
+ * Does this line head a group, or describe one?
+ *
+ * Word stores a bulleted list as list formatting, not as a bullet character in
+ * the text, so after parsing there is nothing left to tell the two apart. A
+ * real export came back with a project title, its description and its
+ * repository link all rendered identically in bold, which loses the hierarchy
+ * the applicant wrote.
+ *
+ * So the shape of the line decides. A heading is short, does not end in a full
+ * stop, carries no web address and does not begin with a label like "GitHub:".
+ * Everything else is a detail.
+ */
+function headsAGroup(text: string): boolean {
+  if (/[.!?]$/.test(text)) return false;
+  if (text.length > 70) return false;
+  if (/(https?:\/\/|www\.)/i.test(text)) return false;
+  if (DETAIL_PREFIX.test(text)) return false;
+  return true;
+}
+
 /**
  * Turn a carried section's raw lines into document blocks.
  *
- * A run of bullet lines becomes one bullets block, matching how experience is
- * rendered, and anything else becomes an entry. The bullet character itself is
- * stripped because the renderer draws its own; leaving it produces two.
+ * A run of detail lines becomes one bullets block, matching how experience is
+ * rendered, and a line that heads a group becomes an entry. Any bullet
+ * character already in the text is stripped, because the renderer draws its
+ * own and leaving it produces two.
+ *
+ * A section holding a single sentence and nothing else becomes a paragraph.
+ * "Available on request." under References is not a list of one.
  */
 function blocksFromLines(lines: readonly string[]): DocumentBlock[] {
   const blocks: DocumentBlock[] = [];
@@ -214,14 +249,28 @@ function blocksFromLines(lines: readonly string[]): DocumentBlock[] {
     }
   };
 
+  const written = lines
+    .map((line) => line.trim())
+    .filter((line) => line !== '');
+
+  if (written.length === 1 && !LEADING_BULLET.test(written[0]) && !headsAGroup(written[0])) {
+    return [{ kind: 'paragraph', text: written[0] }];
+  }
+
   for (const line of lines) {
     const text = line.trim();
     if (text === '') continue;
 
-    const bullet = /^[\u2022\u00b7\u25aa\u25e6\u2023*\-\u2013\u2014]\s+(.*)$/.exec(text);
+    const bullet = LEADING_BULLET.exec(text);
     if (bullet) {
       const item = bullet[1].trim();
       if (item) bullets.push(item);
+      continue;
+    }
+
+    // No marker survived the parse, so the shape of the line decides.
+    if (!headsAGroup(text)) {
+      bullets.push(text);
       continue;
     }
 

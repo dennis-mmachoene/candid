@@ -12,6 +12,12 @@
 
 import { describe, expect, it } from 'vitest';
 
+import { assembleResumeDocument } from '@/lib/domain/resume-document';
+import type {
+  IdentityHeader,
+  IntegrityReport,
+  TailoredDraft,
+} from '@/lib/domain/types';
 import {
   carriedOverSections,
   isCarriedHeading,
@@ -140,5 +146,132 @@ describe('what gets carried into the export', () => {
 
   it('carries nothing rather than a bare heading when a section is empty', () => {
     expect(carriedOverSections('Projects\n\nEducation\nBSc')).toEqual([]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// How a carried section is laid out
+// ---------------------------------------------------------------------------
+
+/**
+ * A real export came back with a project title, its description and its
+ * repository link all rendered identically in bold:
+ *
+ *   **Open source: pgqueue**
+ *   **Maintainer of a small PostgreSQL-backed job queue used by three...**
+ *   **GitHub: https://github.com/pgqueue-dev/pgqueue**
+ *
+ * The hierarchy the applicant wrote was gone. Word stores a bulleted list as
+ * list formatting rather than as a bullet character in the text, so after
+ * parsing there was no marker left to tell a heading from a detail, and every
+ * line became an entry.
+ *
+ * The shape of the line decides instead. These use the exact lines from the
+ * export that showed the problem.
+ */
+
+const PARSED_CV = `Profile
+A developer.
+
+Projects & Community
+Open source: pgqueue
+Maintainer of a small PostgreSQL-backed job queue used by three South African startups.
+GitHub: https://github.com/pgqueue-dev/pgqueue
+SAICSIT 2022 - Speaker
+Talk on keeping batch systems observable, delivered to roughly 120 attendees.
+
+Certifications
+AWS Certified Solutions Architect, Associate (2023)
+Oracle Certified Professional, Java SE 11 Developer (2021)
+
+References
+Available on request. Employee reference 9912310000000, Nedbank Group HR.`;
+
+const NO_IDENTITY: IdentityHeader = {
+  fullName: null,
+  email: null,
+  phone: null,
+  location: null,
+  links: [],
+  otherLines: [],
+};
+
+const NOTHING: TailoredDraft = {
+  summary: '',
+  positions: [],
+  qualifications: [],
+  skills: [],
+  gaps: [],
+};
+
+const NO_CLAIMS: IntegrityReport = { accepted: [], borderline: [], blocked: [] };
+
+function sectionNamed(heading: string) {
+  const { document } = assembleResumeDocument({
+    identity: NO_IDENTITY,
+    draft: NOTHING,
+    report: NO_CLAIMS,
+    approved: new Set<string>(),
+    sourceCv: PARSED_CV,
+  });
+  return document.sections.find((section) => section.heading.startsWith(heading));
+}
+
+describe('laying out a section that lost its bullet markers', () => {
+  const projects = sectionNamed('Projects');
+
+  it('keeps the project title as a heading of its own', () => {
+    expect(projects?.blocks[0]).toEqual({
+      kind: 'entry',
+      text: 'Open source: pgqueue',
+    });
+  });
+
+  /** The line that used to be bold beside the title it belongs under. */
+  it('reads a full sentence as a detail, not a heading', () => {
+    expect(projects?.blocks[1]).toEqual({
+      kind: 'bullets',
+      items: [
+        'Maintainer of a small PostgreSQL-backed job queue used by three South African startups.',
+        'GitHub: https://github.com/pgqueue-dev/pgqueue',
+      ],
+    });
+  });
+
+  /** A labelled link is a detail too, even with no full stop on the end. */
+  it('groups the repository link with the description under it', () => {
+    const items = projects?.blocks[1];
+    expect(items?.kind).toBe('bullets');
+    expect(items?.kind === 'bullets' && items.items).toContain(
+      'GitHub: https://github.com/pgqueue-dev/pgqueue',
+    );
+  });
+
+  it('starts a new heading at the next project', () => {
+    expect(projects?.blocks[2]).toEqual({
+      kind: 'entry',
+      text: 'SAICSIT 2022 - Speaker',
+    });
+  });
+});
+
+describe('sections that are only headings, and sections that are only prose', () => {
+  it('keeps two certifications as two headings rather than a list', () => {
+    const certifications = sectionNamed('Certifications');
+    expect(certifications?.blocks).toEqual([
+      { kind: 'entry', text: 'AWS Certified Solutions Architect, Associate (2023)' },
+      { kind: 'entry', text: 'Oracle Certified Professional, Java SE 11 Developer (2021)' },
+    ]);
+  });
+
+  /** "Available on request." is not a list of one. */
+  it('renders a lone sentence as a paragraph', () => {
+    const references = sectionNamed('References');
+    expect(references?.blocks).toEqual([
+      {
+        kind: 'paragraph',
+        text: 'Available on request. Employee reference 9912310000000, Nedbank Group HR.',
+      },
+    ]);
   });
 });
