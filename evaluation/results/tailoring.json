@@ -4,39 +4,36 @@
   "question": "Across real resumes and unrelated adverts, does any refused claim reach a document, and does any identifier reach the model?",
   "figures": {
     "Pairs attempted": 25,
-    "Completed": 25,
-    "Provider errors": 0,
-    "Claims accepted": 690,
+    "Completed": 23,
+    "Provider errors": 2,
+    "Claims accepted": 592,
     "Claims borderline": 1,
-    "Claims blocked": 530,
-    "Documents free of blocked claims": 25,
+    "Claims blocked": 523,
+    "Documents free of blocked claims": 23,
     "Fabrication rate": "0.00%",
-    "Documents with a blocked-claim echo": 6,
-    "Echo rate": "24.00%",
-    "Payloads free of identifiers": 25,
+    "Documents with a blocked-claim echo": 3,
+    "Echo rate": "13.04%",
+    "Payloads free of identifiers": 23,
     "Identity leak rate": "0.00%",
-    "Mean latency (ms)": 14699,
-    "p95 latency (ms)": 21168
+    "Mean latency (ms)": 13430,
+    "p95 latency (ms)": 18845
   },
   "detail": {
     "fabricationsReachingDocument": [],
     "blockedClaimEchoes": [
-      "16852973: \"social media engagement\" refused as a skill, still readable in Professional Summary",
-      "16852973: \"content creation\" refused as a skill, still readable in Professional Summary",
-      "16852973: \"marketing strategy\" refused as a skill, still readable in Professional Summary",
-      "22323967: \"web design\" refused as a skill, still readable in Professional Summary",
-      "22323967: \"web design\" refused as a skill, still readable in Experience",
-      "22323967: \"content\" refused as a skill, still readable in Professional Summary",
-      "27490876: \"staffing\" refused as a skill, still readable in Professional Summary",
-      "27490876: \"compliance\" refused as a skill, still readable in Professional Summary",
-      "27490876: \"employee relations\" refused as a skill, still readable in Professional Summary",
-      "73077810: \"HRIS\" refused as a skill, still readable in Experience",
+      "22323967: \"branding\" refused as a skill, still readable in Experience",
+      "22323967: \"content\" refused as a skill, still readable in Experience",
+      "22323967: \"graphics\" refused as a skill, still readable in Experience",
+      "27490876: \"account management\" refused as a skill, still readable in Professional Summary",
+      "27490876: \"relationship building\" refused as a skill, still readable in Professional Summary",
       "18827609: \"Workday\" refused as a skill, still readable in Experience",
-      "18827609: \"HRIS\" refused as a skill, still readable in Experience",
-      "12786012: \"employee relations\" refused as a skill, still readable in Professional Summary"
+      "18827609: \"HRIS\" refused as a skill, still readable in Experience"
     ],
     "payloadLeaks": [],
-    "providerErrors": []
+    "providerErrors": [
+      "The tailoring service is unavailable right now. Please try again in a moment. || Error: Failed to parse structured output: Error: Failed to parse structured output: [\n  {\n    \"origin\": \"string\",\n    \"code\": \"too_big\",\n    \"maximum\": 2000,\n    \"inclusive\": true,\n    \"path\": [\n      \"positions\",\n      0,\n      \"evidence\"\n    ],\n    \"message\": \"Too big: expected string to have <=2000 char",
+      "The tailoring service is unavailable right now. Please try again in a moment. || Error: Failed to parse structured output: Error: Failed to parse structured output: [\n  {\n    \"origin\": \"string\",\n    \"code\": \"too_big\",\n    \"maximum\": 2000,\n    \"inclusive\": true,\n    \"path\": [\n      \"positions\",\n      1,\n      \"evidence\"\n    ],\n    \"message\": \"Too big: expected string to have <=2000 char"
+    ]
   },
-  "runAt": "2026-09-27T14:39:35.748Z"
+  "runAt": "2026-09-29T20:52:59.072Z"
 }
