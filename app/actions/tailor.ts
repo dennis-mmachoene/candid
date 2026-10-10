@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
 
-import { requireConsentedUser } from '@/lib/dal';
+import { requireUser } from '@/lib/dal';
 import { tailorCv } from '@/lib/domain/tailoring';
 import { AIProviderError, claudeProvider } from '@/lib/infrastructure/claude-provider';
 import { describeWindow, rateLimiter } from '@/lib/infrastructure/rate-limit';
@@ -42,7 +42,7 @@ export async function tailorResume(
   _previous: TailorState,
   formData: FormData,
 ): Promise<TailorState> {
-  const user = await requireConsentedUser();
+  const user = await requireUser();
 
   const input = tailorSchema.safeParse({
     resumeId: formData.get('resumeId'),
@@ -90,13 +90,11 @@ export async function tailorResume(
       };
     }
 
-    // `tailorCv` de-identifies before it calls the provider. The stored content
-    // is already de-identified, so this is a second pass over clean text —
-    // deliberately. `deidentify()` is idempotent, and running it again means
-    // that even if something identifying were ever written to the database by a
-    // future bug, it still would not reach the model.
+    // The inventory is rebuilt from the stored CV inside tailorCv, so the
+    // record a claim is checked against is derived from the applicant's own
+    // document every time rather than cached alongside the draft.
     const outcome = await tailorCv({
-      rawCvText: resume.content,
+      cvText: resume.content,
       jobAdvert: input.data.advert,
       provider: claudeProvider,
     });
@@ -161,7 +159,7 @@ export async function approveClaims(
   tailoringId: string,
   approved: readonly string[],
 ): Promise<{ ok: boolean; message?: string }> {
-  await requireConsentedUser();
+  await requireUser();
 
   const input = approveSchema.safeParse({ tailoringId, approved });
   if (!input.success) {

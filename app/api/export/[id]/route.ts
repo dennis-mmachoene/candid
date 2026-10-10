@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 
-import { requireConsentedUser } from '@/lib/dal';
+import { requireUser } from '@/lib/dal';
 import {
   assembleResumeDocument,
   findTemplate,
@@ -41,7 +41,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
-  const user = await requireConsentedUser();
+  const user = await requireUser();
 
   const query = querySchema.safeParse({
     format: new URL(request.url).searchParams.get('format') ?? 'pdf',
@@ -60,9 +60,10 @@ export async function GET(
       return NextResponse.json({ error: 'Not found.' }, { status: 404 });
     }
 
-    // Decrypted here and nowhere else in the request path. This is the single
-    // point at which the withheld identity rejoins the document.
-    const identity = await resumeRepository.getIdentity(tailoring.resumeId);
+    // The name and contact details printed at the top of the document. They
+    // come from the profile, which the applicant can correct, rather than from
+    // whatever happened to be at the top of the file they uploaded.
+    const identity = await resumeRepository.getProfileHeader();
     if (!identity) {
       return NextResponse.json({ error: 'Not found.' }, { status: 404 });
     }

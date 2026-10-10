@@ -9,21 +9,9 @@
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import type { IdentityHeader } from '@/lib/domain/types';
 
 /** A real 32-byte key, base64. Test-only, never used anywhere else. */
 const TEST_KEY = Buffer.alloc(32, 7).toString('base64');
-
-const IDENTITY: IdentityHeader = {
-  fullName: 'Thabo Mokoena',
-  email: 'thabo.mokoena@example.co.za',
-  phone: '+27 82 555 0134',
-  // The city is printed on the CV; the street address is not. Both are still
-  // encrypted, because both came off the person's own document.
-  location: 'Johannesburg, Gauteng',
-  links: ['github.com/thabo-mokoena'],
-  otherLines: ['12 Rissik Street, Braamfontein, Johannesburg 2001'],
-};
 
 // The module reads and caches the key on first use, so each test imports it
 // fresh with the env already set.
@@ -49,23 +37,6 @@ describe('encrypt / decrypt', () => {
     const { encrypt, decrypt } = await loadCrypto();
     const plaintext = 'Thabo Mokoena';
     expect(decrypt(encrypt(plaintext))).toBe(plaintext);
-  });
-
-  it('round-trips an identity header', async () => {
-    const { encryptIdentityHeader, decryptIdentityHeader } = await loadCrypto();
-    expect(decryptIdentityHeader(encryptIdentityHeader(IDENTITY))).toEqual(
-      IDENTITY,
-    );
-  });
-
-  it('leaks nothing readable into the ciphertext', async () => {
-    const { encryptIdentityHeader } = await loadCrypto();
-    const payload = encryptIdentityHeader(IDENTITY);
-
-    expect(payload).not.toContain('Thabo');
-    expect(payload).not.toContain('Mokoena');
-    expect(payload).not.toContain('example.co.za');
-    expect(payload).not.toContain('555');
   });
 
   /**

@@ -4,7 +4,7 @@ import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from 'pdf
 
 import { toPrintableText, wrapText } from './text';
 import type { TemplateSpec } from '@/lib/domain/resume-document';
-import type { IdentityHeader, ResumeDocument } from '@/lib/domain/types';
+import type { CvHeader, ResumeDocument } from '@/lib/domain/types';
 
 /**
  * PDF export.
@@ -60,7 +60,7 @@ function headingText(heading: string, template: TemplateSpec): string {
 }
 
 /** The identity line: name, then contact details on one row beneath it. */
-function contactLine(identity: IdentityHeader): string {
+function contactLine(identity: CvHeader): string {
   // Location sits with the contact details because that is where a recruiter
   // looks for it, and because a South African advert filters on it first.
   return [identity.email, identity.phone, identity.location, ...identity.links]

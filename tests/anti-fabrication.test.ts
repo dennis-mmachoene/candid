@@ -11,14 +11,15 @@
 import { describe, expect, it } from 'vitest';
 
 import { buildInventory, canonicalise, inventoryHas } from '@/lib/domain/inventory';
-import { deidentify } from '@/lib/domain/identity';
+import { readHeader } from '@/lib/domain/cv-header';
 import { assembleResumeDocument } from '@/lib/domain/resume-document';
 import { checkEvidence, namedInFull } from '@/lib/domain/provenance';
 import { extractClaims, reviewDraft, validateClaim } from '@/lib/domain/validator';
-import type { ApprovedClaims, IdentityHeader, ValidatedClaim } from '@/lib/domain/types';
+import type { ApprovedClaims, CvHeader, ValidatedClaim } from '@/lib/domain/types';
 import { CV_WITH_IDENTIFIERS, MIXED_DRAFT } from './fixtures';
 
-const { identity, content } = deidentify(CV_WITH_IDENTIFIERS);
+const identity = readHeader(CV_WITH_IDENTIFIERS);
+const content = CV_WITH_IDENTIFIERS;
 const inventory = buildInventory(content);
 const report = reviewDraft(MIXED_DRAFT, inventory);
 
@@ -193,7 +194,7 @@ describe('what reaches the document', () => {
       report,
       approved: NOTHING_APPROVED,
     });
-    const reattached: IdentityHeader = document.identity;
+    const reattached: CvHeader = document.identity;
     expect(reattached.fullName).toBe('Thabo Mokoena');
   });
 });

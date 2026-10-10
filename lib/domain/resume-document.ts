@@ -16,14 +16,13 @@
  *      only way through.
  */
 
-import { restoreLinks } from './identity';
 import { carriedOverSections, isConventionalHeading } from './sections';
 import { describePosition, describeQualification } from './validator';
 import type {
   ApprovedClaims,
   DocumentBlock,
   DocumentSection,
-  IdentityHeader,
+  CvHeader,
   IntegrityReport,
   ResumeDocument,
   SkillGap,
@@ -283,7 +282,7 @@ function blocksFromLines(lines: readonly string[]): DocumentBlock[] {
 }
 
 export function assembleResumeDocument(input: {
-  identity: IdentityHeader;
+  identity: CvHeader;
   draft: TailoredDraft;
   report: IntegrityReport;
   approved: ApprovedClaims;
@@ -504,39 +503,7 @@ export function assembleResumeDocument(input: {
     }
   }
 
-  /*
-   * The withheld links go back in, here, last.
-   *
-   * De-identification replaced every web address with a numbered marker before
-   * the model saw the text, so that the name scrub could not take a name out of
-   * the middle of a URL. This is the same reunion the rest of the identity gets,
-   * at the same point, and it is applied across the whole document rather than
-   * only to carried sections because a marker can also reach here inside a
-   * bullet the model quoted.
-   *
-   * Nothing is validated on the way through, and nothing needs to be. A link is
-   * only ever restored to the exact text it was lifted from.
-   */
-  const restored =
-    identity.links.length === 0
-      ? sections
-      : sections.map((section) => ({
-          heading: section.heading,
-          blocks: withLinksRestored(section.blocks, identity.links),
-        }));
-
-  return { document: { identity, sections: restored }, omissions };
-}
-
-function withLinksRestored(
-  blocks: readonly DocumentBlock[],
-  links: readonly string[],
-): DocumentBlock[] {
-  return blocks.map((block) =>
-    block.kind === 'bullets'
-      ? { ...block, items: block.items.map((item) => restoreLinks(item, links)) }
-      : { ...block, text: restoreLinks(block.text, links) },
-  );
+  return { document: { identity, sections }, omissions };
 }
 
 // ---------------------------------------------------------------------------

@@ -14,7 +14,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { requireConsentedUser } from '@/lib/dal';
+import { requireUser } from '@/lib/dal';
 import { resumeRepository } from '@/lib/infrastructure/supabase-repo';
 
 export const metadata = { title: 'Your CVs' };
@@ -23,7 +23,7 @@ export default async function DashboardPage() {
   // The gate. A signed-out user is redirected, and a signed-in user who has
   // not accepted the current policy version goes to /consent. Both checks
   // happen here, next to the data, not in middleware.
-  const user = await requireConsentedUser();
+  const user = await requireUser();
 
   // No user id passed and none needed: Row-Level Security scopes this to the
   // caller's own rows.

@@ -15,8 +15,8 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { deidentify } from '@/lib/domain/identity';
-import { buildInventory } from '@/lib/domain/inventory';
+import { readHeader } from '@/lib/domain/cv-header';
+import { buildInventory, inventoryHas } from '@/lib/domain/inventory';
 import { assembleResumeDocument } from '@/lib/domain/resume-document';
 import { tailorCv } from '@/lib/domain/tailoring';
 import { reviewDraft } from '@/lib/domain/validator';
@@ -37,7 +37,8 @@ at Google from 2015.
 
 We need someone strong in Java and PostgreSQL.`;
 
-const { identity, content } = deidentify(CV_WITH_IDENTIFIERS);
+const identity = readHeader(CV_WITH_IDENTIFIERS);
+const content = CV_WITH_IDENTIFIERS;
 const inventory = buildInventory(content);
 const NOTHING_APPROVED: ApprovedClaims = new Set<string>();
 
@@ -239,7 +240,7 @@ describe('the advert reaches the provider as data', () => {
   it('is passed in its own field, not concatenated into the CV', async () => {
     const provider = new CompromisedProvider();
     await tailorCv({
-      rawCvText: CV_WITH_IDENTIFIERS,
+      cvText: CV_WITH_IDENTIFIERS,
       jobAdvert: HOSTILE_ADVERT,
       provider,
     });
@@ -248,22 +249,43 @@ describe('the advert reaches the provider as data', () => {
     expect(request).not.toBeNull();
     // The port keeps them apart, so the adapter can fence one and not the
     // other. Merging them into a single string would make that impossible.
-    expect(request?.deidentifiedCv).not.toContain('IGNORE ALL PREVIOUS');
+    expect(request?.cv).not.toContain('IGNORE ALL PREVIOUS');
     expect(request?.jobAdvert).toContain('IGNORE ALL PREVIOUS');
   });
 
-  it('still sends nothing identifying, hostile advert or not', async () => {
+  /**
+   * This test used to assert that the payload carried no name, email address
+   * or identity number, because the CV was de-identified before it was sent.
+   * That layer was removed: the model now receives the applicant's CV as
+   * written.
+   *
+   * What still has to hold is the thing the layer was never responsible for.
+   * A hostile advert must not be able to change what is sent as the CV, and
+   * nothing it says can put a claim into the document, because the inventory
+   * the claim is checked against is built from the CV and never from the
+   * advert.
+   */
+  it('sends the CV unchanged, however hostile the advert', async () => {
     const provider = new CompromisedProvider();
     await tailorCv({
-      rawCvText: CV_WITH_IDENTIFIERS,
+      cvText: CV_WITH_IDENTIFIERS,
       jobAdvert: HOSTILE_ADVERT,
       provider,
     });
 
-    const sent = `${provider.lastRequest?.deidentifiedCv}`;
-    expect(sent).not.toContain('Thabo');
-    expect(sent).not.toContain('thabo.mokoena@example.co.za');
-    expect(sent).not.toContain('8001015009087');
+    expect(provider.lastRequest?.cv).toBe(CV_WITH_IDENTIFIERS);
+  });
+
+  it('builds the inventory from the CV, never from the advert', () => {
+    const fromCv = buildInventory(CV_WITH_IDENTIFIERS);
+    const withAdvert = buildInventory(`${CV_WITH_IDENTIFIERS}\n${HOSTILE_ADVERT}`);
+
+    // Kubernetes is in the hostile advert and nowhere in the CV. The first
+    // inventory must not have it. The second is built from text that includes
+    // the advert, and does, which is exactly why the advert is never part of
+    // what the inventory is built from.
+    expect(inventoryHas(fromCv, 'Kubernetes')).toBe(false);
+    expect(inventoryHas(withAdvert, 'Kubernetes')).toBe(true);
   });
 });
 
@@ -314,7 +336,6 @@ describe('a date cannot be moved between jobs', () => {
         phone: null,
         location: null,
         links: [],
-        otherLines: [],
       },
       draft,
       report,
@@ -449,7 +470,6 @@ describe('a rejected position takes its bullets with it', () => {
         phone: null,
         location: null,
         links: [],
-        otherLines: [],
       },
       draft,
       report,

@@ -8,7 +8,6 @@ import {
 } from 'node:crypto';
 
 import { encryptionEnv } from './env';
-import type { IdentityHeader } from '@/lib/domain/types';
 
 /**
  * AES-256-GCM field encryption for the identity header.
@@ -103,37 +102,6 @@ export function decrypt(payload: string): string {
     decipher.update(ciphertext),
     decipher.final(),
   ]).toString('utf8');
-}
-
-// ---------------------------------------------------------------------------
-// The identity header specifically
-// ---------------------------------------------------------------------------
-
-export function encryptIdentityHeader(identity: IdentityHeader): string {
-  return encrypt(JSON.stringify(identity));
-}
-
-export function decryptIdentityHeader(payload: string): IdentityHeader {
-  const parsed: unknown = JSON.parse(decrypt(payload));
-
-  if (typeof parsed !== 'object' || parsed === null) {
-    throw new Error('Malformed identity header.');
-  }
-
-  const record = parsed as Record<string, unknown>;
-  return {
-    fullName: typeof record.fullName === 'string' ? record.fullName : null,
-    email: typeof record.email === 'string' ? record.email : null,
-    phone: typeof record.phone === 'string' ? record.phone : null,
-    // Headers encrypted before location and links existed have neither.
-    location: typeof record.location === 'string' ? record.location : null,
-    links: Array.isArray(record.links)
-      ? record.links.filter((link): link is string => typeof link === 'string')
-      : [],
-    otherLines: Array.isArray(record.otherLines)
-      ? record.otherLines.filter((line): line is string => typeof line === 'string')
-      : [],
-  };
 }
 
 /** Constant-time comparison, for anywhere a secret is compared. */

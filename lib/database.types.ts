@@ -30,6 +30,14 @@ export type Json =
 
 export type TailoringStatus = 'review' | 'approved' | 'exported' | 'blocked';
 export type CvFormatEnum = 'pdf' | 'docx';
+export type UserRole = 'candidate' | 'recruiter';
+export type ApplicationStatus =
+  | 'submitted'
+  | 'reviewing'
+  | 'shortlisted'
+  | 'rejected'
+  | 'hired';
+export type ApplicationMode = 'profile' | 'tailored';
 
 export interface Database {
   public: {
@@ -41,6 +49,12 @@ export interface Database {
           created_at: string;
           updated_at: string;
           default_template: string;
+          role: UserRole;
+          full_name: string | null;
+          headline: string | null;
+          phone: string | null;
+          location: string | null;
+          links: string[];
         };
         Insert: {
           id?: string;
@@ -48,11 +62,138 @@ export interface Database {
           created_at?: string;
           updated_at?: string;
           default_template?: string;
+          role?: UserRole;
+          full_name?: string | null;
+          headline?: string | null;
+          phone?: string | null;
+          location?: string | null;
+          links?: string[];
         };
         Update: {
           email?: string;
           updated_at?: string;
           default_template?: string;
+          role?: UserRole;
+          full_name?: string | null;
+          headline?: string | null;
+          phone?: string | null;
+          location?: string | null;
+          links?: string[];
+        };
+        Relationships: [];
+      };
+
+      companies: {
+        Row: {
+          id: string;
+          name: string;
+          logo_url: string | null;
+          created_by: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          logo_url?: string | null;
+          created_by?: string;
+          created_at?: string;
+        };
+        Update: {
+          name?: string;
+          logo_url?: string | null;
+        };
+        Relationships: [];
+      };
+
+      jobs: {
+        Row: {
+          id: string;
+          recruiter_id: string;
+          company_id: string;
+          title: string;
+          location: string;
+          description: string;
+          requirements: string;
+          package_min: number | null;
+          package_max: number | null;
+          is_open: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          recruiter_id?: string;
+          company_id: string;
+          title: string;
+          location: string;
+          description: string;
+          requirements: string;
+          package_min?: number | null;
+          package_max?: number | null;
+          is_open?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          company_id?: string;
+          title?: string;
+          location?: string;
+          description?: string;
+          requirements?: string;
+          package_min?: number | null;
+          package_max?: number | null;
+          is_open?: boolean;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+
+      saved_jobs: {
+        Row: {
+          id: string;
+          user_id: string;
+          job_id: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id?: string;
+          job_id: string;
+          created_at?: string;
+        };
+        Update: Record<string, never>;
+        Relationships: [];
+      };
+
+      applications: {
+        Row: {
+          id: string;
+          job_id: string;
+          candidate_id: string;
+          resume_id: string | null;
+          tailored_resume_id: string | null;
+          mode: ApplicationMode;
+          status: ApplicationStatus;
+          note: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          job_id: string;
+          candidate_id?: string;
+          resume_id?: string | null;
+          tailored_resume_id?: string | null;
+          mode: ApplicationMode;
+          status?: ApplicationStatus;
+          note?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          status?: ApplicationStatus;
+          note?: string | null;
+          updated_at?: string;
         };
         Relationships: [];
       };
@@ -88,8 +229,6 @@ export interface Database {
           format: CvFormatEnum;
           original_filename: string | null;
           content: string;
-          identity_header_enc: string;
-          redacted_id_count: number;
         };
         Insert: {
           id?: string;
@@ -99,13 +238,10 @@ export interface Database {
           format: CvFormatEnum;
           original_filename?: string | null;
           content: string;
-          identity_header_enc: string;
-          redacted_id_count?: number;
         };
         Update: {
           last_accessed_at?: string;
           content?: string;
-          identity_header_enc?: string;
         };
         Relationships: [];
       };
@@ -248,6 +384,9 @@ export interface Database {
     Enums: {
       tailoring_status: TailoringStatus;
       cv_format: CvFormatEnum;
+      user_role: UserRole;
+      application_status: ApplicationStatus;
+      application_mode: ApplicationMode;
     };
 
     CompositeTypes: Record<string, never>;

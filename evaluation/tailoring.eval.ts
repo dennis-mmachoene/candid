@@ -12,7 +12,6 @@ import {
 import type { ApprovedClaims } from '@/lib/domain/types';
 
 import { loadJobAdverts, loadResumeText } from './dataset';
-import { injectIdentity, leakedValues, makeIdentity } from './identifiers';
 import { percent, printMeasurement, progress, saveMeasurement } from './report';
 
 /**
@@ -58,25 +57,22 @@ describe('tailoring against the live model', () => {
       let blocked = 0;
 
       let documentsClean = 0;
-      let payloadsClean = 0;
 
       const latencies: number[] = [];
       const fabricationsReachingDocument: string[] = [];
-      const payloadLeaks: string[] = [];
       const providerErrors: string[] = [];
       const blockedClaimEchoes: string[] = [];
       let documentsWithEchoes = 0;
 
       for (let index = 0; index < pairs; index += 1) {
-        const identity = makeIdentity(index);
-        const rawCvText = injectIdentity(resumes[index].text, identity);
+        const cvText = resumes[index].text;
         const advert = adverts[index];
 
         const startedAt = Date.now();
 
         try {
           const outcome = await tailorCv({
-            rawCvText,
+            cvText,
             jobAdvert: advert.text,
             provider: claudeProvider,
           });
@@ -88,18 +84,20 @@ describe('tailoring against the live model', () => {
           borderline += outcome.report.borderline.length;
           blocked += outcome.report.blocked.length;
 
-          // Guarantee 1, measured on the exact bytes that crossed the network.
-          const leaked = leakedValues(identity, outcome.sentToProvider);
-          if (leaked.length === 0) {
-            payloadsClean += 1;
-          } else {
-            payloadLeaks.push(`${resumes[index].id}: ${leaked.join(', ')}`);
-          }
 
-          // Guarantee 2. Build the document the user would download, with
+          // The guarantee. Build the document the user would download, with
           // nothing approved, and look for anything the validator refused.
           const { document } = assembleResumeDocument({
-            identity: outcome.identity,
+            // The header is the applicant's own and plays no part in what
+            // this measures, so it is left empty.
+            identity: {
+              fullName: null,
+              headline: null,
+              email: null,
+              phone: null,
+              location: null,
+              links: [],
+            },
             draft: outcome.draft,
             report: outcome.report,
             approved: NOTHING_APPROVED,
@@ -276,15 +274,12 @@ describe('tailoring against the live model', () => {
           ),
           'Documents with a blocked-claim echo': documentsWithEchoes,
           'Echo rate': percent(documentsWithEchoes, Math.max(completed, 1)),
-          'Payloads free of identifiers': payloadsClean,
-          'Identity leak rate': percent(payloadLeaks.length, Math.max(completed, 1)),
           'Mean latency (ms)': mean,
           'p95 latency (ms)': p95,
         },
         detail: {
           fabricationsReachingDocument,
           blockedClaimEchoes: blockedClaimEchoes.slice(0, 25),
-          payloadLeaks,
           providerErrors: providerErrors.slice(0, 10),
         },
       };
@@ -323,7 +318,6 @@ describe('tailoring against the live model', () => {
       // product's two promises, and a single failure of either is a defect, not
       // a statistic to average away.
       expect(fabricationsReachingDocument).toEqual([]);
-      expect(payloadLeaks).toEqual([]);
     },
   );
 });

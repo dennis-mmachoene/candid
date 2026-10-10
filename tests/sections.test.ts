@@ -14,7 +14,7 @@ import { describe, expect, it } from 'vitest';
 
 import { assembleResumeDocument } from '@/lib/domain/resume-document';
 import type {
-  IdentityHeader,
+  CvHeader,
   IntegrityReport,
   TailoredDraft,
 } from '@/lib/domain/types';
@@ -187,13 +187,12 @@ Oracle Certified Professional, Java SE 11 Developer (2021)
 References
 Available on request. Employee reference 9912310000000, Nedbank Group HR.`;
 
-const NO_IDENTITY: IdentityHeader = {
+const NO_IDENTITY: CvHeader = {
   fullName: null,
   email: null,
   phone: null,
   location: null,
   links: [],
-  otherLines: [],
 };
 
 const NOTHING: TailoredDraft = {

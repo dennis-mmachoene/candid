@@ -14,6 +14,8 @@ import { Document, Packer, Paragraph } from 'docx';
 import { PDFDocument, StandardFonts } from 'pdf-lib';
 import { describe, expect, it } from 'vitest';
 
+import { readHeader } from '@/lib/domain/cv-header';
+
 import {
   FileCvParser,
   UnsupportedFileError,
@@ -142,23 +144,21 @@ describe('parsing', () => {
 });
 
 /**
- * The end-to-end shape of M2: a real file goes in, and what comes out the other
- * side of de-identification carries none of the identifiers.
+ * The end-to-end shape: a real file goes in, and the header comes out as the
+ * fields a profile holds. Uploading a CV once is meant to be enough to have a
+ * profile, so this is the step that makes that true.
  */
-describe('parse then de-identify', () => {
-  it('produces content safe to send onward', async () => {
-    const { deidentify } = await import('@/lib/domain/identity');
-
+describe('parse then read the header', () => {
+  it('fills in the profile fields from the top of the document', async () => {
     const parsed = await parser.parse(await buildDocx(CV_LINES));
-    const { identity, content } = deidentify(parsed.text);
+    const header = readHeader(parsed.text);
 
-    expect(identity.fullName).toBe('Thabo Mokoena');
-    expect(identity.email).toBe('thabo.mokoena@example.co.za');
+    expect(header.fullName).toBe('Thabo Mokoena');
+    expect(header.email).toBe('thabo.mokoena@example.co.za');
 
-    expect(content).not.toContain('Thabo');
-    expect(content).not.toContain('Mokoena');
-    expect(content).not.toContain('example.co.za');
-    expect(content).toContain('Java');
-    expect(content).toContain('Led a team of five engineers');
+    // The body is kept whole. Nothing is stripped out of it any more.
+    expect(parsed.text).toContain('Java');
+    expect(parsed.text).toContain('Led a team of five engineers');
+    expect(parsed.text).toContain('Thabo Mokoena');
   });
 });

@@ -8,75 +8,43 @@
  */
 
 // ---------------------------------------------------------------------------
-// Identity
+// The CV header
 // ---------------------------------------------------------------------------
 
 /**
- * The personal identifiers lifted off a CV before anything reaches a model.
- * This never crosses the network to Claude. It is encrypted at rest
- * (AES-256-GCM, application layer) and reattached server-side after the model
- * responds.
+ * The contact block at the top of a CV: who the applicant is and how to reach
+ * them.
  *
- * Note there is deliberately no field for a South African ID number. ID numbers
- * are redacted and discarded — never stored, never reattached. See §6 of the
- * build spec and the migration comment in supabase/migrations.
+ * This is read off an uploaded CV once, to fill in the applicant's profile, and
+ * it is read back out of the profile when a document is exported. The applicant
+ * can correct any of it.
+ *
+ * It used to be something else. It used to be the half of the CV that was
+ * withheld from the model, held encrypted, and reattached only at export. That
+ * layer is gone; see lib/domain/cv-header.ts for why.
+ *
+ * There is still deliberately no field for a South African ID number, and the
+ * schema still has no column for one. Not collecting it was never part of the
+ * de-identification layer. It is about not collecting what the purpose does not
+ * require, and the purpose still does not require it.
  */
-export interface IdentityHeader {
+export interface CvHeader {
   fullName: string | null;
-  /**
-   * The line under the name: "Full-Stack Developer".
-   *
-   * A job title, not an identifier, but it lived in the header block and so was
-   * withheld along with the street address. Its absence was the most visible
-   * difference between the CV somebody uploaded and the one Candid gave back.
-   *
-   * Optional because records written before this field existed decrypt without
-   * it, and a missing title should print nothing rather than fail an export.
-   */
+  /** The line under the name: "Full-Stack Developer". */
   headline?: string | null;
   email: string | null;
   phone: string | null;
   /**
    * City and province, and nothing more precise.
    *
-   * This was being thrown away with the rest of the header, and it costs
-   * people interviews. South African adverts filter on location before they
-   * filter on anything else, so a CV that does not say where you are reads as
-   * a CV from somewhere inconvenient.
-   *
-   * The street address is still discarded. An employer needs to know you are
-   * in Pretoria; nobody needs your house number, and keeping it would be
-   * collecting more than the purpose requires.
+   * South African adverts filter on location before they filter on anything
+   * else, so a CV that does not say where you are reads as a CV from somewhere
+   * inconvenient. The street address is not kept: an employer needs to know
+   * you are in Pretoria, nobody needs your house number.
    */
   location: string | null;
-  /**
-   * Profile links — LinkedIn, GitHub and the like.
-   *
-   * Same problem as the location. They sat in the discarded header lines, so a
-   * developer's GitHub never reached the document that was meant to get them
-   * hired. Never sent to the model; reattached on export like the rest.
-   */
+  /** Profile links: GitHub, LinkedIn, a portfolio. */
   links: string[];
-  /**
-   * Remaining lines of the CV's header block (address, portfolio links, and so
-   * on). We keep these server-side rather than forwarding them, on the
-   * principle that anything sitting in the header block is presumed
-   * identifying until proven otherwise.
-   */
-  otherLines: string[];
-}
-
-/** Result of stripping identity from a parsed CV. */
-export interface DeidentificationResult {
-  /** Identifiers held back on the server. */
-  identity: IdentityHeader;
-  /**
-   * The only text that may ever be sent to an AI provider: experience, skills
-   * and education, with the header block removed and ID numbers redacted.
-   */
-  content: string;
-  /** How many South African ID numbers were redacted. */
-  redactedIdCount: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -354,7 +322,7 @@ export interface DocumentSection {
 }
 
 export interface ResumeDocument {
-  identity: IdentityHeader;
+  identity: CvHeader;
   sections: readonly DocumentSection[];
 }
 

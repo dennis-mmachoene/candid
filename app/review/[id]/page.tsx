@@ -13,7 +13,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { requireConsentedUser } from '@/lib/dal';
+import { requireUser } from '@/lib/dal';
 import { resourcesForGap } from '@/lib/domain/learning';
 import { assembleResumeDocument } from '@/lib/domain/resume-document';
 import { resumeRepository } from '@/lib/infrastructure/supabase-repo';
@@ -39,7 +39,7 @@ export default async function ReviewPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const user = await requireConsentedUser();
+  const user = await requireUser();
 
   const tailoring = await resumeRepository.getTailoring(id);
   if (!tailoring) notFound();
@@ -60,30 +60,19 @@ export default async function ReviewPage({
   // sections too and what is on screen matches what downloads.
   const resume = await resumeRepository.getResume(tailoring.resumeId);
 
-  /*
-   * Only the links, and only for the preview.
-   *
-   * De-identification replaces every web address in the CV body with a
-   * numbered marker, and the export puts them back. The preview was passing an
-   * empty list, so the applicant read "GitHub: [LINK 1]" on screen and got the
-   * real address in the downloaded file. The two are meant not to drift apart,
-   * and that is drift.
-   *
-   * The name, email address, phone number and location stay withheld here.
-   * That is FR-09, and it is why this is a field-by-field copy rather than the
-   * whole header.
-   */
-  const withheld = await resumeRepository.getIdentity(tailoring.resumeId);
+  // The header the preview prints. Nothing is withheld from the applicant
+  // about their own CV any more, so what is on screen is what downloads.
+  const header = await resumeRepository.getProfileHeader();
 
   const { document, omissions } = assembleResumeDocument({
-    identity: {
-        fullName: null,
-        email: null,
-        phone: null,
-        location: null,
-        links: withheld?.links ?? [],
-        otherLines: [],
-      },
+    identity: header ?? {
+      fullName: null,
+      headline: null,
+      email: null,
+      phone: null,
+      location: null,
+      links: [],
+    },
     draft: tailoring.draft,
     report,
     approved,

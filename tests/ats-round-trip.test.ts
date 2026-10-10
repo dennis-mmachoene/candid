@@ -20,7 +20,7 @@ import mammoth from 'mammoth';
 import { extractText, getDocumentProxy } from 'unpdf';
 import { describe, expect, it } from 'vitest';
 
-import { deidentify } from '@/lib/domain/identity';
+import { readHeader } from '@/lib/domain/cv-header';
 import { buildInventory } from '@/lib/domain/inventory';
 import {
   ATS_SECTION_HEADINGS,
@@ -35,7 +35,8 @@ import { toPrintableText, wrapText } from '@/lib/infrastructure/export/text';
 import type { ApprovedClaims, TailoredDraft } from '@/lib/domain/types';
 import { CV_WITH_IDENTIFIERS } from './fixtures';
 
-const { identity, content } = deidentify(CV_WITH_IDENTIFIERS);
+const identity = readHeader(CV_WITH_IDENTIFIERS);
+const content = CV_WITH_IDENTIFIERS;
 const inventory = buildInventory(content);
 
 const DRAFT: TailoredDraft = {

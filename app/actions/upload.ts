@@ -3,8 +3,8 @@
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 
-import { requireConsentedUser } from '@/lib/dal';
-import { deidentify } from '@/lib/domain/identity';
+import { requireUser } from '@/lib/dal';
+import { readHeader } from '@/lib/domain/cv-header';
 import { buildInventory } from '@/lib/domain/inventory';
 import {
   MAX_UPLOAD_BYTES,
@@ -15,32 +15,33 @@ import { DatabaseError, resumeRepository } from '@/lib/infrastructure/supabase-r
 import { createClient } from '@/lib/infrastructure/supabase/server';
 
 /**
- * Upload → parse → de-identify → persist.
+ * Upload, parse, persist, and fill in the profile.
  *
- * The ordering here is the whole security story, so it is worth naming:
+ * This is where an applicant's master CV comes from. Everything else in the
+ * product reads it: the skill inventory is built from it, every tailored
+ * version is checked against it, and the exported document is assembled from
+ * what survives that check.
  *
- *   1. Verify the session and consent. Nothing runs for a signed-out caller.
+ *   1. Verify the session. Nothing runs for a signed-out caller.
  *   2. Validate the upload as a shape, then as bytes. `file.type` is never
- *      consulted; the parser decides the format from magic bytes.
- *   3. De-identify. The plaintext CV exists in memory for exactly as long as
- *      this function runs, and the only thing written to the database is the
- *      de-identified content plus the encrypted header.
- *   4. Persist under RLS.
+ *      consulted; the parser decides the format from magic bytes, so a
+ *      renamed file cannot select the wrong parser.
+ *   3. Store the extracted text and build the inventory from it.
+ *   4. Read the header and fill in any profile field that is still empty, so
+ *      that uploading a CV once is enough to have a profile.
  *
- * The original file is deliberately never stored. It contains the unredacted ID
- * number and full contact details, and keeping a copy would quietly undo the
- * redaction we just performed. This departs from the build spec, which lists
- * Supabase Storage in the stack — it is a departure that strengthens the
- * guarantee rather than weakening it, and it is flagged in the Phase 2 audit
- * notes rather than made silently.
+ * The uploaded file itself is not stored, only its text. Nothing in the system
+ * reads the file again, so keeping it would be keeping a copy of somebody's
+ * document for no purpose.
  */
 
 export interface UploadState {
   status: 'idle' | 'success' | 'error';
   message: string;
   resumeId?: string;
-  redactedIdCount?: number;
   skillCount?: number;
+  /** True when the upload filled in profile fields that were empty. */
+  profileUpdated?: boolean;
 }
 
 const uploadSchema = z.object({
@@ -57,7 +58,7 @@ export async function uploadCv(
   _previous: UploadState,
   formData: FormData,
 ): Promise<UploadState> {
-  const user = await requireConsentedUser();
+  const user = await requireUser();
 
   const parsedInput = uploadSchema.safeParse({ file: formData.get('cv') });
   if (!parsedInput.success) {
@@ -76,19 +77,22 @@ export async function uploadCv(
     // library touches the bytes.
     const parsed = await cvParser.parse(bytes);
 
-    // Nothing downstream of this line sees the identifying version.
-    const { identity, content, redactedIdCount } = deidentify(parsed.text);
+    const content = parsed.text;
     const inventory = buildInventory(content);
 
     const resume = await resumeRepository.saveResume({
       content,
       format: parsed.format,
-      identity,
       originalFilename: file.name,
-      redactedIdCount,
     });
 
     await resumeRepository.saveInventory(resume.id, inventory);
+
+    // Uploading a CV is the only onboarding step most people will do, so the
+    // profile fills itself in from it. Only empty fields are written, so a
+    // thinner second CV cannot blank out something typed by hand.
+    const header = readHeader(content);
+    await resumeRepository.saveProfileHeader(header);
 
     const supabase = await createClient();
     await supabase.rpc('log_audit_event', {
@@ -96,7 +100,7 @@ export async function uploadCv(
       p_metadata: {
         resume_id: resume.id,
         format: parsed.format,
-        redacted_id_count: redactedIdCount,
+        skill_count: inventory.canonical.size,
       },
     });
 
@@ -104,13 +108,12 @@ export async function uploadCv(
 
     return {
       status: 'success',
-      message:
-        redactedIdCount > 0
-          ? `CV processed. ${redactedIdCount} ID number${redactedIdCount === 1 ? ' was' : 's were'} redacted and discarded.`
-          : 'CV processed.',
+      message: header.fullName
+        ? `CV saved. This is now your profile, ${header.fullName.split(/\s+/)[0]}.`
+        : 'CV saved. This is now your profile.',
       resumeId: resume.id,
-      redactedIdCount,
       skillCount: inventory.canonical.size,
+      profileUpdated: Boolean(header.fullName ?? header.email ?? header.phone),
     };
   } catch (error) {
     // Two error types are safe to show verbatim because their messages were
