@@ -4,7 +4,7 @@ import { cache } from 'react';
 import { redirect } from 'next/navigation';
 
 import { createClient } from './infrastructure/supabase/server';
-import { POLICY_VERSION, requiresReconsent } from './domain/consent';
+import { POLICY_VERSION } from './domain/consent';
 
 /**
  * The Data Access Layer.
@@ -42,11 +42,9 @@ export interface VerifiedUser {
  *
  * Two things this deliberately does not do:
  *
- *   - It does not read the name off the user's CV. That name lives encrypted
- *     and is decrypted only when a document is assembled. Decrypting it to
- *     print "Hi Thabo" on a dashboard would mean the plaintext identity moves
- *     through the app on every page load, which is exactly the traffic the
- *     encryption exists to prevent.
+ *   - It does not read the name off the user's CV. That name belongs to the
+ *     document, and the profile page is where it is edited. A greeting that
+ *     silently preferred the CV would change every time a new CV was uploaded.
  *   - It does not store the name. It is read from the session each request, so
  *     there is no extra copy of a person's name sitting in a table.
  *
@@ -110,34 +108,6 @@ export async function requireUser(): Promise<VerifiedUser> {
   if (!user) redirect('/?signin=required');
   return user;
 }
-
-// ---------------------------------------------------------------------------
-// Consent
-// ---------------------------------------------------------------------------
-
-export const getConsentStatus = cache(
-  async (): Promise<{ consented: boolean; version: string | null }> => {
-    const user = await getVerifiedUser();
-    if (!user) return { consented: false, version: null };
-
-    const supabase = await createClient();
-    // RLS restricts this to the caller's own rows. There is no user_id filter
-    // here because there is nothing to filter — the policy already did it.
-    const { data, error } = await supabase
-      .from('consent_records')
-      .select('policy_version')
-      .order('accepted_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    if (error || !data) return { consented: false, version: null };
-
-    return {
-      consented: !requiresReconsent({ policyVersion: data.policy_version }),
-      version: data.policy_version,
-    };
-  },
-);
 
 /**
  * Re-verify immediately before a destructive action. The session may have been

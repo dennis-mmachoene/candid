@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { ArrowRight, FileText, ShieldCheck, Upload } from 'lucide-react';
+import { ArrowRight, FileText, Search, Upload } from 'lucide-react';
 
 import { DeleteResumeButton } from '@/components/delete-resume-button';
 
@@ -20,9 +20,9 @@ import { resumeRepository } from '@/lib/infrastructure/supabase-repo';
 export const metadata = { title: 'Your CVs' };
 
 export default async function DashboardPage() {
-  // The gate. A signed-out user is redirected, and a signed-in user who has
-  // not accepted the current policy version goes to /consent. Both checks
-  // happen here, next to the data, not in middleware.
+  // The gate. A signed-out caller is redirected here, next to the data, rather
+  // than in middleware: a route that forgets this call still cannot read
+  // another person's rows, because Row-Level Security is underneath it.
   const user = await requireUser();
 
   // No user id passed and none needed: Row-Level Security scopes this to the
@@ -34,30 +34,37 @@ export default async function DashboardPage() {
   return (
     <main className="py-10 sm:py-14">
       <Container width="wide">
-      <header className="animate-rise flex flex-col gap-2">
-        <h1 className="text-fluid-2xl font-semibold tracking-tight">
-          {hasCvs ? `Welcome back, ${user.firstName}` : `Welcome, ${user.firstName}`}
-        </h1>
-        <p className="text-muted-foreground">
-          {hasCvs
-            ? 'Pick a CV and tailor it to an advert.'
-            : 'Upload your CV to get started. It is de-identified the moment it arrives.'}
-        </p>
+      <header className="animate-rise flex flex-wrap items-end justify-between gap-4">
+        <div className="flex flex-col gap-2">
+          <h1 className="text-fluid-2xl font-semibold tracking-tight">
+            {hasCvs ? `Welcome back, ${user.firstName}` : `Welcome, ${user.firstName}`}
+          </h1>
+          <p className="text-muted-foreground">
+            {hasCvs
+              ? 'This is the CV every application is built from. Pick a role, and Candid will tailor it to that advert.'
+              : 'Upload your CV once. It becomes the master copy every application is built from.'}
+          </p>
+        </div>
+
+        {hasCvs ? (
+          <Button asChild>
+            <Link href="/jobs">
+              <Search className="size-4" aria-hidden />
+              Browse roles
+            </Link>
+          </Button>
+        ) : null}
       </header>
 
       {/*
         Your CVs come first, and the upload sits underneath.
 
-        The old order had a large upload card and a four-point privacy
-        explainer filling the screen, with the stored CVs below the fold. That
-        is the right layout exactly once — the first visit. Every visit after
-        it, the person is here to tailor a CV they have already given us, and
-        they had to scroll past the explanation of a thing they did last week
-        to reach it.
-
-        The privacy note is now one line with a link. It is the third time this
-        is being explained: the landing page says it, the consent gate says it,
-        and repeating it in full here reads as a warning rather than a promise.
+        The old order had a large upload card and a four-point explainer
+        filling the screen, with the stored CVs below the fold. That is the
+        right layout exactly once — the first visit. Every visit after it, the
+        person is here to apply with a CV they have already given us, and they
+        had to scroll past the explanation of a thing they did last week to
+        reach it.
       */}
       {hasCvs ? (
         <section className="mt-8 flex flex-col gap-4 sm:mt-10">
@@ -88,9 +95,8 @@ export default async function DashboardPage() {
                           {resume.originalFilename ?? `${resume.format.toUpperCase()} CV`}
                         </h3>
                       </CardTitle>
-                      <Badge variant="accepted" className="shrink-0">
-                        <ShieldCheck className="size-3" aria-hidden />
-                        de-identified
+                      <Badge variant="outline" className="shrink-0">
+                        {resume.format.toUpperCase()}
                       </Badge>
                     </div>
                     <CardDescription>
@@ -123,7 +129,7 @@ export default async function DashboardPage() {
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <Button asChild size="sm">
                         <Link href={`/tailor/${resume.id}`}>
-                          Tailor to a job advert
+                          Tailor to an advert
                           <ArrowRight className="size-4" aria-hidden />
                         </Link>
                       </Button>
@@ -150,9 +156,9 @@ export default async function DashboardPage() {
               <h2>{hasCvs ? 'Upload another CV' : 'Upload your CV'}</h2>
             </CardTitle>
             <CardDescription>
-              PDF or Word, up to 5 MB. Your name, contact details and any ID
-              number are removed before anything is stored, and the original
-              file is discarded.{' '}
+              PDF or Word, up to 5 MB. Candid reads the text, fills in your
+              profile from the top of the page, and lists the skills it finds.
+              The file itself is not kept, only the text.{' '}
               <Link
                 href="/privacy"
                 className="underline underline-offset-4"

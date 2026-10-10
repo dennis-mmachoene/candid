@@ -24,11 +24,14 @@ export default function TermsPage() {
             What Candid does
           </h2>
           <p className="text-muted-foreground text-sm leading-relaxed">
-            Candid rewrites the wording of experience you already have so that
-            it matches the language of a job advert, and tells you what the
-            advert asks for that your CV does not support. It is a wording tool.
-            It does not apply for jobs on your behalf and does not contact
-            employers.
+            Candid is a job board with a CV tool attached to it. Employers post
+            roles. You keep one CV, rewrite its wording to match a role you are
+            answering, and send that version to the employer. Candid also tells
+            you what the advert asks for that your CV does not support.
+          </p>
+          <p className="text-muted-foreground text-sm leading-relaxed">
+            Candid does not apply for jobs on your behalf. Every application is
+            one you read and sent yourself.
           </p>
         </section>
 
@@ -40,7 +43,8 @@ export default function TermsPage() {
             It will not add a skill, employer, qualification or date that your
             uploaded CV does not support, even if you ask it to and even if the
             advert requires it. Claims that cannot be traced back to your CV are
-            blocked and cannot be included in a downloaded file.
+            blocked, and a blocked claim cannot reach a downloaded file or an
+            employer.
           </p>
         </section>
 
@@ -51,10 +55,22 @@ export default function TermsPage() {
           <p className="text-muted-foreground text-sm leading-relaxed">
             The CV you upload is the source of truth, and Candid cannot verify
             it. If your original CV contains something inaccurate, the tailored
-            version will carry it forward. Read what you download before you
-            send it, and be ready to answer questions on everything in it,
-            including anything you approved from the &quot;your call&quot;
-            section.
+            version will carry it forward. Read what you send before you send
+            it, and be ready to answer questions on everything in it, including
+            anything you approved from the &quot;your call&quot; section.
+          </p>
+        </section>
+
+        <section className="flex flex-col gap-3">
+          <h2 className="text-fluid-xl font-semibold tracking-tight">
+            If you are hiring
+          </h2>
+          <p className="text-muted-foreground text-sm leading-relaxed">
+            A role you post is visible to every signed-in job seeker, so post
+            only roles you are actually hiring for and describe them honestly. A
+            CV sent to you is for assessing that application and nothing else:
+            do not forward it, publish it, or use it for another role without
+            asking the applicant first.
           </p>
         </section>
 
@@ -65,7 +81,7 @@ export default function TermsPage() {
           <p className="text-muted-foreground text-sm leading-relaxed">
             Candid formats your CV so that applicant tracking systems can read
             it, and rewords your experience to match the advert. It cannot
-            promise an interview or a job. Hiring decisions are made by
+            promise a reply, an interview or a job. Hiring decisions are made by
             employers on grounds Candid has no access to.
           </p>
         </section>

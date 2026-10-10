@@ -4,12 +4,13 @@ import {
   CONSENT_STATEMENTS,
   OPERATORS,
   POLICY_VERSION,
+  RETENTION_MONTHS,
 } from '@/lib/domain/consent';
 
 export const metadata = { title: 'Privacy' };
 
 /**
- * The privacy policy is generated from the same constants the consent gate
+ * The privacy page is generated from the same constants the rest of the app
  * uses. There is no separate prose copy of the operator list to fall out of
  * date, which is the usual way a privacy policy quietly becomes untrue.
  */
@@ -23,9 +24,9 @@ export default function PrivacyPage() {
           Privacy
         </h1>
         <p className="text-muted-foreground text-pretty">
-          Candid processes personal information under the Protection of Personal
-          Information Act, 2013. This page is generated from the same
-          definitions the application uses, so it cannot drift out of date.
+          What Candid keeps, who else sees it, and how to remove it. This page
+          is generated from the same definitions the application uses, so it
+          cannot drift out of date.
         </p>
       </header>
 
@@ -51,29 +52,49 @@ export default function PrivacyPage() {
               password is ever created or stored.
             </li>
             <li>
-              The experience, skills and education content of any CV you upload,
-              stored with your name, email and phone number removed.
+              The text of any CV you upload. The file itself is discarded once
+              the text has been read out of it.
             </li>
             <li>
-              Your name, email and phone number from that CV, encrypted with
-              AES-256-GCM before they are written to the database.
+              Your name, contact details, location and any links, taken from the
+              top of that CV. These fill in your profile, and they are what gets
+              printed on a tailored CV so that an application has a name on it.
             </li>
-            <li>Any job advert you paste.</li>
+            <li>Any job advert you paste, and every tailored version produced from it.</li>
             <li>
-              A record of your consent, including which version of this policy
-              you agreed to.
+              The applications you send: which role, which CV went with it, and
+              where the employer has moved it to.
             </li>
           </ul>
         </section>
 
         <section className="flex flex-col gap-3">
           <h2 className="text-fluid-xl font-semibold tracking-tight">
-            What is never collected
+            What is not collected
           </h2>
           <p className="text-muted-foreground text-sm leading-relaxed">
-            South African ID numbers. If your CV contains one it is detected
-            during processing, replaced with a redaction marker, and discarded
-            in memory. There is no database column capable of storing one.
+            Candid never asks for an identity number, a date of birth, a
+            photograph or a salary history, and there is no field in the
+            database for any of them. If your own CV happens to contain one, it
+            is stored as part of your CV text like the rest of the document, and
+            it is removed when you delete your CV or your account.
+          </p>
+        </section>
+
+        <section className="flex flex-col gap-3">
+          <h2 className="text-fluid-xl font-semibold tracking-tight">
+            Who can see your CV
+          </h2>
+          <p className="text-muted-foreground text-sm leading-relaxed">
+            You, and the employer who posted a role you applied to. That
+            employer can read exactly the version you submitted to their role,
+            and nothing else you have stored. This is enforced by access
+            policies in the database itself rather than by the application, so a
+            mistake in a page cannot widen it.
+          </p>
+          <p className="text-muted-foreground text-sm leading-relaxed">
+            Other applicants cannot see your application, and you cannot see
+            theirs.
           </p>
         </section>
 
@@ -81,20 +102,13 @@ export default function PrivacyPage() {
           <h2 className="text-fluid-xl font-semibold tracking-tight">
             Who processes it
           </h2>
+          <p className="text-muted-foreground text-sm leading-relaxed">
+            Four companies. Each receives the text of your CV, or part of it,
+            for the purpose named below and no other.
+          </p>
           {OPERATORS.map((operator) => (
             <div key={operator.name} className="flex flex-col gap-1.5">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="font-medium">{operator.name}</span>
-                <Badge
-                  variant={
-                    operator.receivesIdentifyingData ? 'borderline' : 'accepted'
-                  }
-                >
-                  {operator.receivesIdentifyingData
-                    ? 'receives identifying data'
-                    : 'receives no identifying data'}
-                </Badge>
-              </div>
+              <span className="font-medium">{operator.name}</span>
               <p className="text-muted-foreground text-sm leading-relaxed">
                 {operator.purpose}
               </p>
@@ -106,23 +120,33 @@ export default function PrivacyPage() {
         </section>
 
         <section className="flex flex-col gap-3">
+          <h2 className="text-fluid-xl font-semibold tracking-tight">
+            How long it is kept
+          </h2>
+          <p className="text-muted-foreground text-sm leading-relaxed">
+            A CV you have not used for {RETENTION_MONTHS} months is deleted
+            automatically, along with every version tailored from it. Tailoring
+            it or downloading it resets that clock.
+          </p>
+        </section>
+
+        <section className="flex flex-col gap-3">
           <h2 className="text-fluid-xl font-semibold tracking-tight">Your rights</h2>
           <p className="text-muted-foreground text-sm leading-relaxed">
-            Under POPIA you may ask what personal information is held about you,
-            ask for it to be corrected, and ask for it to be deleted. Deletion
-            is built into the product rather than handled by request: one action
-            removes every record you own and closes your account immediately.
+            You may ask what is held about you, ask for it to be corrected, and
+            ask for it to be deleted. Deletion is built into the product rather
+            than handled by request: one action in settings removes every record
+            you own and closes your account immediately.
           </p>
         </section>
 
         <section className="flex flex-col gap-3">
           <h2 className="text-fluid-xl font-semibold tracking-tight">
-            Changes to this policy
+            Changes to this page
           </h2>
           <p className="text-muted-foreground text-sm leading-relaxed">
-            If what is shared or who it is shared with changes, the version
-            number changes and every user is asked to consent again. Consent
-            recorded against an older version stops counting at that point.
+            If what is shared, or who it is shared with, changes, the version
+            number at the top of this page changes with it.
           </p>
         </section>
       </div>

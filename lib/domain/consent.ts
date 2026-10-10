@@ -1,34 +1,40 @@
 /**
- * POPIA consent.
+ * The policy declaration.
  *
- * Section 18 of the Protection of Personal Information Act requires that a data
- * subject be told who is processing their information and for what. Naming the
- * operators is not a formality here — the whole claim Candid makes is that the
- * AI provider never receives anything identifying, and this list is where that
- * claim is stated to the user in writing.
+ * One place that names what Candid promises, who processes the data, and which
+ * version of that statement is current. The privacy page, the terms page and
+ * the footer are all generated from these constants, so there is no second
+ * prose copy to quietly fall out of date.
  *
- * `receivesIdentifyingData: false` against Anthropic is the load-bearing entry.
- * If a change to this codebase ever makes it untrue, this file must change too,
- * the policy version must be bumped, and every user must re-consent.
+ * On `receivesIdentifyingData`: it is now true for every operator, and that is
+ * the honest answer. An earlier version of Candid stripped the name, contact
+ * details and any ID number out of a CV before sending it to the AI provider.
+ * That de-identification is gone. The CV is sent as it was uploaded, because
+ * the rewriting is better when the model can see the whole document, and
+ * because a claim that the provider sees nothing identifying is a claim that
+ * has to be true on every code path or it should not be made at all.
+ *
+ * The field is kept rather than deleted because consent records already stored
+ * carry it, and a stored record is meant to show what the user was told at the
+ * time, not what the code says today.
  */
 
 import type { ConsentRecord, Operator } from './types';
 
 /**
  * Bump this whenever the operator list, the purposes, or the data flows change.
- * Consent recorded against an older version no longer counts.
+ * A record stored against an older version describes older terms.
  */
-export const POLICY_VERSION = '2026-08-02';
+export const POLICY_VERSION = '2026-10-10';
 
 /**
- * How long a CV survives without being used. POPIA §14: records must not be
- * kept longer than the purpose requires.
+ * How long a CV survives without being used.
  *
  * Twelve months rather than three. Job searches are long, people come back to a
  * CV they wrote last year, and a tool that silently deleted their work after a
  * quarter would be worse than useless to the people this is built for.
  *
- * This number appears in three places on purpose — here, in the consent notice,
+ * This number appears in three places on purpose — here, on the privacy page,
  * and in the migration that enforces it. A retention period nobody is told
  * about is not a policy, it is a habit.
  */
@@ -38,7 +44,7 @@ export const OPERATORS: readonly Operator[] = [
   {
     name: 'Supabase',
     purpose:
-      'Stores your account, your uploaded CV and your tailored versions. Your name, email address and phone number are encrypted before they are stored.',
+      'Stores your account, your profile, the CV you upload, every tailored version, and the applications you send.',
     jurisdiction:
       'European Union (must match the region selected for the Supabase project)',
     receivesIdentifyingData: true,
@@ -46,9 +52,9 @@ export const OPERATORS: readonly Operator[] = [
   {
     name: 'Anthropic (Claude)',
     purpose:
-      'Rewrites the wording of your experience to match a job advert. It receives only the experience, skills and education portion of your CV.',
+      'Rewrites the wording of your experience to match a job advert. It receives the text of your CV and the text of the advert, and nothing else about you.',
     jurisdiction: 'United States',
-    receivesIdentifyingData: false,
+    receivesIdentifyingData: true,
   },
   {
     name: 'Google',
@@ -67,23 +73,27 @@ export const OPERATORS: readonly Operator[] = [
 ];
 
 /**
- * Plain-language statements shown on the consent gate. Written to be read, not
- * to be scrolled past.
+ * The promises, in plain language. Written to be read, not to be scrolled past.
+ *
+ * Each one is a statement the code has to keep true. The first is enforced by
+ * the specification chain in `lib/domain/provenance.ts`, the third by the
+ * Row-Level Security policies in migration 0005, and the last two by the
+ * deletion action and the retention purge.
  */
 export const CONSENT_STATEMENTS: readonly string[] = [
-  'Your name, email address and phone number are removed from your CV before any of it is sent to Claude, and added back only on your own device-bound download.',
-  'If your CV contains a South African ID number it is redacted and discarded. Candid has no field to store one.',
-  'Candid will never add a skill, employer or date that your CV does not support, even if the job advert asks for it.',
+  'Candid will never add a skill, employer, qualification or date that your CV does not support, even when the job advert asks for it.',
+  'Your CV is sent to Anthropic to be reworded, and the result is checked against your CV before you are shown it. Nothing is sent to an employer until you press send.',
+  'An employer can see your CV only for a role you applied to, and only the version you submitted to that role.',
   'You can delete your account and everything in it at any time, and the deletion is immediate.',
   `If you do not use a stored CV for ${RETENTION_MONTHS} months, it is deleted automatically along with everything tailored from it.`,
 ];
 
-/** The operators that actually receive identifying information. */
+/** The operators that receive identifying information. Currently all of them. */
 export function operatorsReceivingIdentifyingData(): readonly Operator[] {
   return OPERATORS.filter((operator) => operator.receivesIdentifyingData);
 }
 
-/** True when a stored consent no longer covers the current policy. */
+/** True when a stored record no longer covers the current policy version. */
 export function requiresReconsent(
   record: Pick<ConsentRecord, 'policyVersion'> | null,
 ): boolean {
