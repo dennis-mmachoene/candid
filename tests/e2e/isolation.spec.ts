@@ -2,6 +2,7 @@ import { Document, Packer, Paragraph } from 'docx';
 import { createClient } from '@supabase/supabase-js';
 import { expect, test } from '@playwright/test';
 
+import { chooseSide } from './onboarding';
 import {
   deleteTestUser,
   readE2ECredentials,
@@ -18,6 +19,12 @@ import {
  * "should" has been doing a great deal of work in that sentence. The repository
  * never takes a user id, the policies all key on `auth.uid()`, and none of that
  * is evidence. This is evidence.
+ *
+ * It matters more now than it did. The build used to strip the name, email and
+ * phone number out of a CV before storing it, so a leak would have leaked a
+ * document with the identifying parts already removed. That de-identification
+ * is gone. What is stored is the CV as the person wrote it, contact details
+ * and all, so RLS is no longer the second line of defence. It is the only one.
  *
  * The test attacks from both ends:
  *
@@ -56,8 +63,8 @@ test.describe('two accounts cannot see each other', () => {
 
   test('account A uploads a CV', async ({ page }) => {
     await signIn(page, credentials!);
-    await page.getByRole('button', { name: /i understand and agree/i }).click();
-    await expect(page).toHaveURL(/\/dashboard/);
+    await chooseSide(page, 'candidate');
+    await page.goto('/dashboard');
 
     await page.setInputFiles('#cv', {
       name: 'account-a.docx',
@@ -65,14 +72,18 @@ test.describe('two accounts cannot see each other', () => {
         'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
       buffer: await buildCv('Ayanda Khumalo', 'ayanda@example.co.za'),
     });
-    await page.getByRole('button', { name: /upload and de-identify/i }).click();
-    await expect(page.getByText(/CV processed/i)).toBeVisible({
+    await page.getByRole('button', { name: /upload my cv/i }).click();
+    await expect(page.getByText(/CV saved/i)).toBeVisible({
       timeout: 30_000,
     });
 
+    // A's own name is on A's own dashboard, which is the correct behaviour and
+    // the thing every assertion about B below is measured against.
+    await expect(page.getByTestId('cv-preview').first()).toContainText('Ayanda');
+
     // The tailor link carries the resume id. That id is what B will try to use.
     const href = await page
-      .getByRole('link', { name: /tailor to a job advert/i })
+      .getByRole('link', { name: /tailor to an advert/i })
       .first()
       .getAttribute('href');
 
@@ -88,12 +99,12 @@ test.describe('two accounts cannot see each other', () => {
     const page = await context.newPage();
 
     await signIn(page, credentials!, '/dashboard', emailB);
-    await page.getByRole('button', { name: /i understand and agree/i }).click();
-    await expect(page).toHaveURL(/\/dashboard/);
+    await chooseSide(page, 'candidate');
+    await page.goto('/dashboard');
 
     /*
-     * The dashboard no longer carries a "Nothing here yet" placeholder — with
-     * the upload card sitting right there on a first visit, it said nothing.
+     * The dashboard carries no "Nothing here yet" placeholder — with the
+     * upload card sitting right there on a first visit, it said nothing.
      *
      * These two assertions replace it, and both are closer to the thing this
      * test is actually about. The heading reads "Upload your CV" only when the
@@ -105,7 +116,7 @@ test.describe('two accounts cannot see each other', () => {
       page.getByRole('heading', { name: /^upload your cv$/i }),
     ).toBeVisible();
     await expect(
-      page.getByRole('link', { name: /tailor to a job advert/i }),
+      page.getByRole('link', { name: /tailor to an advert/i }),
     ).toHaveCount(0);
 
     await expect(page.getByText('Ayanda')).toHaveCount(0);
@@ -140,6 +151,19 @@ test.describe('two accounts cannot see each other', () => {
     await context.close();
   });
 
+  test('account B’s applications list is empty', async ({ browser }) => {
+    const context = await browser.newContext();
+    const page = await context.newPage();
+
+    await signIn(page, credentials!, '/applications', emailB);
+    // Nothing of A's, and nothing of B's either, because B has applied to
+    // nothing. An application carries a CV, so this list is another place a
+    // leak would surface.
+    await expect(page.getByText('Ayanda')).toHaveCount(0);
+
+    await context.close();
+  });
+
   /**
    * The one that actually matters.
    *
@@ -157,24 +181,26 @@ test.describe('two accounts cannot see each other', () => {
       auth: { autoRefreshToken: false, persistSession: false },
     });
 
-    // Deliberately unfiltered. `select *` on every table holding user data.
+    /*
+     * Deliberately unfiltered. `select *` on every table holding user data.
+     *
+     * `applications` is on the list because it is the newest way one account
+     * could reach another's CV, and `consent_records` is still on it even
+     * though nothing writes to that table any more: a table nobody writes to
+     * is exactly the kind of thing that keeps its policies and then has them
+     * forgotten. Every one of these must come back empty for B.
+     */
     for (const table of [
       'resumes',
       'extracted_skills',
       'job_descriptions',
       'tailored_resumes',
+      'applications',
       'consent_records',
     ] as const) {
       const { data, error } = await asB.from(table).select('*');
       expect(error, `${table} query errored`).toBeNull();
-
-      // B has consented, so consent_records legitimately has one row — B's own.
-      // Everything else must be empty, because B has uploaded nothing.
-      if (table === 'consent_records') {
-        expect(data?.length ?? 0, 'B should see only their own consent').toBe(1);
-      } else {
-        expect(data ?? [], `${table} leaked rows across accounts`).toEqual([]);
-      }
+      expect(data ?? [], `${table} leaked rows across accounts`).toEqual([]);
     }
 
     // The rate limiter's table has RLS on and no policy at all, so it should be

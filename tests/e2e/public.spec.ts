@@ -96,7 +96,24 @@ test.describe('theme', () => {
 });
 
 test.describe('the gate', () => {
-  for (const path of ['/dashboard', '/settings', '/history']) {
+  /*
+   * Every route that reads user data, listed by hand.
+   *
+   * Written out rather than generated, because the point of this test is to
+   * catch a route whose author forgot `requireUser()`, and a list generated
+   * from the filesystem would include the new route and prove nothing about
+   * whether anyone remembered. Adding a route to the application means adding
+   * it here, and that is the mechanism working rather than friction.
+   */
+  for (const path of [
+    '/dashboard',
+    '/settings',
+    '/history',
+    '/jobs',
+    '/applications',
+    '/hiring',
+    '/onboarding',
+  ]) {
     test(`sends a signed-out visitor away from ${path}`, async ({ page }) => {
       await page.goto(path);
       await expect(page).toHaveURL(/\/\?signin=required/);
@@ -109,16 +126,33 @@ test.describe('the gate', () => {
     await page.goto('/review/00000000-0000-0000-0000-000000000000');
     await expect(page).toHaveURL(/\/\?signin=required/);
   });
+
+  test('does not leak whether a job id exists', async ({ page }) => {
+    await page.goto('/jobs/00000000-0000-0000-0000-000000000000');
+    await expect(page).toHaveURL(/\/\?signin=required/);
+  });
 });
 
 test.describe('legal pages', () => {
-  test('privacy names the operators', async ({ page }) => {
+  test('privacy names the operators and who can read an application', async ({
+    page,
+  }) => {
     await page.goto('/privacy');
 
     await expect(page.getByRole('heading', { name: 'Privacy' })).toBeVisible();
     await expect(page.getByText('Anthropic (Claude)')).toBeVisible();
+
+    /*
+     * This replaces an assertion on "receives no identifying data".
+     *
+     * That phrase was the old de-identification promise, and it is gone from
+     * both the product and the page. What matters now is the limit that did
+     * survive, and it is a stronger claim than the one it replaces because
+     * the database enforces it: an employer reads the version submitted to
+     * their own role and nothing else.
+     */
     await expect(
-      page.getByText(/receives no identifying data/i).first(),
+      page.getByRole('heading', { name: /who can see your CV/i }),
     ).toBeVisible();
   });
 
@@ -126,6 +160,9 @@ test.describe('legal pages', () => {
     await page.goto('/terms');
     await expect(
       page.getByRole('heading', { name: /what candid will not do/i }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole('heading', { name: /if you are hiring/i }),
     ).toBeVisible();
   });
 });

@@ -1,5 +1,6 @@
-import { FileText, TriangleAlert, User } from 'lucide-react';
+import { FileText, TriangleAlert, User, Users } from 'lucide-react';
 
+import { RoleChoice } from '@/components/role-choice';
 import {
   DeleteAccountForm,
   TemplatePreferenceForm,
@@ -14,6 +15,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { requireUser } from '@/lib/dal';
+import { jobRepository } from '@/lib/infrastructure/job-repo';
 import { createClient } from '@/lib/infrastructure/supabase/server';
 
 export const metadata = { title: 'Settings' };
@@ -26,6 +28,8 @@ export default async function SettingsPage() {
     .from('profiles')
     .select('default_template')
     .maybeSingle();
+
+  const role = await jobRepository.getRole();
 
   return (
     <main className="py-10 sm:py-14">
@@ -74,6 +78,30 @@ export default async function SettingsPage() {
               The name printed on a tailored CV is the one taken from your own
               CV, not this one.
             </p>
+          </CardContent>
+        </Card>
+
+        {/* --- Which side are you on ------------------------------------- */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2.5">
+              <span className="bg-muted grid size-9 place-items-center rounded-lg border">
+                <Users className="size-4" aria-hidden />
+              </span>
+              <CardTitle asChild className="text-fluid-lg">
+                <h2>Which side are you on</h2>
+              </CardTitle>
+            </div>
+            <CardDescription>
+              {role === 'recruiter'
+                ? 'You are hiring, so Candid shows you the roles you have posted and who applied to them.'
+                : 'You are looking for work, so Candid shows you the job board and your applications.'}{' '}
+              Changing this changes the whole navigation. Nothing you have
+              stored is deleted, so you can change back.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <RoleChoice current={role} submitLabel="Switch sides" />
           </CardContent>
         </Card>
 

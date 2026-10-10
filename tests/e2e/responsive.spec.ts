@@ -133,7 +133,7 @@ test.describe('touch targets', () => {
 test.describe('content width', () => {
   /**
    * Line length past roughly 75 characters measurably slows reading, and the
-   * consent notice is the one screen where people most need to actually read.
+   * privacy page is the one screen where people most need to actually read.
    * On an ultrawide, an uncapped paragraph would run the full 2560px.
    */
   test.use({ viewport: { width: 2560, height: 1440 } });

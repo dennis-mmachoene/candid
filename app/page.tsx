@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import {
@@ -8,7 +9,6 @@ import {
   Check,
   CircleAlert,
   FileCheck2,
-  MapPin,
   ScanSearch,
   Search,
   Send,
@@ -147,6 +147,35 @@ const sampleVerdicts = [
   },
 ];
 
+/**
+ * The small label above a section heading.
+ *
+ * This used to be a `Badge`, in four places. A row of coloured pills down a
+ * marketing page is the most recognisable tell of a generated layout, and the
+ * pills were doing no work a line of small capitals cannot do. The badge
+ * component is still used where a badge means something: the verdict chips in
+ * the sample report, and the one marking that report as an example.
+ */
+function Eyebrow({
+  children,
+  tone = 'brand',
+}: {
+  children: ReactNode;
+  tone?: 'brand' | 'blocked';
+}) {
+  return (
+    <p
+      className={`inline-flex items-center gap-1.5 text-xs font-semibold tracking-[0.12em] uppercase ${
+        tone === 'blocked'
+          ? 'text-blocked'
+          : 'text-brand-700 dark:text-brand-300'
+      }`}
+    >
+      {children}
+    </p>
+  );
+}
+
 export default async function Home({
   searchParams,
 }: {
@@ -184,11 +213,15 @@ export default async function Home({
           */}
           <div className="grid items-center justify-center gap-12 lg:grid-cols-[minmax(0,42rem)_minmax(0,30rem)] lg:gap-16">
             <div className="animate-rise flex max-w-2xl flex-col items-start gap-6">
-              <Badge variant="brand">
-                <MapPin className="size-3" aria-hidden />
-                Built for South African job seekers
-              </Badge>
+              {/*
+                No badge pill above the heading.
 
+                It read "Built for South African job seekers", which is true and
+                is also roughly what the paragraph below says. A coloured pill
+                carrying a line the next paragraph repeats is decoration, and a
+                decorated hero is the first thing that makes a page look
+                generated rather than designed.
+              */}
               <h1 className="text-fluid-3xl font-semibold tracking-tight text-balance">
                 An{' '}
                 <span className="text-brand-700 dark:text-brand-300">
@@ -303,7 +336,7 @@ export default async function Home({
       <section id="how" className="bg-muted/30 scroll-mt-20 border-b py-16 sm:py-20">
         <Container>
           <div className="flex max-w-2xl flex-col gap-3">
-            <Badge variant="brand">How it works</Badge>
+            <Eyebrow>How it works</Eyebrow>
             <h2 className="text-fluid-2xl font-semibold tracking-tight text-balance">
               Four steps, and you can see what happened at every one.
             </h2>
@@ -347,7 +380,7 @@ export default async function Home({
       <section id="promises" className="scroll-mt-20 py-16 sm:py-20">
         <Container>
           <div className="flex max-w-2xl flex-col gap-3">
-            <Badge variant="brand">Our promises</Badge>
+            <Eyebrow>Our promises</Eyebrow>
             <h2 className="text-fluid-2xl font-semibold tracking-tight text-balance">
               Three guarantees, enforced in code rather than in marketing.
             </h2>
@@ -392,10 +425,10 @@ export default async function Home({
         <Container>
           <div className="grid gap-10 lg:grid-cols-[1fr_1.15fr] lg:items-start">
             <div className="flex flex-col gap-4">
-              <Badge variant="blocked">
-                <Ban className="size-3" aria-hidden />
+              <Eyebrow tone="blocked">
+                <Ban className="size-3.5" aria-hidden />
                 What Candid will not do
-              </Badge>
+              </Eyebrow>
               <h2 className="text-fluid-2xl font-semibold tracking-tight text-balance">
                 Most CV tools sell you the opposite of this.
               </h2>
@@ -442,7 +475,7 @@ export default async function Home({
       <section className="py-16 sm:py-20">
         <Container>
           <div className="flex max-w-2xl flex-col gap-3">
-            <Badge variant="brand">Who it is for</Badge>
+            <Eyebrow>Who it is for</Eyebrow>
             <h2 className="text-fluid-2xl font-semibold tracking-tight text-balance">
               One place for both sides of the hire.
             </h2>

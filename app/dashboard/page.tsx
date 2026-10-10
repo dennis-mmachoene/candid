@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import { ArrowRight, FileText, Search, Upload } from 'lucide-react';
 
 import { DeleteResumeButton } from '@/components/delete-resume-button';
@@ -15,6 +16,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { requireUser } from '@/lib/dal';
+import { jobRepository } from '@/lib/infrastructure/job-repo';
 import { resumeRepository } from '@/lib/infrastructure/supabase-repo';
 
 export const metadata = { title: 'Your CVs' };
@@ -24,6 +26,27 @@ export default async function DashboardPage() {
   // than in middleware: a route that forgets this call still cannot read
   // another person's rows, because Row-Level Security is underneath it.
   const user = await requireUser();
+
+  /*
+   * The only route that routes by role, and the reason it is the only one.
+   *
+   * Sign-in lands here, so this page has to answer two questions that are not
+   * really about CVs at all. A null role means the account has never been
+   * asked which side of the hire it is on, so it goes to /onboarding;
+   * migration 0008 is what makes null possible, and before it every account
+   * was silently a candidate and that screen was unreachable. A recruiter has
+   * no CV to upload, so this page is the wrong one for them entirely and they
+   * go to the roles they have posted.
+   *
+   * Nothing else redirects on role, deliberately. /onboarding used to send a
+   * non-null role back here, and a pair of pages that each redirect to the
+   * other is a redirect loop waiting for `getRole()` to return two different
+   * answers in a row. It returns null on a failed query, which is exactly the
+   * flap that would trigger it. One page deciding cannot loop.
+   */
+  const role = await jobRepository.getRole();
+  if (role === null) redirect('/onboarding');
+  if (role === 'recruiter') redirect('/hiring');
 
   // No user id passed and none needed: Row-Level Security scopes this to the
   // caller's own rows.
