@@ -19,7 +19,7 @@ import type { ValidatedClaim } from '@/lib/domain/types';
  * The integrity report — the screen the whole product is built around.
  *
  * It is written to read like a calm report a good advisor walked you through,
- * not an error list. An overview names the three outcomes up front; then each
+ * not an error list. The page states the outcome in a sentence; then each
  * section explains itself in plain language.
  *
  * The design rule that has not changed: a user cannot fairly approve an
@@ -58,36 +58,6 @@ function Evidence({ claim }: { claim: ValidatedClaim }) {
   );
 }
 
-/**
- * Group refused claims by the reason they were refused.
- *
- * Almost every refusal carries the same sentence, and one real tailoring
- * printed it eighteen times down the page, once per card. The list was the
- * first thing anyone complained about and it buried the two refusals that said
- * something different.
- *
- * Grouping says each reason once and lists the claims under it as chips. The
- * information is identical. The page stops shouting.
- *
- * Insertion order is kept, so the first reason to appear stays first.
- */
-function groupByReason(
-  claims: readonly ValidatedClaim[],
-): { reason: string; claims: ValidatedClaim[] }[] {
-  const groups = new Map<string, ValidatedClaim[]>();
-
-  for (const claim of claims) {
-    const existing = groups.get(claim.reason);
-    if (existing) existing.push(claim);
-    else groups.set(claim.reason, [claim]);
-  }
-
-  return [...groups.entries()].map(([reason, grouped]) => ({
-    reason,
-    claims: grouped,
-  }));
-}
-
 export function IntegrityReport({
   tailoringId,
   accepted,
@@ -121,53 +91,8 @@ export function IntegrityReport({
     });
   };
 
-  const overview = [
-    {
-      label: 'Traced to your CV',
-      count: accepted.length,
-      tint: 'border-accepted/30 bg-accepted/10 text-accepted',
-      icon: Check,
-    },
-    {
-      label: 'Your call',
-      count: borderline.length,
-      tint: 'border-borderline/30 bg-borderline/10 text-borderline',
-      icon: CircleAlert,
-    },
-    {
-      label: 'Refused',
-      count: blocked.length,
-      tint: 'border-blocked/30 bg-blocked/10 text-blocked',
-      icon: Ban,
-    },
-  ];
-
   return (
     <div className="flex flex-col gap-6">
-      {/* --- Overview --------------------------------------------------- */}
-      <div className="grid grid-cols-3 gap-3 sm:gap-4">
-        {overview.map((item) => (
-          <div
-            key={item.label}
-            className="bg-card flex flex-col gap-2 rounded-lg border p-4 sm:flex-row sm:items-center sm:gap-3"
-          >
-            <span
-              className={`grid size-9 shrink-0 place-items-center rounded-md border ${item.tint}`}
-            >
-              <item.icon className="size-4" aria-hidden />
-            </span>
-            <span className="flex flex-col">
-              <span className="text-xl font-semibold tabular-nums sm:text-2xl">
-                {item.count}
-              </span>
-              <span className="text-muted-foreground text-xs leading-tight">
-                {item.label}
-              </span>
-            </span>
-          </div>
-        ))}
-      </div>
-
       {/* --- Accepted --------------------------------------------------- */}
       <Card>
         <CardHeader>
@@ -185,25 +110,42 @@ export function IntegrityReport({
             </CardTitle>
           </div>
           <CardDescription>
-            These appear in your original CV. They go in as they are.
+            These appear in your original CV. They go in as they are, so there
+            is nothing here to decide.
           </CardDescription>
         </CardHeader>
         <CardContent>
           {accepted.length === 0 ? (
             <p className="text-muted-foreground text-sm">Nothing yet.</p>
           ) : (
-            <ul className="flex flex-wrap gap-2">
-              {accepted.map((claim, index) => (
-                <li key={`${claim.canonical}-${index}`}>
-                  <Badge
-                    variant="accepted"
-                    className="break-anywhere whitespace-normal"
-                  >
-                    {claim.claim.text}
-                  </Badge>
-                </li>
-              ))}
-            </ul>
+            /*
+             * Closed by default.
+             *
+             * This list is the longest thing on the page and the least
+             * actionable: every item in it is already in the document and
+             * needs no decision. Opening with fifty-five coloured labels
+             * buried the two sections that do need reading.
+             *
+             * A native <details> rather than a component, because it works
+             * before the JavaScript loads and it is one element.
+             */
+            <details className="group">
+              <summary className="text-muted-foreground hover:text-foreground marker:text-muted-foreground cursor-pointer text-sm transition-colors">
+                Show the {accepted.length} things that were kept
+              </summary>
+              <ul className="mt-3 flex flex-wrap gap-2">
+                {accepted.map((claim, index) => (
+                  <li key={`${claim.canonical}-${index}`}>
+                    <Badge
+                      variant="accepted"
+                      className="break-anywhere whitespace-normal"
+                    >
+                      {claim.claim.text}
+                    </Badge>
+                  </li>
+                ))}
+              </ul>
+            </details>
           )}
         </CardContent>
       </Card>
@@ -319,8 +261,8 @@ export function IntegrityReport({
             </CardTitle>
           </div>
           <CardDescription>
-            The advert asked for these and your CV does not support them, so
-            Candid left them out. There is nothing to approve here.
+            Candid would not add these, and there is no way to approve them. If
+            you do have this experience, put it in your CV and upload it again.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -329,25 +271,21 @@ export function IntegrityReport({
               Nothing was refused. The draft stayed inside what your CV supports.
             </p>
           ) : (
-            <div className="flex flex-col gap-5">
-              {groupByReason(blocked).map((group) => (
-                <div key={group.reason} className="flex flex-col gap-2">
-                  <ul className="flex flex-wrap gap-1.5">
-                    {group.claims.map((claim, index) => (
-                      <li
-                        key={`${claim.canonical}-${index}`}
-                        className="border-blocked/30 bg-blocked-surface/25 break-anywhere rounded-md border px-2.5 py-1 text-sm"
-                      >
-                        {claim.claim.text}
-                      </li>
-                    ))}
-                  </ul>
-                  <p className="text-muted-foreground text-sm leading-relaxed">
-                    {group.reason}
+            <ul className="flex flex-col gap-2">
+              {blocked.map((claim, index) => (
+                <li
+                  key={`${claim.canonical}-${index}`}
+                  className="border-border bg-blocked-surface/25 rounded-lg border p-4"
+                >
+                  <p className="break-anywhere font-medium">
+                    {claim.claim.text}
                   </p>
-                </div>
+                  <p className="text-muted-foreground mt-0.5 text-sm leading-relaxed">
+                    {claim.reason}
+                  </p>
+                </li>
               ))}
-            </div>
+            </ul>
           )}
         </CardContent>
       </Card>

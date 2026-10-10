@@ -145,7 +145,15 @@ export interface Database {
           is_open?: boolean;
           updated_at?: string;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: 'jobs_company_id_fkey';
+            columns: ['company_id'];
+            isOneToOne: false;
+            referencedRelation: 'companies';
+            referencedColumns: ['id'];
+          },
+        ];
       };
 
       saved_jobs: {
@@ -162,7 +170,15 @@ export interface Database {
           created_at?: string;
         };
         Update: Record<string, never>;
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: 'saved_jobs_job_id_fkey';
+            columns: ['job_id'];
+            isOneToOne: false;
+            referencedRelation: 'jobs';
+            referencedColumns: ['id'];
+          },
+        ];
       };
 
       applications: {
@@ -195,7 +211,36 @@ export interface Database {
           note?: string | null;
           updated_at?: string;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: 'applications_job_id_fkey';
+            columns: ['job_id'];
+            isOneToOne: false;
+            referencedRelation: 'jobs';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'applications_candidate_profile_fkey';
+            columns: ['candidate_id'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'applications_resume_id_fkey';
+            columns: ['resume_id'];
+            isOneToOne: false;
+            referencedRelation: 'resumes';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'applications_tailored_resume_id_fkey';
+            columns: ['tailored_resume_id'];
+            isOneToOne: false;
+            referencedRelation: 'tailored_resumes';
+            referencedColumns: ['id'];
+          },
+        ];
       };
 
       consent_records: {
