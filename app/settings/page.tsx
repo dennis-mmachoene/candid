@@ -70,9 +70,9 @@ export default async function SettingsPage() {
             </div>
             <p className="text-muted-foreground border-t pt-4 text-xs leading-relaxed">
               This name comes from your Google account and is read fresh each
-              time you load a page. Candid does not store a second copy of it,
-              and it is not the name taken from your CV — that one stays
-              encrypted until a document is built.
+              time you load a page. Candid does not store a second copy of it.
+              The name printed on a tailored CV is the one taken from your own
+              CV, not this one.
             </p>
           </CardContent>
         </Card>
@@ -112,22 +112,23 @@ export default async function SettingsPage() {
               </CardTitle>
             </div>
             <CardDescription>
-              Your right under section 24 of POPIA, and a button rather than a
-              support request.
+              A button, rather than a support request.
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-5">
             <div className="text-muted-foreground flex flex-col gap-2 text-sm leading-relaxed">
               <p>This removes, immediately and permanently:</p>
               <ul className="list-disc pl-5">
-                <li>Every CV you have uploaded, and its de-identified text</li>
-                <li>Your encrypted name, email and phone number</li>
+                <li>Every CV you have uploaded, and the text taken from it</li>
+                <li>Your profile: your name, contact details and location</li>
                 <li>Every tailored version and every job advert you pasted</li>
-                <li>Your consent record and your account itself</li>
+                <li>Every application you have sent</li>
+                <li>Your account itself</li>
               </ul>
               <p>
-                There is nothing to erase at the AI provider. It never received
-                anything identifying about you.
+                An employer who has already downloaded a CV you sent them keeps
+                that file. Candid cannot reach into their computer, and it would
+                be dishonest to imply otherwise.
               </p>
               <p className="text-foreground font-medium">
                 This cannot be undone. Download anything you want to keep first.

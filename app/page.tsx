@@ -4,17 +4,17 @@ import {
   AlignLeft,
   ArrowRight,
   Ban,
+  Briefcase,
   Check,
   CircleAlert,
-  ClipboardPaste,
-  EyeOff,
   FileCheck2,
-  FileDown,
-  Info,
-  Lock,
+  MapPin,
   ScanSearch,
+  Search,
+  Send,
   ShieldCheck,
   Upload,
+  User,
 } from 'lucide-react';
 
 import { signInWithGoogle } from '@/app/actions/auth';
@@ -30,43 +30,42 @@ import {
 } from '@/components/ui/card';
 import { Container } from '@/components/ui/container';
 import { getVerifiedUser } from '@/lib/dal';
-import { CONSENT_STATEMENTS, OPERATORS } from '@/lib/domain/consent';
 
 const steps = [
   {
     icon: Upload,
     title: 'Upload your CV',
-    body: 'PDF or Word. Your name, email, phone and ID number are stripped out before anything else happens.',
+    body: 'PDF or Word, once. Candid reads it, fills in your profile from it, and lists every skill it can find. That list is what everything after this is checked against.',
   },
   {
-    icon: ClipboardPaste,
-    title: 'Paste the advert',
-    body: 'The whole thing, requirements list included. That list is what your CV gets compared against.',
+    icon: Search,
+    title: 'Find a role',
+    body: 'Browse what employers have posted. Open one and read the requirements, because that list is what your CV gets compared against.',
   },
   {
     icon: ScanSearch,
-    title: 'See what was kept, and what was refused',
-    body: 'Every claim is traced back to your CV. Anything that cannot be traced is blocked, and you are told why.',
+    title: 'Tailor it, and see what was refused',
+    body: 'Every claim in the new version is traced back to your own CV. Anything that cannot be traced is blocked, and you are told which line of the advert it came from.',
   },
   {
-    icon: FileDown,
-    title: 'Download it',
-    body: 'PDF or Word, formatted so an applicant tracking system can actually read it back.',
+    icon: Send,
+    title: 'Apply',
+    body: 'You read the finished document before anyone else does, and press send yourself. The same document downloads as a PDF or a Word file.',
   },
 ];
 
 const promises = [
   {
-    icon: EyeOff,
-    title: 'Your identity never reaches the AI',
-    body: 'Your name, email address and phone number are removed before anything is sent, and reattached afterwards on our server. If your CV carries a South African ID number it is redacted and thrown away.',
-    footnote: 'There is no id_number column in the database. Not an empty one. None.',
-  },
-  {
     icon: FileCheck2,
     title: 'Nothing gets invented',
-    body: 'Every skill, employer and date in the tailored version is checked against your original. Untraceable claims are blocked outright. Fair inferences are shown to you with the evidence, and only go in if you say so.',
-    footnote: 'A blocked claim cannot reach a file, whatever you click.',
+    body: 'Every skill, employer, qualification and date in the tailored version is checked against your original CV. Claims that cannot be traced to it are blocked outright.',
+    footnote: 'A blocked claim cannot reach a file or an employer, whatever you click.',
+  },
+  {
+    icon: CircleAlert,
+    title: 'The close calls are yours',
+    body: 'Where a claim is a fair reading of your experience rather than a quote from it, you are shown the evidence it rests on. It stays off the page until you approve it.',
+    footnote: '"Your call" is a list you tick, never a default.',
   },
   {
     icon: AlignLeft,
@@ -86,12 +85,38 @@ const refusals = [
     body: 'This is what gets an offer withdrawn after a background check. Both are checked against your original CV.',
   },
   {
-    title: 'Send your name to an AI provider',
-    body: 'Not your name, not your email, not your phone number, not your ID number. The model sees experience and nothing else.',
+    title: 'Send an application you have not read',
+    body: 'Nothing reaches an employer until you have seen the finished document and pressed send yourself.',
   },
   {
     title: 'Keep your data when you leave',
     body: 'One button deletes everything you own, and the deletion is immediate.',
+  },
+];
+
+/** What each side of the product actually does, in the order people meet it. */
+const audiences = [
+  {
+    icon: User,
+    title: 'If you are looking for work',
+    description: 'One CV, tailored per role, and a record of where it went.',
+    points: [
+      'Keep one master CV and tailor it for each advert you answer.',
+      'Apply with your CV as it stands, or with a version written for that role.',
+      'Track every application you have sent in one list.',
+      'See what the advert asked for that you cannot yet back up, and where to go and learn it.',
+    ],
+  },
+  {
+    icon: Briefcase,
+    title: 'If you are hiring',
+    description: 'Post a role, and read what comes back.',
+    points: [
+      'Post a role with its requirements, and it appears on the board.',
+      'See everyone who applied, and which of them tailored their CV to your advert.',
+      'Download the exact document the applicant sent you, nothing rewritten afterwards.',
+      'Move an applicant through reviewing, shortlisted and hired.',
+    ],
   },
 ];
 
@@ -160,7 +185,7 @@ export default async function Home({
           <div className="grid items-center justify-center gap-12 lg:grid-cols-[minmax(0,42rem)_minmax(0,30rem)] lg:gap-16">
             <div className="animate-rise flex max-w-2xl flex-col items-start gap-6">
               <Badge variant="brand">
-                <Lock className="size-3" aria-hidden />
+                <MapPin className="size-3" aria-hidden />
                 Built for South African job seekers
               </Badge>
 
@@ -169,14 +194,14 @@ export default async function Home({
                 <span className="text-brand-700 dark:text-brand-300">
                   honest
                 </span>{' '}
-                CV, tailored to the job.
+                CV, for every job you apply to.
               </h1>
 
               <p className="text-fluid-base text-muted-foreground max-w-xl leading-relaxed text-pretty">
-                Applicant tracking systems reject good candidates for bad
-                wording. Candid rewrites what you have actually done in the
-                language the advert uses, and tells you plainly what you are
-                missing.
+                Applicant tracking systems reject good people for bad wording.
+                Candid rewrites what you have actually done in the language the
+                advert uses, shows you every change it made, and sends it to the
+                employer when you say so.
               </p>
 
               {notice ? (
@@ -263,7 +288,8 @@ export default async function Home({
 
                 <p className="text-muted-foreground mt-5 border-t pt-4 text-xs leading-relaxed">
                   Every claim is traced to your original CV. Refused claims can
-                  never reach the downloaded file.
+                  never reach the document you download or the employer you send
+                  it to.
                 </p>
               </div>
             </div>
@@ -323,11 +349,11 @@ export default async function Home({
           <div className="flex max-w-2xl flex-col gap-3">
             <Badge variant="brand">Our promises</Badge>
             <h2 className="text-fluid-2xl font-semibold tracking-tight text-balance">
-              Two guarantees, enforced in code rather than in marketing.
+              Three guarantees, enforced in code rather than in marketing.
             </h2>
             <p className="text-muted-foreground text-fluid-base text-pretty">
-              Both are covered by tests that fail the build if they ever stop
-              being true.
+              All three are covered by tests that fail the build if they ever
+              stop being true.
             </p>
           </div>
 
@@ -411,71 +437,52 @@ export default async function Home({
       </section>
 
       {/* ---------------------------------------------------------------- */}
-      {/* Data handling                                                     */}
+      {/* Both sides of the hire                                            */}
       {/* ---------------------------------------------------------------- */}
       <section className="py-16 sm:py-20">
         <Container>
-          <div className="grid gap-8 lg:grid-cols-2 lg:items-start lg:gap-10">
-            <div className="flex flex-col gap-4">
-              <Badge variant="brand">
-                <ShieldCheck className="size-3" aria-hidden />
-                Your data
-              </Badge>
-              <h2 className="text-fluid-2xl font-semibold tracking-tight text-balance">
-                You will be told exactly who touches your information.
-              </h2>
-              <p className="text-muted-foreground text-pretty leading-relaxed">
-                POPIA requires it, and a privacy claim you cannot check is not
-                worth much. This is the same list you will see before you can
-                use the app.
-              </p>
-              <ul className="mt-2 flex flex-col gap-3">
-                {CONSENT_STATEMENTS.map((statement) => (
-                  <li key={statement} className="flex items-start gap-3">
-                    <span className="border-accepted/30 bg-accepted/10 mt-0.5 grid size-5 shrink-0 place-items-center rounded-full border">
-                      <Info className="text-accepted size-3" aria-hidden />
-                    </span>
-                    <span className="text-muted-foreground text-sm leading-relaxed">
-                      {statement}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
+          <div className="flex max-w-2xl flex-col gap-3">
+            <Badge variant="brand">Who it is for</Badge>
+            <h2 className="text-fluid-2xl font-semibold tracking-tight text-balance">
+              One place for both sides of the hire.
+            </h2>
+            <p className="text-muted-foreground text-fluid-base text-pretty">
+              You choose which side you are on the first time you sign in, and
+              you only ever see that side.
+            </p>
+          </div>
 
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-fluid-lg">
-                  Who processes your information
-                </CardTitle>
-                <CardDescription>
-                  Four companies, and what each one actually receives.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="flex flex-col gap-5">
-                {OPERATORS.map((operator) => (
-                  <div key={operator.name} className="flex flex-col gap-1.5">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-medium">{operator.name}</span>
-                      <Badge
-                        variant={
-                          operator.receivesIdentifyingData
-                            ? 'borderline'
-                            : 'accepted'
-                        }
-                      >
-                        {operator.receivesIdentifyingData
-                          ? 'receives identifying data'
-                          : 'receives no identifying data'}
-                      </Badge>
-                    </div>
-                    <p className="text-muted-foreground text-sm leading-relaxed">
-                      {operator.purpose}
-                    </p>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
+          <div className="mt-10 grid gap-4 sm:gap-5 lg:grid-cols-2">
+            {audiences.map((audience) => (
+              <Card key={audience.title} className="h-full">
+                <CardHeader>
+                  <span className="border-brand-500/25 bg-brand-500/10 mb-2 grid size-11 place-items-center rounded-md border">
+                    <audience.icon
+                      className="text-brand-700 dark:text-brand-300 size-5"
+                      aria-hidden
+                    />
+                  </span>
+                  <CardTitle className="text-fluid-lg">
+                    {audience.title}
+                  </CardTitle>
+                  <CardDescription>{audience.description}</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ul className="flex flex-col gap-3">
+                    {audience.points.map((point) => (
+                      <li key={point} className="flex items-start gap-3">
+                        <span className="border-accepted/30 bg-accepted/10 mt-0.5 grid size-5 shrink-0 place-items-center rounded-full border">
+                          <Check className="text-accepted size-3" aria-hidden />
+                        </span>
+                        <span className="text-muted-foreground text-sm leading-relaxed">
+                          {point}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </CardContent>
+              </Card>
+            ))}
           </div>
         </Container>
       </section>

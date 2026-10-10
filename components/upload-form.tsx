@@ -1,7 +1,7 @@
 'use client';
 
 import { useActionState } from 'react';
-import { CheckCircle2, Loader2, ShieldCheck, TriangleAlert } from 'lucide-react';
+import { CheckCircle2, ListChecks, Loader2, TriangleAlert } from 'lucide-react';
 
 import { uploadCv, type UploadState } from '@/app/actions/upload';
 import { Button } from '@/components/ui/button';
@@ -43,10 +43,10 @@ export function UploadForm() {
         {pending ? (
           <>
             <Loader2 className="animate-spin" aria-hidden />
-            Processing
+            Reading your CV
           </>
         ) : (
-          'Upload and de-identify'
+          'Upload my CV'
         )}
       </Button>
 
@@ -69,12 +69,16 @@ export function UploadForm() {
             <CheckCircle2 className="text-accepted mt-0.5 size-4 shrink-0" aria-hidden />
             {state.message}
           </p>
+          {/*
+            The skill count is the one number worth showing here. It is the
+            inventory every later claim is checked against, so a low count is
+            the earliest warning that the file did not parse properly.
+          */}
           <p className="text-muted-foreground flex items-start gap-2 leading-relaxed">
-            <ShieldCheck className="mt-0.5 size-4 shrink-0" aria-hidden />
-            Your name, email address and phone number were removed and encrypted
-            separately. {state.skillCount} skill
-            {state.skillCount === 1 ? '' : 's'} were recorded from your CV as
-            the list every future claim gets checked against.
+            <ListChecks className="mt-0.5 size-4 shrink-0" aria-hidden />
+            {state.skillCount} skill{state.skillCount === 1 ? '' : 's'} were
+            recorded from it. That list is what every tailored version gets
+            checked against.
           </p>
         </div>
       ) : null}

@@ -40,8 +40,8 @@ export function SiteFooter() {
               </span>
             </div>
             <p className="text-muted-foreground max-w-sm text-sm leading-relaxed">
-              An honest CV, tailored to the job. Built for South African job
-              seekers, and built so that nothing on your CV is anything you
+              An honest CV, for every job you apply to. Built for South African
+              job seekers, and built so that nothing on your CV is anything you
               cannot defend in the interview.
             </p>
           </div>
@@ -67,11 +67,12 @@ export function SiteFooter() {
 
         <div className="mt-10 flex flex-col gap-3 border-t pt-6 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-muted-foreground text-xs">
-            Candid processes personal information under POPIA. Privacy policy
-            version <span className="font-mono">{POLICY_VERSION}</span>.
+            Privacy and terms, version{' '}
+            <span className="font-mono">{POLICY_VERSION}</span>.
           </p>
           <p className="text-muted-foreground text-xs">
-            Your ID number is never stored. There is no column for one.
+            Nothing is ever added to your CV that your CV does not already
+            support.
           </p>
         </div>
       </Container>

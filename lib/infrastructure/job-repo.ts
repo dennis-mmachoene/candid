@@ -414,6 +414,19 @@ export const jobRepository = {
   // Role
   // -------------------------------------------------------------------------
 
+  /**
+   * The caller's role, or null when they have not chosen one yet.
+   *
+   * This is the one read in the whole repository that must not throw. The site
+   * header calls it on every page, so an exception here is a 500 on every
+   * route at once rather than a broken corner of one screen. A sleeping
+   * database or a dropped connection is exactly when that must not happen.
+   *
+   * Null is also what a brand-new account legitimately returns, and the header
+   * already handles null by showing the job seeker's navigation. Degrading to
+   * that is correct: a recruiter seeing the wrong menu for one page load is a
+   * smaller failure than nobody being able to load anything.
+   */
   async getRole(): Promise<UserRole | null> {
     const supabase = await createClient();
     const { data, error } = await supabase
@@ -421,7 +434,11 @@ export const jobRepository = {
       .select('role')
       .maybeSingle();
 
-    if (error) fail('getRole', error);
+    if (error) {
+      console.error('[jobs] getRole failed', error);
+      return null;
+    }
+
     return data?.role ?? null;
   },
 

@@ -115,7 +115,7 @@ export async function SiteHeader() {
                 </Button>
               </div>
 
-              <MobileNav email={user.email} />
+              <MobileNav email={user.email} role={role} />
               <ThemeToggle />
 
               <form action={signOut}>
