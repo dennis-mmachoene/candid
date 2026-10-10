@@ -1,7 +1,8 @@
 import 'server-only';
 
 import { createClient } from './supabase/server';
-import { decryptIdentityHeader, encrypt, encryptIdentityHeader } from './crypto';
+import type { Database } from '@/lib/database.types';
+import { encrypt } from './crypto';
 import {
   persistedDraftSchema,
   persistedReportSchema,
@@ -18,7 +19,7 @@ import type {
   StoredTailoring,
 } from '@/lib/domain/ports';
 import type {
-  IdentityHeader,
+  CvHeader,
   IntegrityReport,
   SkillInventory,
   TailoredDraft,
@@ -74,9 +75,7 @@ export class SupabaseResumeRepository implements ResumeRepository {
   async saveResume(input: {
     content: string;
     format: CvFormat;
-    identity: IdentityHeader;
     originalFilename?: string;
-    redactedIdCount?: number;
   }): Promise<StoredResume> {
     const supabase = await createClient();
 
@@ -85,12 +84,10 @@ export class SupabaseResumeRepository implements ResumeRepository {
       .insert({
         content: input.content,
         format: input.format,
-        identity_header_enc: encryptIdentityHeader(input.identity),
         original_filename:
           input.originalFilename === undefined
             ? null
             : encrypt(input.originalFilename),
-        redacted_id_count: input.redactedIdCount ?? 0,
       })
       .select('id, created_at, content, format, original_filename')
       .single();
@@ -161,27 +158,61 @@ export class SupabaseResumeRepository implements ResumeRepository {
   }
 
   /**
-   * Decrypted server-side, and only when a document is being assembled. This is
-   * the single point at which the withheld identity comes back.
+   * The header printed at the top of an exported CV.
+   *
+   * It lives on the profile rather than on each resume, because an applicant
+   * has one name and one phone number however many CVs they upload. Reading it
+   * here keeps every renderer out of the business of knowing where it came
+   * from.
    */
-  async getIdentity(resumeId: string): Promise<IdentityHeader | null> {
+  async getProfileHeader(): Promise<CvHeader | null> {
     const supabase = await createClient();
     const { data, error } = await supabase
-      .from('resumes')
-      .select('identity_header_enc')
-      .eq('id', resumeId)
+      .from('profiles')
+      .select('full_name, headline, email, phone, location, links')
       .maybeSingle();
 
-    if (error) fail('getIdentity', error);
+    if (error) fail('getProfileHeader', error);
     if (!data) return null;
 
-    try {
-      return decryptIdentityHeader(data.identity_header_enc);
-    } catch (cause) {
-      // Either the key changed or the row was tampered with. Both are bad, and
-      // neither should return a half-decrypted name.
-      fail('getIdentity/decrypt', cause);
-    }
+    return {
+      fullName: data.full_name,
+      headline: data.headline,
+      email: data.email,
+      phone: data.phone,
+      location: data.location,
+      links: data.links ?? [],
+    };
+  }
+
+  /**
+   * Fill in the profile from an uploaded CV, or from the profile form.
+   *
+   * Only the fields that have a value are written. Uploading a second CV whose
+   * header is thinner than the first must not blank out a phone number the
+   * applicant typed in by hand.
+   */
+  async saveProfileHeader(header: CvHeader): Promise<void> {
+    const supabase = await createClient();
+
+    const patch: Database['public']['Tables']['profiles']['Update'] = {};
+    if (header.fullName) patch.full_name = header.fullName;
+    if (header.headline) patch.headline = header.headline;
+    if (header.phone) patch.phone = header.phone;
+    if (header.location) patch.location = header.location;
+    if (header.links.length > 0) patch.links = header.links;
+
+    if (Object.keys(patch).length === 0) return;
+
+    const { data: auth } = await supabase.auth.getUser();
+    if (!auth.user) return;
+
+    const { error } = await supabase
+      .from('profiles')
+      .update(patch)
+      .eq('id', auth.user.id);
+
+    if (error) fail('saveProfileHeader', error);
   }
 
   async listResumes(): Promise<readonly StoredResume[]> {

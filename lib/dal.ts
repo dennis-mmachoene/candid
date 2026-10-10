@@ -140,22 +140,6 @@ export const getConsentStatus = cache(
 );
 
 /**
- * The consent gate. A user who has not accepted the current policy version
- * cannot reach anything that processes their CV.
- *
- * Re-consent is required when the policy version changes, not merely when
- * consent is absent. If the operator list changes — say an AI provider starts
- * receiving something it did not before — old consent stops counting, which is
- * the entire reason the version is recorded.
- */
-export async function requireConsentedUser(): Promise<VerifiedUser> {
-  const user = await requireUser();
-  const { consented } = await getConsentStatus();
-  if (!consented) redirect('/consent');
-  return user;
-}
-
-/**
  * Re-verify immediately before a destructive action. The session may have been
  * revoked since the page was rendered, and account deletion is not something to
  * run on a stale assumption.

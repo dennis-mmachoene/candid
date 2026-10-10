@@ -12,7 +12,7 @@ import {
 
 import { toPrintableText } from './text';
 import type { TemplateSpec } from '@/lib/domain/resume-document';
-import type { IdentityHeader, ResumeDocument } from '@/lib/domain/types';
+import type { CvHeader, ResumeDocument } from '@/lib/domain/types';
 
 /**
  * DOCX export.
@@ -57,7 +57,7 @@ function fontName(template: TemplateSpec): string {
   }
 }
 
-function contactLine(identity: IdentityHeader): string {
+function contactLine(identity: CvHeader): string {
   // Location and profile links belong here. They were being discarded with the
   // rest of the header, and a South African advert filters on location first.
   return [identity.email, identity.phone, identity.location, ...identity.links]

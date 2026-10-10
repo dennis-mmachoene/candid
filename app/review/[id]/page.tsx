@@ -1,8 +1,9 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { ArrowLeft, BookOpen, ExternalLink, EyeOff, FileText } from 'lucide-react';
+import { ArrowLeft, BookOpen, ExternalLink, FileText } from 'lucide-react';
 
 import { ExportPanel } from '@/components/export-panel';
+import { SubmitApplication } from '@/components/submit-application';
 import { IntegrityReport } from '@/components/integrity-report';
 import { Badge } from '@/components/ui/badge';
 import { Container } from '@/components/ui/container';
@@ -13,9 +14,10 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { requireConsentedUser } from '@/lib/dal';
+import { requireUser } from '@/lib/dal';
 import { resourcesForGap } from '@/lib/domain/learning';
 import { assembleResumeDocument } from '@/lib/domain/resume-document';
+import { jobRepository } from '@/lib/infrastructure/job-repo';
 import { resumeRepository } from '@/lib/infrastructure/supabase-repo';
 import { createClient } from '@/lib/infrastructure/supabase/server';
 import type { IntegrityReport as Report } from '@/lib/domain/types';
@@ -35,11 +37,15 @@ export const metadata = { title: 'Review' };
  */
 export default async function ReviewPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ job?: string }>;
 }) {
   const { id } = await params;
-  const user = await requireConsentedUser();
+  const { job: jobId } = await searchParams;
+  // The gate. The greeting that used to need the name is now a plain summary.
+  await requireUser();
 
   const tailoring = await resumeRepository.getTailoring(id);
   if (!tailoring) notFound();
@@ -60,30 +66,23 @@ export default async function ReviewPage({
   // sections too and what is on screen matches what downloads.
   const resume = await resumeRepository.getResume(tailoring.resumeId);
 
-  /*
-   * Only the links, and only for the preview.
-   *
-   * De-identification replaces every web address in the CV body with a
-   * numbered marker, and the export puts them back. The preview was passing an
-   * empty list, so the applicant read "GitHub: [LINK 1]" on screen and got the
-   * real address in the downloaded file. The two are meant not to drift apart,
-   * and that is drift.
-   *
-   * The name, email address, phone number and location stay withheld here.
-   * That is FR-09, and it is why this is a field-by-field copy rather than the
-   * whole header.
-   */
-  const withheld = await resumeRepository.getIdentity(tailoring.resumeId);
+  // Present only when the applicant arrived here from a job. Reviewing an old
+  // tailoring from the history page has nothing to send.
+  const job = jobId ? await jobRepository.getJob(jobId) : null;
+
+  // The header the preview prints. Nothing is withheld from the applicant
+  // about their own CV any more, so what is on screen is what downloads.
+  const header = await resumeRepository.getProfileHeader();
 
   const { document, omissions } = assembleResumeDocument({
-    identity: {
-        fullName: null,
-        email: null,
-        phone: null,
-        location: null,
-        links: withheld?.links ?? [],
-        otherLines: [],
-      },
+    identity: header ?? {
+      fullName: null,
+      headline: null,
+      email: null,
+      phone: null,
+      location: null,
+      links: [],
+    },
     draft: tailoring.draft,
     report,
     approved,
@@ -94,34 +93,52 @@ export default async function ReviewPage({
     <main className="py-10 sm:py-14">
       <Container width="prose">
       <Link
-        href="/dashboard"
+        href={jobId ? `/jobs/${jobId}` : '/dashboard'}
         className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 text-sm transition-colors"
       >
         <ArrowLeft className="size-4" aria-hidden />
-        Back to your CVs
+        {jobId ? 'Back to the role' : 'Back to your CVs'}
       </Link>
 
       <header className="animate-rise mt-6 flex flex-col gap-2">
-        <Badge variant="brand">Step 3 of 3</Badge>
         <h1 className="text-fluid-2xl font-semibold tracking-tight text-balance">
-          {user.firstName}, here is what Candid kept and what it refused
+          {job ? `Your CV, rewritten for ${job.title}` : 'Your tailored CV'}
         </h1>
-        <p className="text-muted-foreground text-pretty">
-          Every claim in the draft was checked against your original CV.
+        {/*
+          One sentence, in numbers a person can hold in their head.
+          
+          The counters and the chips are still below for anyone who wants them,
+          but the page used to open with three statistics and a wall of
+          coloured labels, and most people only need to know whether anything
+          needs them.
+        */}
+        <p className="text-pretty">
+          {report.accepted.length} things from your CV were kept.{' '}
+          {report.blocked.length > 0
+            ? `${report.blocked.length} the advert asked for were left out, because your CV does not show them. `
+            : 'Nothing had to be left out. '}
+          {report.borderline.length > 0
+            ? `${report.borderline.length} need${report.borderline.length === 1 ? 's' : ''} your decision.`
+            : 'Nothing needs your decision.'}
+        </p>
+        <p className="text-muted-foreground text-sm text-pretty">
+          Nothing was added that your CV does not back up. That is checked, not
+          promised.
         </p>
       </header>
 
-      <Card className="border-brand-500/25 bg-brand-500/5 mt-8">
-        <CardContent className="flex items-start gap-3 pt-6">
-          <span className="border-brand-500/25 bg-brand-500/10 grid size-9 shrink-0 place-items-center rounded-lg border">
-            <EyeOff className="text-brand-600 dark:text-brand-300 size-4" aria-hidden />
-          </span>
-          <p className="text-sm leading-relaxed">
-            Your name, email address and phone number were never sent. The model
-            saw only your experience, skills and education.
-          </p>
-        </CardContent>
-      </Card>
+      {job ? (
+        <Card className="border-brand-500/25 bg-brand-500/5 mt-8">
+          <CardContent className="pt-6">
+            <SubmitApplication
+              jobId={job.id}
+              jobTitle={job.companyName}
+              tailoringId={tailoring.id}
+              blocked={report.accepted.length === 0}
+            />
+          </CardContent>
+        </Card>
+      ) : null}
 
       <div className="mt-8">
         <IntegrityReport

@@ -1,4 +1,4 @@
-import { FileText, ShieldCheck, TriangleAlert, User } from 'lucide-react';
+import { FileText, TriangleAlert, User } from 'lucide-react';
 
 import {
   DeleteAccountForm,
@@ -13,15 +13,13 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { getConsentStatus, requireConsentedUser } from '@/lib/dal';
-import { OPERATORS, POLICY_VERSION } from '@/lib/domain/consent';
+import { requireUser } from '@/lib/dal';
 import { createClient } from '@/lib/infrastructure/supabase/server';
 
 export const metadata = { title: 'Settings' };
 
 export default async function SettingsPage() {
-  const user = await requireConsentedUser();
-  const { version } = await getConsentStatus();
+  const user = await requireUser();
 
   const supabase = await createClient();
   const { data: profile } = await supabase
@@ -99,46 +97,6 @@ export default async function SettingsPage() {
             <TemplatePreferenceForm
               current={profile?.default_template ?? 'modern'}
             />
-          </CardContent>
-        </Card>
-
-        {/* --- Consent --------------------------------------------------- */}
-        <Card>
-          <CardHeader>
-            <div className="flex items-center gap-2.5">
-              <span className="border-accepted/30 bg-accepted/10 grid size-9 place-items-center rounded-lg border">
-                <ShieldCheck className="text-accepted size-4" aria-hidden />
-              </span>
-              <CardTitle asChild className="text-fluid-lg">
-                <h2>Your consent</h2>
-              </CardTitle>
-            </div>
-            <CardDescription>
-              You accepted policy version{' '}
-              <span className="font-mono text-xs">
-                {version ?? POLICY_VERSION}
-              </span>
-              . If this changes, you will be asked again.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-3">
-            {OPERATORS.map((operator) => (
-              <div
-                key={operator.name}
-                className="flex flex-wrap items-center justify-between gap-2 text-sm"
-              >
-                <span className="font-medium">{operator.name}</span>
-                <Badge
-                  variant={
-                    operator.receivesIdentifyingData ? 'borderline' : 'accepted'
-                  }
-                >
-                  {operator.receivesIdentifyingData
-                    ? 'receives identifying data'
-                    : 'receives no identifying data'}
-                </Badge>
-              </div>
-            ))}
           </CardContent>
         </Card>
 

@@ -136,7 +136,7 @@ export class RecordingProvider implements AIProvider {
   /** Everything this provider was ever given, as one string. */
   get everythingReceived(): string {
     return this.requests
-      .map((r) => `${r.deidentifiedCv}\n${r.jobAdvert}`)
+      .map((r) => `${r.cv}\n${r.jobAdvert}`)
       .join('\n');
   }
 }

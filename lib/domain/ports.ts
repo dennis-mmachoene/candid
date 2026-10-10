@@ -8,7 +8,7 @@
  */
 
 import type {
-  IdentityHeader,
+  CvHeader,
   IntegrityReport,
   SkillGap,
   TailoredDraft,
@@ -19,16 +19,13 @@ import type {
 // ---------------------------------------------------------------------------
 
 /**
- * What we hand to a model. Note what is absent: there is no field for a name,
- * an email, a phone number or an ID number. The port makes leaking identity a
- * type error rather than an oversight.
+ * What we hand to a model: the applicant's CV and the advert, and nothing
+ * else. No instructions to follow, no prior draft to extend, no list of
+ * skills to aim for. The model rephrases what is already there.
  */
 export interface TailorRequest {
-  /**
-   * De-identified CV content only — the output of `deidentify()`. Callers must
-   * not pass raw parsed text.
-   */
-  deidentifiedCv: string;
+  /** The applicant's CV, as uploaded. */
+  cv: string;
   /**
    * The pasted job advert. Untrusted user input: the adapter must delimit it
    * and instruct the model to treat it as reference data, never as
@@ -55,7 +52,7 @@ export type CvFormat = 'pdf' | 'docx';
 
 export interface ParsedCv {
   format: CvFormat;
-  /** Raw extracted text. Still fully identifying — de-identify before use. */
+  /** The extracted text of the uploaded CV. */
   text: string;
 }
 
@@ -110,13 +107,14 @@ export interface ResumeRepository {
   saveResume(input: {
     content: string;
     format: CvFormat;
-    identity: IdentityHeader;
+    identity: CvHeader;
   }): Promise<StoredResume>;
 
   getResume(id: string): Promise<StoredResume | null>;
 
   /** Decrypted server-side, for reattachment at export time only. */
-  getIdentity(resumeId: string): Promise<IdentityHeader | null>;
+  getProfileHeader(): Promise<CvHeader | null>;
+  saveProfileHeader(header: CvHeader): Promise<void>;
 
   listResumes(): Promise<readonly StoredResume[]>;
 
