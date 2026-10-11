@@ -7,6 +7,7 @@ import {
   Send,
   Settings,
   ShieldCheck,
+  User,
 } from 'lucide-react';
 
 import { signOut } from '@/app/actions/auth';
@@ -26,16 +27,42 @@ import { jobRepository } from '@/lib/infrastructure/job-repo';
  * A solid, opaque bar over a single hairline: no frosted glass, no blur over a
  * coloured blob. It stays out of the way, which is the job of chrome.
  *
- * Signed in, it carries five things. That fits from `sm` upward; below it, the
- * navigation collapses into `MobileNav` and only the theme toggle and sign out
- * stay visible.
+ * Below `sm` the navigation collapses into `MobileNav` and only the theme
+ * toggle and sign out stay visible.
  */
+
+/**
+ * The links, by side of the hire.
+ *
+ * A list rather than six copies of the same markup. There are now enough of
+ * them that an inline version was six near-identical blocks, which is how one
+ * of them quietly ends up with a different size or a missing label.
+ */
+const CANDIDATE_LINKS = [
+  { href: '/jobs', label: 'Jobs', icon: Search },
+  { href: '/applications', label: 'Applications', icon: Send },
+  { href: '/dashboard', label: 'My CV', icon: FileText },
+  { href: '/profile', label: 'Profile', icon: User },
+];
+
+const RECRUITER_LINKS = [{ href: '/hiring', label: 'Hiring', icon: Briefcase }];
+
+const SHARED_LINKS = [
+  { href: '/history', label: 'History', icon: History },
+  { href: '/settings', label: 'Settings', icon: Settings },
+];
+
 export async function SiteHeader() {
   const user = await getVerifiedUser();
 
   // Only asked for when somebody is signed in. A signed-out visitor has no
   // role and no reason for a query.
   const role = user ? await jobRepository.getRole() : null;
+
+  const links = [
+    ...(role === 'recruiter' ? RECRUITER_LINKS : CANDIDATE_LINKS),
+    ...SHARED_LINKS,
+  ];
 
   return (
     <header className="bg-background sticky top-0 z-50 w-full border-b">
@@ -59,7 +86,7 @@ export async function SiteHeader() {
           {user ? (
             <>
               {/* Greeting only where there is room for it. */}
-              <span className="text-muted-foreground hidden truncate text-sm lg:inline">
+              <span className="text-muted-foreground hidden truncate text-sm 2xl:inline">
                 Hi, {user.firstName}
               </span>
 
@@ -70,49 +97,26 @@ export async function SiteHeader() {
                 for "My applications". Showing both and letting the database
                 refuse one of them is how an interface teaches people that half
                 of it is not for them.
+
+                Labels appear from `xl`, not `md`. Six labelled buttons plus a
+                greeting, the logo, the theme toggle and sign out overflow a
+                1024px bar, and this row does not wrap: it would push sign out
+                off the edge rather than onto a second line.
+
+                `aria-label` on every link, because between `sm` and `xl` the
+                label span is hidden and the link is an icon with no text in
+                it. Without this, a screen reader reaches six links in a row
+                and announces each of them as nothing at all.
               */}
               <div className="hidden items-center gap-1 sm:flex">
-                {role === 'recruiter' ? (
-                  <Button variant="ghost" size="sm" asChild>
-                    <Link href="/hiring">
-                      <Briefcase className="size-4" aria-hidden />
-                      <span className="hidden md:inline">Hiring</span>
+                {links.map((link) => (
+                  <Button key={link.href} variant="ghost" size="sm" asChild>
+                    <Link href={link.href} aria-label={link.label}>
+                      <link.icon className="size-4" aria-hidden />
+                      <span className="hidden xl:inline">{link.label}</span>
                     </Link>
                   </Button>
-                ) : (
-                  <>
-                    <Button variant="ghost" size="sm" asChild>
-                      <Link href="/jobs">
-                        <Search className="size-4" aria-hidden />
-                        <span className="hidden md:inline">Jobs</span>
-                      </Link>
-                    </Button>
-                    <Button variant="ghost" size="sm" asChild>
-                      <Link href="/applications">
-                        <Send className="size-4" aria-hidden />
-                        <span className="hidden md:inline">Applications</span>
-                      </Link>
-                    </Button>
-                    <Button variant="ghost" size="sm" asChild>
-                      <Link href="/dashboard">
-                        <FileText className="size-4" aria-hidden />
-                        <span className="hidden md:inline">My CV</span>
-                      </Link>
-                    </Button>
-                  </>
-                )}
-                <Button variant="ghost" size="sm" asChild>
-                  <Link href="/history">
-                    <History className="size-4" aria-hidden />
-                    <span className="hidden md:inline">History</span>
-                  </Link>
-                </Button>
-                <Button variant="ghost" size="sm" asChild>
-                  <Link href="/settings">
-                    <Settings className="size-4" aria-hidden />
-                    <span className="hidden md:inline">Settings</span>
-                  </Link>
-                </Button>
+                ))}
               </div>
 
               <MobileNav email={user.email} role={role} />

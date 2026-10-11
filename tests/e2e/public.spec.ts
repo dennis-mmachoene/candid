@@ -113,6 +113,7 @@ test.describe('the gate', () => {
     '/applications',
     '/hiring',
     '/onboarding',
+    '/profile',
   ]) {
     test(`sends a signed-out visitor away from ${path}`, async ({ page }) => {
       await page.goto(path);

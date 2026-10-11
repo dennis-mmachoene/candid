@@ -186,11 +186,14 @@ export class SupabaseResumeRepository implements ResumeRepository {
   }
 
   /**
-   * Fill in the profile from an uploaded CV, or from the profile form.
+   * Fill in the profile from an uploaded CV.
    *
    * Only the fields that have a value are written. Uploading a second CV whose
    * header is thinner than the first must not blank out a phone number the
    * applicant typed in by hand.
+   *
+   * This is the gap-filling half of a pair. `replaceProfileHeader` below is
+   * the other half, and the profile form uses that one.
    */
   async saveProfileHeader(header: CvHeader): Promise<void> {
     const supabase = await createClient();
@@ -213,6 +216,44 @@ export class SupabaseResumeRepository implements ResumeRepository {
       .eq('id', auth.user.id);
 
     if (error) fail('saveProfileHeader', error);
+  }
+
+  /**
+   * Write the profile exactly as given, blanks included.
+   *
+   * The difference from `saveProfileHeader` is the whole reason this exists.
+   * That one fills gaps, because it runs after an upload and a second CV with
+   * a thinner header must not wipe out something typed by hand. This one runs
+   * from the profile form, where an empty field is a statement rather than an
+   * absence: if the parser read a line of an address as a headline and the
+   * person deletes it, the deletion has to stick.
+   *
+   * `email` is deliberately not written. It comes from the account and is what
+   * the person signed in with, so a form offering to change it would be
+   * offering to break their own sign-in.
+   *
+   * Not added to the `ResumeRepository` port. The port describes what the
+   * domain needs, and the domain has no opinion about editing a profile: this
+   * is the interface writing to storage, so the page talks to the adapter.
+   */
+  async replaceProfileHeader(header: CvHeader): Promise<void> {
+    const supabase = await createClient();
+
+    const { data: auth } = await supabase.auth.getUser();
+    if (!auth.user) return;
+
+    const { error } = await supabase
+      .from('profiles')
+      .update({
+        full_name: header.fullName,
+        headline: header.headline ?? null,
+        phone: header.phone,
+        location: header.location,
+        links: header.links,
+      })
+      .eq('id', auth.user.id);
+
+    if (error) fail('replaceProfileHeader', error);
   }
 
   async listResumes(): Promise<readonly StoredResume[]> {
