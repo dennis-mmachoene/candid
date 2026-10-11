@@ -49,7 +49,15 @@ export interface Database {
           created_at: string;
           updated_at: string;
           default_template: string;
-          role: UserRole;
+          /**
+           * Null until the account answers "which side are you on".
+           *
+           * Migration 0008 dropped the default and the not-null that 0005
+           * shipped with. Without a null state there was no way to tell a new
+           * account apart from one that had chosen to look for work, so the
+           * onboarding screen had nothing to trigger on and was unreachable.
+           */
+          role: UserRole | null;
           full_name: string | null;
           headline: string | null;
           phone: string | null;
@@ -62,7 +70,7 @@ export interface Database {
           created_at?: string;
           updated_at?: string;
           default_template?: string;
-          role?: UserRole;
+          role?: UserRole | null;
           full_name?: string | null;
           headline?: string | null;
           phone?: string | null;
@@ -73,7 +81,7 @@ export interface Database {
           email?: string;
           updated_at?: string;
           default_template?: string;
-          role?: UserRole;
+          role?: UserRole | null;
           full_name?: string | null;
           headline?: string | null;
           phone?: string | null;

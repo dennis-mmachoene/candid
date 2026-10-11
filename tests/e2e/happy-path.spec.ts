@@ -1,11 +1,12 @@
 import { Document, Packer, Paragraph } from 'docx';
 import { expect, test } from '@playwright/test';
 
+import { chooseSide } from './onboarding';
 import { deleteTestUser, readE2ECredentials, signIn } from './sign-in';
 
 /**
- * The happy path — §13's definition of done, end to end:
- * sign in, accept consent, upload a real CV, tailor it, approve, download.
+ * The happy path, end to end: sign in, answer which side you are on, upload a
+ * real CV, tailor it, approve, download.
  *
  * It skips rather than fails when unconfigured, because a suite that goes red
  * on a laptop without secrets teaches people to ignore red suites.
@@ -35,42 +36,67 @@ test.describe('the happy path', () => {
     if (credentials) await deleteTestUser(credentials);
   });
 
-  test('a new account meets the consent gate before the dashboard', async ({
-    page,
-  }) => {
+  test('a new account is asked which side it is on', async ({ page }) => {
     await signIn(page, credentials!);
 
-    // The gate, doing its job. A brand-new account must not reach the
-    // dashboard without accepting.
-    await expect(page).toHaveURL(/\/consent/);
+    // A brand-new account must not reach the dashboard without answering.
+    await expect(page).toHaveURL(/\/onboarding/);
     await expect(
-      page.getByRole('heading', { name: /how candid handles your information/i }),
+      page.getByRole('heading', { name: /which side are you on/i }),
     ).toBeVisible();
 
-    // The claim the whole product rests on, in writing, before anything runs.
-    await expect(page.getByText('Anthropic (Claude)')).toBeVisible();
+    // Both answers are offered, and neither is hidden behind a dropdown.
     await expect(
-      page.getByText(/receives no identifying data/i).first(),
+      page.getByRole('button', { name: /i am looking for work/i }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole('button', { name: /i am hiring/i }),
     ).toBeVisible();
   });
 
-  test('the dashboard is unreachable until consent is given', async ({
+  test('the dashboard is unreachable until the question is answered', async ({
     page,
   }) => {
     await signIn(page, credentials!);
     await page.goto('/dashboard');
-    await expect(page).toHaveURL(/\/consent/);
+    await expect(page).toHaveURL(/\/onboarding/);
   });
 
-  test('accepting consent opens the dashboard', async ({ page }) => {
+  test('answering opens the application', async ({ page }) => {
     await signIn(page, credentials!);
-    await page.getByRole('button', { name: /i understand and agree/i }).click();
+    await chooseSide(page, 'candidate');
 
-    await expect(page).toHaveURL(/\/dashboard/);
+    await page.goto('/dashboard');
     await expect(page.getByRole('heading', { name: /welcome/i })).toBeVisible();
   });
 
-  test('uploading a CV de-identifies it', async ({ page }) => {
+  test('onboarding shows the current answer rather than flipping it', async ({
+    page,
+  }) => {
+    await signIn(page, credentials!);
+    await page.goto('/onboarding');
+
+    /*
+     * No redirect, on purpose. The first version of this sent an answered
+     * account to the dashboard, and the dashboard sends an unanswered one
+     * here: two pages each redirecting to the other loop the moment
+     * `getRole()` returns two different answers in a row, and it returns null
+     * on a failed query.
+     *
+     * What stops the screen being a silent flip is these two assertions. The
+     * side the account is already on is selected, and the button says what
+     * pressing it would do.
+     */
+    await expect(page).toHaveURL(/\/onboarding/);
+    await expect(
+      page.getByRole('button', { name: /i am looking for work/i }),
+    ).toHaveAttribute('aria-pressed', 'true');
+    await expect(
+      page.getByRole('button', { name: /switch sides/i }),
+    ).toBeVisible();
+  });
+
+  test('uploading a CV stores it as it stands', async ({ page }) => {
     await signIn(page, credentials!);
     await page.goto('/dashboard');
 
@@ -81,31 +107,35 @@ test.describe('the happy path', () => {
         'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
       buffer,
     });
-    await page.getByRole('button', { name: /upload and de-identify/i }).click();
+    await page.getByRole('button', { name: /upload my cv/i }).click();
 
-    // The ID number in the fixture is valid, so it must be reported redacted.
-    await expect(page.getByText(/1 ID number was redacted/i)).toBeVisible({
+    await expect(page.getByText(/CV saved/i)).toBeVisible({
       timeout: 30_000,
     });
 
     /*
-     * And the stored preview must carry none of the identifiers.
+     * The stored preview must carry the CV as it was written.
      *
-     * Located by test id rather than by tag. This assertion is about what the
-     * preview *contains*, and it broke once already because the preview
-     * stopped being a <pre> — a styling decision silently disabled a check on
-     * de-identification. The hook now survives the next restyle.
+     * This assertion is the inverse of the one it replaces, and the inversion
+     * is the point. The old build stripped the name, email, phone and any ID
+     * number before storing anything, and this test proved they were gone.
+     * That de-identification is gone, so the test now proves the opposite: the
+     * document survives intact, because a CV with the contact details removed
+     * is not a CV anyone can send to an employer.
+     *
+     * Located by test id rather than by tag. It broke once already because the
+     * preview stopped being a <pre>, so a styling decision silently disabled a
+     * check. The hook survives the next restyle.
      */
     const preview = page.getByTestId('cv-preview').first();
     await expect(preview).toBeVisible();
     const text = (await preview.textContent()) ?? '';
 
-    expect(text).not.toContain('Thabo');
-    expect(text).not.toContain('Mokoena');
-    expect(text).not.toContain('thabo.mokoena@example.co.za');
-    expect(text).not.toContain('8001015009087');
-    // The substance survived.
-    expect(text).toContain('Java');
+    expect(text).toContain('Thabo');
+    expect(text).toContain('thabo.mokoena@example.co.za');
+
+    // And the preview is the opening of the document, not a summary of it.
+    expect(text).toContain('Backend developer');
   });
 
   test('signed-in pages are not indexable', async ({ page }) => {
@@ -159,8 +189,8 @@ test.describe('tailoring and export', () => {
     test.setTimeout(120_000);
 
     await signIn(page, credentials!);
-    await page.getByRole('button', { name: /i understand and agree/i }).click();
-    await expect(page).toHaveURL(/\/dashboard/);
+    await chooseSide(page, 'candidate');
+    await page.goto('/dashboard');
 
     await page.setInputFiles('#cv', {
       name: 'cv.docx',
@@ -168,8 +198,8 @@ test.describe('tailoring and export', () => {
         'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
       buffer: await buildCv(),
     });
-    await page.getByRole('button', { name: /upload and de-identify/i }).click();
-    await expect(page.getByText(/CV processed/i)).toBeVisible({
+    await page.getByRole('button', { name: /upload my cv/i }).click();
+    await expect(page.getByText(/CV saved/i)).toBeVisible({
       timeout: 30_000,
     });
 
@@ -179,29 +209,25 @@ test.describe('tailoring and export', () => {
      *
      * The suite starts `npm run dev`, which compiles a route the first time
      * something asks for it. `/tailor/[resumeId]` is the only route in the
-     * application that no earlier spec visits — /, /dashboard, /privacy,
-     * /review, /settings and /goodbye are all warm by the time we reach here.
-     * So this click pays the full cold compile, the URL stays on /dashboard
-     * while that happens, and the default five seconds is not always enough.
+     * application that no earlier spec visits, so this click pays the full
+     * cold compile, the URL stays on /dashboard while that happens, and the
+     * default five seconds is not always enough.
      *
      * The failure looks alarming because the reported URL is the page we just
      * left, which reads as "the click did nothing". The click worked.
-     *
-     * The two navigations below and above already carry explicit timeouts for
-     * the same reason. This one was simply fast enough until it was not.
      */
     const tailorLink = page.getByRole('link', {
-      name: /tailor to a job advert/i,
+      name: /tailor to an advert/i,
     });
 
     /*
      * The link needs the same 30 seconds the upload assertion above it uses,
      * and for a reason worth separating from the compile cost below.
      *
-     * "CV processed" is the Server Action reporting back. The card carrying
-     * this link comes from the dashboard revalidating, which is a second round
-     * trip that finishes later. Waiting for the message and then expecting the
-     * card immediately is expecting the wrong thing to have happened.
+     * "CV saved" is the Server Action reporting back. The card carrying this
+     * link comes from the dashboard revalidating, which is a second round trip
+     * that finishes later. Waiting for the message and then expecting the card
+     * immediately is expecting the wrong thing to have happened.
      */
     await expect(tailorLink).toBeVisible({ timeout: 30_000 });
     await tailorLink.click();
@@ -213,12 +239,8 @@ test.describe('tailoring and export', () => {
 
     await expect(page).toHaveURL(/\/review\//, { timeout: 90_000 });
 
-    // The three verdict sections must all be present.
-    //
-    // Scoped to level 2 because the page heading also contains the word
-    // "refused" — "here is what Candid kept and what it refused". An
-    // unscoped match found both and failed, which is the selector being
-    // sloppy rather than the page being wrong.
+    // The three verdict sections must all be present, each one scoped to
+    // level 2 because the page heading also carries some of these words.
     for (const section of [/traced to your CV/i, /your call/i, /refused/i]) {
       await expect(
         page.getByRole('heading', { level: 2, name: section }),
@@ -256,7 +278,15 @@ test.describe('tailoring and export', () => {
 // Fixtures
 // ---------------------------------------------------------------------------
 
-/** A real .docx, built at test time. The ID number is valid and synthetic. */
+/**
+ * A real .docx, built at test time.
+ *
+ * The ID number is valid and synthetic. It used to be here to prove redaction
+ * caught it. It stays because a CV that carries one is realistic, and because
+ * the privacy page makes a specific claim about it: Candid has no field for an
+ * ID number, and one in your CV text is stored and deleted with the rest of
+ * the document. That is what this fixture now exercises.
+ */
 async function buildCv(): Promise<Buffer> {
   const lines = [
     'Thabo Mokoena',
