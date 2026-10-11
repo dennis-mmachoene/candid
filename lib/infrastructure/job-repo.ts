@@ -171,6 +171,109 @@ export const jobRepository = {
   },
 
   // -------------------------------------------------------------------------
+  // The shortlist
+  // -------------------------------------------------------------------------
+
+  /**
+   * Which of the caller's saved jobs to mark on the board.
+   *
+   * A set of ids rather than the jobs themselves, because the board already
+   * has the jobs. Asking for the full rows again to find out which ones carry
+   * a filled bookmark would be a second copy of the same data.
+   *
+   * No user filter, here or anywhere below. The three policies on saved_jobs
+   * all key on `auth.uid()`, so the caller cannot see or touch another
+   * person's shortlist whatever this file asks for.
+   */
+  async savedJobIds(): Promise<ReadonlySet<string>> {
+    const supabase = await createClient();
+    const { data, error } = await supabase.from('saved_jobs').select('job_id');
+
+    if (error) fail('savedJobIds', error);
+    return new Set((data ?? []).map((row) => row.job_id));
+  },
+
+  /**
+   * The shortlist itself, most recently saved first.
+   *
+   * Ordered by when it was saved rather than when it was posted, because a
+   * shortlist is a record of the person's own decisions and the order they
+   * made them in is the order they remember.
+   *
+   * Closed roles are deliberately not filtered out. A job the employer has
+   * since closed still belongs on a shortlist the person built, and the card
+   * carries a Closed badge. Silently dropping it would look like the save
+   * never worked.
+   */
+  async listSavedJobs(): Promise<readonly JobSummary[]> {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from('saved_jobs')
+      .select(
+        'job_id, created_at, jobs(id, title, location, package_min, package_max, is_open, created_at, companies(name, logo_url))',
+      )
+      .order('created_at', { ascending: false })
+      .limit(60);
+
+    if (error) fail('listSavedJobs', error);
+
+    return (data ?? []).flatMap((row) => {
+      const job = one(row.jobs);
+      // A row whose job has been deleted cannot happen: the foreign key
+      // cascades. flatMap rather than map because the embed is typed as
+      // nullable regardless, and inventing a placeholder job would be worse
+      // than omitting one.
+      if (!job) return [];
+
+      const company = one(job.companies);
+      return [
+        {
+          id: job.id,
+          title: job.title,
+          location: job.location,
+          companyName: company?.name ?? 'Unknown company',
+          companyLogo: company?.logo_url ?? null,
+          packageMin: job.package_min,
+          packageMax: job.package_max,
+          isOpen: job.is_open,
+          createdAt: new Date(job.created_at),
+        },
+      ];
+    });
+  },
+
+  /**
+   * Save or unsave a job.
+   *
+   * `user_id` is never sent. The column defaults to `auth.uid()` and the
+   * insert policy checks it, so a request that tried to save a job onto
+   * somebody else's shortlist would be refused by the database rather than
+   * trusted by this function.
+   *
+   * A duplicate save is treated as success. The table's unique constraint on
+   * (user_id, job_id) is what makes saving twice a no-op, and 23505 is
+   * Postgres saying the row the caller wanted is already there. Surfacing that
+   * as an error would mean a double click reads as a failure.
+   */
+  async setSaved(jobId: string, saved: boolean): Promise<void> {
+    const supabase = await createClient();
+
+    if (!saved) {
+      const { error } = await supabase
+        .from('saved_jobs')
+        .delete()
+        .eq('job_id', jobId);
+
+      if (error) fail('unsaveJob', error);
+      return;
+    }
+
+    const { error } = await supabase.from('saved_jobs').insert({ job_id: jobId });
+
+    if (error && error.code !== '23505') fail('saveJob', error);
+  },
+
+  // -------------------------------------------------------------------------
   // Applying
   // -------------------------------------------------------------------------
 
