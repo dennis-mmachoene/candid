@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { ArrowLeft, Briefcase, CheckCircle2, MapPin } from 'lucide-react';
 
 import { ApplyPanel } from '@/components/apply-panel';
+import { SaveJobButton } from '@/components/save-job-button';
 import { Badge } from '@/components/ui/badge';
 import { Container } from '@/components/ui/container';
 import {
@@ -47,9 +48,10 @@ export default async function JobPage({
   const job = await jobRepository.getJob(id);
   if (!job) notFound();
 
-  const [existing, resumes] = await Promise.all([
+  const [existing, resumes, savedIds] = await Promise.all([
     jobRepository.existingApplication(job.id),
     resumeRepository.listResumes(),
+    jobRepository.savedJobIds(),
   ]);
 
   const pay = describePackage(job.packageMin, job.packageMax);
@@ -66,9 +68,20 @@ export default async function JobPage({
         </Link>
 
         <header className="animate-rise mt-4 flex flex-col gap-3">
-          <h1 className="text-fluid-2xl font-semibold tracking-tight">
-            {job.title}
-          </h1>
+          {/*
+            Save sits beside the title rather than next to Apply.
+
+            Saving and applying are opposite decisions. One is "not now", the
+            other is irreversible, and putting them side by side invites the
+            wrong click. This one belongs with the role's name, which is what
+            the person is deciding about.
+          */}
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <h1 className="text-fluid-2xl font-semibold tracking-tight">
+              {job.title}
+            </h1>
+            <SaveJobButton jobId={job.id} saved={savedIds.has(job.id)} withLabel />
+          </div>
           <p className="text-muted-foreground flex flex-wrap items-center gap-x-4 gap-y-1">
             <span className="inline-flex items-center gap-1.5">
               <Briefcase className="size-4" aria-hidden />
