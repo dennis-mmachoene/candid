@@ -11,6 +11,7 @@ import {
   Search,
   Send,
   Settings,
+  User,
   X,
 } from 'lucide-react';
 
@@ -47,6 +48,7 @@ const CANDIDATE_LINKS = [
   { href: '/jobs', label: 'Jobs', icon: Search },
   { href: '/applications', label: 'Applications', icon: Send },
   { href: '/dashboard', label: 'My CV', icon: FileText },
+  { href: '/profile', label: 'Profile', icon: User },
 ];
 
 const RECRUITER_LINKS = [{ href: '/hiring', label: 'Hiring', icon: Briefcase }];
