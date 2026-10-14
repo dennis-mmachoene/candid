@@ -1,5 +1,4 @@
 import Link from 'next/link';
-import { redirect } from 'next/navigation';
 import { ArrowRight, FileText, Search, Upload } from 'lucide-react';
 
 import { DeleteResumeButton } from '@/components/delete-resume-button';
@@ -15,38 +14,29 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { requireUser } from '@/lib/dal';
-import { jobRepository } from '@/lib/infrastructure/job-repo';
+import { requireSide } from '@/lib/guards';
 import { resumeRepository } from '@/lib/infrastructure/supabase-repo';
 
 export const metadata = { title: 'Your CVs' };
 
 export default async function DashboardPage() {
-  // The gate. A signed-out caller is redirected here, next to the data, rather
-  // than in middleware: a route that forgets this call still cannot read
-  // another person's rows, because Row-Level Security is underneath it.
-  const user = await requireUser();
-
   /*
-   * The only route that routes by role, and the reason it is the only one.
+   * The gate, and it is two gates in one call.
    *
-   * Sign-in lands here, so this page has to answer two questions that are not
-   * really about CVs at all. A null role means the account has never been
-   * asked which side of the hire it is on, so it goes to /onboarding;
-   * migration 0008 is what makes null possible, and before it every account
-   * was silently a candidate and that screen was unreachable. A recruiter has
-   * no CV to upload, so this page is the wrong one for them entirely and they
-   * go to the roles they have posted.
+   * Signed out, and you are sent to the landing page to sign in. Signed in
+   * without having said which side of the hire you are on, and you are sent
+   * to /onboarding. An employer, and you are sent to the roles you posted,
+   * because there is no CV here for you to upload.
    *
-   * Nothing else redirects on role, deliberately. /onboarding used to send a
-   * non-null role back here, and a pair of pages that each redirect to the
-   * other is a redirect loop waiting for `getRole()` to return two different
-   * answers in a row. It returns null on a failed query, which is exactly the
-   * flap that would trigger it. One page deciding cannot loop.
+   * This page used to carry all of that itself, and it was the only page that
+   * carried any of it, which is why an employer could walk into the whole job
+   * seeker's half of the product by typing a URL. The rule now lives in
+   * lib/guards.ts and every page states which side it is for.
+   *
+   * It is still true, and still worth saying, that losing this line would not
+   * expose anybody's rows. Row-Level Security is underneath it.
    */
-  const role = await jobRepository.getRole();
-  if (role === null) redirect('/onboarding');
-  if (role === 'recruiter') redirect('/hiring');
+  const user = await requireSide('candidate');
 
   // No user id passed and none needed: Row-Level Security scopes this to the
   // caller's own rows.

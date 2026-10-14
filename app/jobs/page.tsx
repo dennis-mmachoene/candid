@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Container } from '@/components/ui/container';
-import { requireUser } from '@/lib/dal';
+import { requireSide } from '@/lib/guards';
 import { jobRepository } from '@/lib/infrastructure/job-repo';
 
 export const metadata = { title: 'Jobs' };
@@ -26,7 +26,7 @@ export default async function JobsPage({
   // Next 15 makes these async.
   searchParams: Promise<{ q?: string; saved?: string }>;
 }) {
-  await requireUser();
+  await requireSide('candidate');
 
   const { q, saved } = await searchParams;
   const showingSaved = saved === '1';

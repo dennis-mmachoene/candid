@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
 
-import { requireUser } from '@/lib/dal';
+import { requireSide } from '@/lib/guards';
 import { tailorCv } from '@/lib/domain/tailoring';
 import { AIProviderError, claudeProvider } from '@/lib/infrastructure/claude-provider';
 import { describeWindow, rateLimiter } from '@/lib/infrastructure/rate-limit';
@@ -42,7 +42,7 @@ export async function tailorResume(
   _previous: TailorState,
   formData: FormData,
 ): Promise<TailorState> {
-  const user = await requireUser();
+  const user = await requireSide('candidate');
 
   const input = tailorSchema.safeParse({
     resumeId: formData.get('resumeId'),
@@ -159,7 +159,7 @@ export async function approveClaims(
   tailoringId: string,
   approved: readonly string[],
 ): Promise<{ ok: boolean; message?: string }> {
-  await requireUser();
+  await requireSide('candidate');
 
   const input = approveSchema.safeParse({ tailoringId, approved });
   if (!input.success) {

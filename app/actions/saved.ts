@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 
-import { requireUser } from '@/lib/dal';
+import { requireSide } from '@/lib/guards';
 import { jobRepository } from '@/lib/infrastructure/job-repo';
 
 /**
@@ -28,7 +28,7 @@ const toggleSchema = z.object({
 });
 
 export async function toggleSavedJob(formData: FormData): Promise<void> {
-  await requireUser();
+  await requireSide('candidate');
 
   const input = toggleSchema.safeParse({
     jobId: formData.get('jobId'),

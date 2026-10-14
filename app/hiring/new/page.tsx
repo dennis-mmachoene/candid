@@ -10,7 +10,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { requireUser } from '@/lib/dal';
+import { requireSide } from '@/lib/guards';
 import { jobRepository } from '@/lib/infrastructure/job-repo';
 
 export const metadata = { title: 'Post a role' };
@@ -42,7 +42,7 @@ const afterwards = [
 ];
 
 export default async function NewJobPage() {
-  await requireUser();
+  await requireSide('recruiter');
 
   // Offered as suggestions on the company field. RLS scopes this to what the
   // caller is allowed to see, so there is no filter here.

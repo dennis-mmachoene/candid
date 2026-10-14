@@ -11,7 +11,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { requireUser } from '@/lib/dal';
+import { requireSide } from '@/lib/guards';
 import { RETENTION_MONTHS } from '@/lib/domain/consent';
 import { resumeRepository } from '@/lib/infrastructure/supabase-repo';
 
@@ -25,7 +25,7 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 export default async function HistoryPage() {
-  const user = await requireUser();
+  const user = await requireSide('candidate');
 
   // RLS-scoped. No user id is passed, because accepting one would invite
   // passing somebody else's.

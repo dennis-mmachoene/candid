@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation';
 import { z } from 'zod';
 
 import { requireUser } from '@/lib/dal';
+import { requireSide } from '@/lib/guards';
 import { jobRepository } from '@/lib/infrastructure/job-repo';
 import { DatabaseError } from '@/lib/infrastructure/supabase-repo';
 
@@ -106,7 +107,11 @@ export async function postJob(
   _previous: JobFormState,
   formData: FormData,
 ): Promise<JobFormState> {
-  const user = await requireUser();
+  // A Server Action is a public endpoint. The posting form is now unreachable
+  // to a job seeker, and this is what answers a request that never went near
+  // the form. `chooseRole` below keeps `requireUser`, because it is the action
+  // that decides the side and cannot require one first.
+  const user = await requireSide('recruiter');
 
   const input = postJobSchema.safeParse({
     company: formData.get('company'),
@@ -183,7 +188,7 @@ export async function setApplicationStatus(
   _previous: JobFormState,
   formData: FormData,
 ): Promise<JobFormState> {
-  await requireUser();
+  await requireSide('recruiter');
 
   const input = statusSchema.safeParse({
     applicationId: formData.get('applicationId'),

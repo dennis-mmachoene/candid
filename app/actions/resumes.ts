@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 
-import { requireUser } from '@/lib/dal';
+import { requireSide } from '@/lib/guards';
 import { resumeRepository } from '@/lib/infrastructure/supabase-repo';
 
 /**
@@ -29,7 +29,7 @@ export async function deleteResume(
   // The gate, next to the data. Row-Level Security is underneath it as well,
   // so an id belonging to somebody else matches no rows rather than being
   // refused — which tells the caller nothing about whether it exists.
-  await requireUser();
+  await requireSide('candidate');
 
   const input = idSchema.safeParse({ id: formData.get('id') });
   if (!input.success) {

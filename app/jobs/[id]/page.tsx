@@ -1,10 +1,11 @@
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import { ArrowLeft, Briefcase, CheckCircle2, MapPin } from 'lucide-react';
 
 import { ApplyPanel } from '@/components/apply-panel';
 import { SaveJobButton } from '@/components/save-job-button';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Container } from '@/components/ui/container';
 import {
   Card,
@@ -13,7 +14,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { requireUser } from '@/lib/dal';
+import { requireChosenSide } from '@/lib/guards';
 import { jobRepository } from '@/lib/infrastructure/job-repo';
 import { resumeRepository } from '@/lib/infrastructure/supabase-repo';
 
@@ -40,13 +41,26 @@ export default async function JobPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  await requireUser();
+  const { user, role } = await requireChosenSide();
   const { id } = await params;
 
   // RLS scopes this. A job that is closed and not yours is indistinguishable
   // from one that does not exist.
   const job = await jobRepository.getJob(id);
   if (!job) notFound();
+
+  /*
+    This is the one page that serves both sides, and the only reason is the
+    link that says "See it as a candidate does" on the applicants page. An
+    employer wrote this advert, and reading back exactly what a job seeker
+    reads is a thing they should be able to do.
+
+    Any other advert is not theirs to browse. The board is where people look
+    for work, and an employer wandering through it is on the wrong side of the
+    product rather than on a secret page, so they are sent to their own roles.
+  */
+  const isOwnJob = job.recruiterId === user.id;
+  if (role === 'recruiter' && !isOwnJob) redirect('/hiring');
 
   const [existing, resumes, savedIds] = await Promise.all([
     jobRepository.existingApplication(job.id),
@@ -80,7 +94,13 @@ export default async function JobPage({
             <h1 className="text-fluid-2xl font-semibold tracking-tight">
               {job.title}
             </h1>
-            <SaveJobButton jobId={job.id} saved={savedIds.has(job.id)} withLabel />
+            {isOwnJob ? null : (
+              <SaveJobButton
+                jobId={job.id}
+                saved={savedIds.has(job.id)}
+                withLabel
+              />
+            )}
           </div>
           <p className="text-muted-foreground flex flex-wrap items-center gap-x-4 gap-y-1">
             <span className="inline-flex items-center gap-1.5">
@@ -104,9 +124,20 @@ export default async function JobPage({
         <Card className="mt-8">
           <CardHeader>
             <CardTitle asChild className="text-fluid-lg">
-              <h2>{existing ? 'You applied to this' : 'Apply'}</h2>
+              <h2>
+                {isOwnJob
+                  ? 'This is your role'
+                  : existing
+                    ? 'You applied to this'
+                    : 'Apply'}
+              </h2>
             </CardTitle>
-            {existing ? (
+            {isOwnJob ? (
+              <CardDescription>
+                You posted it. Everything below this card is what a candidate
+                reads before they decide.
+              </CardDescription>
+            ) : existing ? (
               <CardDescription>
                 Sent{' '}
                 {existing.createdAt.toLocaleDateString('en-ZA', {
@@ -119,7 +150,11 @@ export default async function JobPage({
             ) : null}
           </CardHeader>
           <CardContent>
-            {existing ? (
+            {isOwnJob ? (
+              <Button asChild variant="secondary">
+                <Link href={`/hiring/${job.id}`}>See who has applied</Link>
+              </Button>
+            ) : existing ? (
               <p className="flex items-center gap-2 text-sm">
                 <CheckCircle2 className="text-accepted size-4 shrink-0" aria-hidden />
                 <span>{STATUS_WORDS[existing.status] ?? existing.status}</span>

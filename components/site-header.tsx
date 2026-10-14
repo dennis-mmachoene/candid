@@ -43,14 +43,19 @@ const CANDIDATE_LINKS = [
   { href: '/applications', label: 'Applications', icon: Send },
   { href: '/dashboard', label: 'My CV', icon: FileText },
   { href: '/profile', label: 'Profile', icon: User },
+  { href: '/history', label: 'History', icon: History },
 ];
 
 const RECRUITER_LINKS = [{ href: '/hiring', label: 'Hiring', icon: Briefcase }];
 
-const SHARED_LINKS = [
-  { href: '/history', label: 'History', icon: History },
-  { href: '/settings', label: 'Settings', icon: Settings },
-];
+/*
+  Settings is the only page both sides share, and that is the whole point.
+
+  History used to sit here, which put "your tailored CVs" in an employer's
+  menu. They have none and cannot have any, so the link went to a page that
+  was empty by definition. It is a job seeker's link and now lives there.
+*/
+const SHARED_LINKS = [{ href: '/settings', label: 'Settings', icon: Settings }];
 
 export async function SiteHeader() {
   const user = await getVerifiedUser();

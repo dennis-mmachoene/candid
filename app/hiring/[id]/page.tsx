@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Container } from '@/components/ui/container';
 import { Card, CardContent } from '@/components/ui/card';
-import { requireUser } from '@/lib/dal';
+import { requireSide } from '@/lib/guards';
 import { jobRepository } from '@/lib/infrastructure/job-repo';
 
 export const metadata = { title: 'Applicants' };
@@ -17,15 +17,34 @@ export default async function ApplicantsPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  await requireUser();
+  const user = await requireSide('recruiter');
   const { id } = await params;
 
   const job = await jobRepository.getJob(id);
-  if (!job) notFound();
 
-  // Row-Level Security does the access check. A recruiter asking for a job
-  // that is not theirs gets an empty list rather than a refusal, which tells
-  // them nothing about whether the job exists.
+  /*
+    Three answers to three different questions, and none of them is a repeat.
+
+    `requireSide` above answers "is this half of the product yours". A job
+    seeker who pastes this URL never gets this far. That matters, because they
+    used to: the page rendered the employer's furniture around their own single
+    application, down to a status dropdown on someone else's hire.
+
+    Row-Level Security answers "what may you read". It is the reason that
+    earlier mistake was ugly rather than dangerous. The policy on
+    `applications` matches only rows whose job belongs to the caller, so the
+    list was empty of everybody except the person reading it, and she is
+    entitled to see her own application wherever it turns up.
+
+    This line answers "is this role yours". An employer with a real account
+    guessing another employer's job id has passed both checks above and still
+    has no business here.
+
+    `notFound`, and the same `notFound` as an id that does not exist. Anything
+    else would confirm the role is real.
+  */
+  if (!job || job.recruiterId !== user.id) notFound();
+
   const applicants = await jobRepository.listApplicants(job.id);
 
   const tailored = applicants.filter((a) => a.mode === 'tailored').length;
