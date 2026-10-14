@@ -24,11 +24,33 @@ export async function chooseSide(
 ): Promise<void> {
   await expect(page).toHaveURL(/\/onboarding/, { timeout: 30_000 });
 
-  await page
-    .getByRole('button', {
-      name: side === 'recruiter' ? /i am hiring/i : /i am looking for work/i,
-    })
-    .click();
+  const option = page.getByRole('button', {
+    name: side === 'recruiter' ? /i am hiring/i : /i am looking for work/i,
+  });
+
+  /*
+   * Click until the click has meant something, then submit.
+   *
+   * The two options are `type="button"` with a React `onClick` behind them, and
+   * the form carries the answer in a hidden input driven by that state. A click
+   * that lands before the page hydrates hits a DOM node with nothing attached
+   * to it. Playwright is satisfied, because the element was visible, enabled
+   * and clicked. Nothing happens.
+   *
+   * This helper had that bug from the day it was written and never showed it.
+   * Every caller asked for `candidate`, which is the starting position, so it
+   * passed by agreeing with the default rather than by choosing anything. The
+   * first caller to ask for `recruiter` was sent to the job board.
+   *
+   * `toPass` retries the click rather than only waiting after it, because the
+   * click itself is the thing that may have been thrown away.
+   */
+  await expect(async () => {
+    await option.click();
+    await expect(option).toHaveAttribute('aria-pressed', 'true', {
+      timeout: 1_000,
+    });
+  }).toPass({ timeout: 15_000 });
 
   await page.getByRole('button', { name: /^continue$/i }).click();
 
