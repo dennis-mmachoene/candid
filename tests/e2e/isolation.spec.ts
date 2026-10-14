@@ -7,6 +7,7 @@ import {
   deleteTestUser,
   readE2ECredentials,
   secondEmail,
+  sessionFor,
   signIn,
 } from './sign-in';
 
@@ -221,32 +222,6 @@ test.describe('two accounts cannot see each other', () => {
 });
 
 // ---------------------------------------------------------------------------
-
-/** A session token for an account, without a browser. */
-async function sessionFor(
-  credentials: NonNullable<ReturnType<typeof readE2ECredentials>>,
-  email: string,
-): Promise<{ access_token: string }> {
-  const admin = createClient(credentials.url, credentials.secretKey, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  });
-
-  const { data: link } = await admin.auth.admin.generateLink({
-    type: 'magiclink',
-    email,
-  });
-
-  const anon = createClient(credentials.url, credentials.publishableKey, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  });
-
-  const { data } = await anon.auth.verifyOtp({
-    type: 'magiclink',
-    token_hash: link!.properties!.hashed_token,
-  });
-
-  return { access_token: data.session!.access_token };
-}
 
 async function buildCv(name: string, email: string): Promise<Buffer> {
   const lines = [

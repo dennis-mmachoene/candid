@@ -14,7 +14,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { requireUser } from '@/lib/dal';
+import { requireSide } from '@/lib/guards';
 import { resourcesForGap } from '@/lib/domain/learning';
 import { assembleResumeDocument } from '@/lib/domain/resume-document';
 import { jobRepository } from '@/lib/infrastructure/job-repo';
@@ -45,7 +45,7 @@ export default async function ReviewPage({
   const { id } = await params;
   const { job: jobId } = await searchParams;
   // The gate. The greeting that used to need the name is now a plain summary.
-  await requireUser();
+  await requireSide('candidate');
 
   const tailoring = await resumeRepository.getTailoring(id);
   if (!tailoring) notFound();

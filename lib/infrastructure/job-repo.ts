@@ -15,11 +15,15 @@ import type { Database } from '@/lib/database.types';
  * that apply to them live in the database as Row-Level Security, where they
  * cannot be forgotten by a caller.
  *
- * That last point is worth stating plainly. Nothing in this file filters by
- * user. There is no `where user_id = ...` anywhere below, because every policy
+ * That last point is worth stating plainly. Almost nothing in this file filters
+ * by user. There is hardly a `where user_id = ...` below, because every policy
  * in migration 0005 has already done it. A recruiter reading applications gets
  * their own jobs' applications; a candidate gets their own. If a query here
  * were wrong, it would return nothing rather than someone else's data.
+ *
+ * The exception is `getRole`, and the reason is written where it sits. A policy
+ * that widens what you may read can turn a query that assumed one row into a
+ * query that gets several. Security held; the shape of the answer changed.
  */
 
 type ApplicationStatus = Database['public']['Enums']['application_status'];
@@ -532,9 +536,30 @@ export const jobRepository = {
    */
   async getRole(): Promise<UserRole | null> {
     const supabase = await createClient();
+
+    /*
+      The `id` filter is the exception to the note at the top of this file, and
+      it is not belt and braces. It is load bearing.
+
+      Migration 0005 gave a recruiter read access to the profile row of anyone
+      who applies to one of their jobs. So from the first application onwards, a
+      select on `profiles` returns more than one row, `maybeSingle` treats that
+      as an error, and this returns null. The header then shows the job seeker's
+      navigation to a recruiter who is in the middle of managing roles.
+
+      The policy is right. The query was wrong to assume it was the only one.
+
+      `getClaims` rather than `getUser`, because it verifies the signed token
+      locally and this runs on every page load.
+    */
+    const { data: auth } = await supabase.auth.getClaims();
+    const id = auth?.claims?.sub;
+    if (!id) return null;
+
     const { data, error } = await supabase
       .from('profiles')
       .select('role')
+      .eq('id', id)
       .maybeSingle();
 
     if (error) {

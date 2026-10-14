@@ -5,13 +5,13 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Container } from '@/components/ui/container';
-import { requireUser } from '@/lib/dal';
+import { requireSide } from '@/lib/guards';
 import { jobRepository } from '@/lib/infrastructure/job-repo';
 
 export const metadata = { title: 'Hiring' };
 
 export default async function HiringPage() {
-  const user = await requireUser();
+  const user = await requireSide('recruiter');
 
   // RLS returns only this recruiter's jobs. There is no filter here because
   // the policy already applied one.

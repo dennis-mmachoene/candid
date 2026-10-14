@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Container } from '@/components/ui/container';
 import { Card, CardContent } from '@/components/ui/card';
-import { requireUser } from '@/lib/dal';
+import { requireSide } from '@/lib/guards';
 import { jobRepository, type ApplicationStatus } from '@/lib/infrastructure/job-repo';
 
 export const metadata = { title: 'Your applications' };
@@ -30,7 +30,7 @@ export default async function ApplicationsPage({
 }: {
   searchParams: Promise<{ applied?: string }>;
 }) {
-  const user = await requireUser();
+  const user = await requireSide('candidate');
   const { applied } = await searchParams;
 
   const applications = await jobRepository.myApplications();

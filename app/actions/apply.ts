@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
 
-import { requireUser } from '@/lib/dal';
+import { requireSide } from '@/lib/guards';
 import { tailorCv } from '@/lib/domain/tailoring';
 import { AIProviderError, claudeProvider } from '@/lib/infrastructure/claude-provider';
 import { jobRepository } from '@/lib/infrastructure/job-repo';
@@ -49,7 +49,7 @@ export async function applyWithProfile(
   _previous: ApplyState,
   formData: FormData,
 ): Promise<ApplyState> {
-  const user = await requireUser();
+  const user = await requireSide('candidate');
 
   const input = jobIdSchema.safeParse({ jobId: formData.get('jobId') });
   if (!input.success) {
@@ -105,7 +105,7 @@ export async function tailorForJob(
   _previous: ApplyState,
   formData: FormData,
 ): Promise<ApplyState> {
-  const user = await requireUser();
+  const user = await requireSide('candidate');
 
   const input = jobIdSchema.safeParse({ jobId: formData.get('jobId') });
   if (!input.success) {
@@ -216,7 +216,7 @@ export async function submitTailoredApplication(
   _previous: ApplyState,
   formData: FormData,
 ): Promise<ApplyState> {
-  const user = await requireUser();
+  const user = await requireSide('candidate');
 
   const input = submitSchema.safeParse({
     jobId: formData.get('jobId'),

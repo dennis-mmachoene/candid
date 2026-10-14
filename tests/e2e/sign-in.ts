@@ -250,7 +250,20 @@ export async function deleteTestUser(
  * Supabase two genuinely separate accounts — it treats `a+b@x` and `a@x` as
  * different users, which is exactly what the isolation test needs.
  */
-export function secondEmail(credentials: E2ECredentials): string {
+export function secondEmail(
+  credentials: E2ECredentials,
+  tag = 'candid-isolation',
+): string {
   const [local, domain] = credentials.email.split('@');
-  return `${local.split('+')[0]}+candid-isolation@${domain}`;
+  return `${local.split('+')[0]}+${tag}@${domain}`;
 }
+
+/**
+ * A raw access token for a test account, for the checks that skip the browser
+ * and talk to the database directly.
+ *
+ * The isolation spec had its own copy of this, without the account creation or
+ * any of the error handling. Two versions of the one helper that must not be
+ * subtly wrong is not a saving.
+ */
+export { createSession as sessionFor };

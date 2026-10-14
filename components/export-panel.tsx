@@ -127,9 +127,21 @@ export function ExportPanel({
           <Badge variant="accepted">no tables or images</Badge>
         </div>
 
+        {/*
+          This line used to say the name and contact details were "added back"
+          at export and had never been sent to the model. That was the
+          de-identification promise, and it has not been true since that layer
+          was removed. It sat directly under the integrity report, which is the
+          one place on the site where a false claim costs the most.
+
+          What replaces it is the guarantee that did survive, and it is the
+          stronger one: the document is built from the report rather than from
+          the model's draft, so a refused claim has no route into the file.
+        */}
         <p className="text-muted-foreground text-xs leading-relaxed">
-          Your name and contact details are added back to the file on our server
-          at this point. They were never sent to the model.
+          The header comes from your profile, and the rest is built from the
+          report above rather than from the draft. A refused claim has no way
+          into this file.
         </p>
       </CardContent>
     </Card>
