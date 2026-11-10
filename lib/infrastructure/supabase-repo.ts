@@ -34,6 +34,13 @@ import type {
  * pass someone else's, and would mean isolation depended on our `where`
  * clauses being right rather than on the database refusing.
  *
+ * Two `where id =` clauses do appear below, and neither is a security check.
+ * They are there because a policy that widens what you may read also widens
+ * what a single-row query returns. Migration 0005 lets an employer read the
+ * profile of anyone who applied to their role, so an unfiltered select on
+ * `profiles` stopped returning one row the moment a first application arrived.
+ * Security was never affected. The shape of the answer was.
+ *
  * The identity header is encrypted here, on the way in, and decrypted here, on
  * the way out. Nothing above this layer handles the ciphertext and nothing
  * below it sees the plaintext.
@@ -167,12 +174,66 @@ export class SupabaseResumeRepository implements ResumeRepository {
    */
   async getProfileHeader(): Promise<CvHeader | null> {
     const supabase = await createClient();
+
+    // See the note at the top of this file. Without the filter this returned
+    // several rows for an employer and `maybeSingle` called that an error, so
+    // exporting an application they had received failed outright.
+    const { data: auth } = await supabase.auth.getClaims();
+    const id = auth?.claims?.sub;
+    if (!id) return null;
+
     const { data, error } = await supabase
       .from('profiles')
       .select('full_name, headline, email, phone, location, links')
+      .eq('id', id)
       .maybeSingle();
 
     if (error) fail('getProfileHeader', error);
+    if (!data) return null;
+
+    return {
+      fullName: data.full_name,
+      headline: data.headline,
+      email: data.email,
+      phone: data.phone,
+      location: data.location,
+      links: data.links ?? [],
+    };
+  }
+
+  /**
+   * The header of whoever owns a tailoring.
+   *
+   * Export used to print the caller's own header on whatever it built, which
+   * is right exactly while the caller is the applicant. An employer
+   * downloading an application would have had their own name put on somebody
+   * else's CV, had the query not failed first.
+   *
+   * Both reads below are scoped by policy. The first returns nothing unless
+   * the caller may see that tailoring; the second returns nothing unless they
+   * may see that profile, which for an employer means the person applied to
+   * one of their roles. Passing a document id widens nothing, because the
+   * database has already decided which documents the caller may name.
+   */
+  async getHeaderForTailoring(tailoringId: string): Promise<CvHeader | null> {
+    const supabase = await createClient();
+
+    const { data: owner, error: ownerError } = await supabase
+      .from('tailored_resumes')
+      .select('user_id')
+      .eq('id', tailoringId)
+      .maybeSingle();
+
+    if (ownerError) fail('getHeaderForTailoring', ownerError);
+    if (!owner) return null;
+
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('full_name, headline, email, phone, location, links')
+      .eq('id', owner.user_id)
+      .maybeSingle();
+
+    if (error) fail('getHeaderForTailoring', error);
     if (!data) return null;
 
     return {

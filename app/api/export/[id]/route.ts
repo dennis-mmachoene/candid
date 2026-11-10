@@ -60,10 +60,18 @@ export async function GET(
       return NextResponse.json({ error: 'Not found.' }, { status: 404 });
     }
 
-    // The name and contact details printed at the top of the document. They
-    // come from the profile, which the applicant can correct, rather than from
-    // whatever happened to be at the top of the file they uploaded.
-    const identity = await resumeRepository.getProfileHeader();
+    /*
+      The name and contact details printed at the top of the document. They
+      come from the profile, which the applicant can correct, rather than from
+      whatever happened to be at the top of the file they uploaded.
+
+      Whose profile, though. This used to read the caller's, which is right
+      only while the caller is the applicant. An employer downloading an
+      application they received is building somebody else's CV, and printing
+      their own name on it would be worse than failing. It did fail, as it
+      happens, for an unrelated reason, which is how this was found.
+    */
+    const identity = await resumeRepository.getHeaderForTailoring(id);
     if (!identity) {
       return NextResponse.json({ error: 'Not found.' }, { status: 404 });
     }
