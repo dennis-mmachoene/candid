@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { ArrowLeft, Download, FileText, Sparkles } from 'lucide-react';
+import { ArrowLeft, Download } from 'lucide-react';
 
 import { ApplicantStatus } from '@/components/applicant-status';
 import { Badge } from '@/components/ui/badge';
@@ -47,8 +47,6 @@ export default async function ApplicantsPage({
 
   const applicants = await jobRepository.listApplicants(job.id);
 
-  const tailored = applicants.filter((a) => a.mode === 'tailored').length;
-
   return (
     <main className="py-10 sm:py-14">
       <Container width="wide">
@@ -67,7 +65,7 @@ export default async function ApplicantsPage({
           <p className="text-muted-foreground">
             {applicants.length === 0
               ? 'Nobody has applied yet.'
-              : `${applicants.length} applicant${applicants.length === 1 ? '' : 's'}, ${tailored} tailored for this role.`}
+              : `${applicants.length} applicant${applicants.length === 1 ? '' : 's'}.`}
           </p>
         </header>
 
@@ -104,19 +102,24 @@ export default async function ApplicantsPage({
                           {applicant.location}
                         </p>
                       ) : null}
-                      <p className="text-muted-foreground inline-flex items-center gap-1.5 text-sm">
-                        {applicant.mode === 'tailored' ? (
-                          <>
-                            <Sparkles className="size-3.5" aria-hidden />
-                            Tailored for this role
-                          </>
-                        ) : (
-                          <>
-                            <FileText className="size-3.5" aria-hidden />
-                            Their CV as it stands
-                          </>
-                        )}
-                      </p>
+                      {/*
+                        The employer is not told whether this CV was tailored,
+                        and `mode` is still recorded on the row.
+
+                        The label claimed to describe the document and actually
+                        described the tool. Someone who rewrote their CV in Word
+                        for this advert tailored it too, and arrived here
+                        unlabelled, so the mark fell only on the people who did
+                        it where it could be seen. That is backwards for a
+                        product whose whole argument is that visible work should
+                        not be punished, and the tailored document is the one
+                        carrying the stronger guarantee: every claim in it was
+                        traced to the applicant's own CV or refused.
+
+                        The applicant still sees their own choice, on their own
+                        applications page. It is their decision, shown back to
+                        them, rather than a mark on them shown to somebody else.
+                      */}
                     </div>
 
                     <div className="flex shrink-0 flex-col items-end gap-2">

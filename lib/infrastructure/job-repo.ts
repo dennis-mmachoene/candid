@@ -290,12 +290,32 @@ export const jobRepository = {
    */
   async existingApplication(jobId: string): Promise<MyApplication | null> {
     const supabase = await createClient();
+
+    /*
+      The question is "have I applied to this job", so the query has to say
+      who I am. The third time this file has needed that sentence.
+
+      Filtered by job alone, this returns one row for a job seeker, because
+      the policy scopes applications to their own. It returns every row for
+      the employer who posted the job, because a second policy lets them read
+      all of them, and `maybeSingle` calls that an error. The employer reaches
+      this page by their own "See it as a candidate does" link, so a role with
+      two applicants threw rather than rendered.
+
+      Nothing leaked and nothing could: the page they were thrown out of is
+      one the policy already let them read.
+    */
+    const { data: auth } = await supabase.auth.getClaims();
+    const candidateId = auth?.claims?.sub;
+    if (!candidateId) return null;
+
     const { data, error } = await supabase
       .from('applications')
       .select(
         'id, job_id, mode, status, tailored_resume_id, created_at, jobs(title, companies(name))',
       )
       .eq('job_id', jobId)
+      .eq('candidate_id', candidateId)
       .maybeSingle();
 
     if (error) fail('existingApplication', error);

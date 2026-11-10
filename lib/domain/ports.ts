@@ -112,8 +112,21 @@ export interface ResumeRepository {
 
   getResume(id: string): Promise<StoredResume | null>;
 
-  /** Decrypted server-side, for reattachment at export time only. */
+  /** The caller's own header. Decrypted server-side, for export only. */
   getProfileHeader(): Promise<CvHeader | null>;
+
+  /**
+   * The header belonging to whoever owns a tailoring, which is not always the
+   * caller: an employer exporting an application they received is reading
+   * somebody else's document and must print somebody else's name on it.
+   *
+   * It takes the document's id and never a person's id, so the rule stated at
+   * the top of the adapter still holds. The caller cannot name a person; it
+   * can only name a document, and the database already decides which documents
+   * it may see.
+   */
+  getHeaderForTailoring(tailoringId: string): Promise<CvHeader | null>;
+
   saveProfileHeader(header: CvHeader): Promise<void>;
 
   listResumes(): Promise<readonly StoredResume[]>;
