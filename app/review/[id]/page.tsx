@@ -3,7 +3,6 @@ import { notFound } from 'next/navigation';
 import { ArrowLeft, BookOpen, ExternalLink, FileText } from 'lucide-react';
 
 import { ExportPanel } from '@/components/export-panel';
-import { SubmitApplication } from '@/components/submit-application';
 import { IntegrityReport } from '@/components/integrity-report';
 import { Badge } from '@/components/ui/badge';
 import { Container } from '@/components/ui/container';
@@ -14,10 +13,9 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { requireSide } from '@/lib/guards';
+import { requireUser } from '@/lib/dal';
 import { resourcesForGap } from '@/lib/domain/learning';
 import { assembleResumeDocument } from '@/lib/domain/resume-document';
-import { jobRepository } from '@/lib/infrastructure/job-repo';
 import { resumeRepository } from '@/lib/infrastructure/supabase-repo';
 import { createClient } from '@/lib/infrastructure/supabase/server';
 import type { IntegrityReport as Report } from '@/lib/domain/types';
@@ -37,15 +35,12 @@ export const metadata = { title: 'Review' };
  */
 export default async function ReviewPage({
   params,
-  searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ job?: string }>;
 }) {
   const { id } = await params;
-  const { job: jobId } = await searchParams;
   // The gate. The greeting that used to need the name is now a plain summary.
-  await requireSide('candidate');
+  await requireUser();
 
   const tailoring = await resumeRepository.getTailoring(id);
   if (!tailoring) notFound();
@@ -65,10 +60,6 @@ export default async function ReviewPage({
   // The same uploaded CV the export reads, so the preview shows the carried
   // sections too and what is on screen matches what downloads.
   const resume = await resumeRepository.getResume(tailoring.resumeId);
-
-  // Present only when the applicant arrived here from a job. Reviewing an old
-  // tailoring from the history page has nothing to send.
-  const job = jobId ? await jobRepository.getJob(jobId) : null;
 
   // The header the preview prints. Nothing is withheld from the applicant
   // about their own CV any more, so what is on screen is what downloads.
@@ -93,16 +84,16 @@ export default async function ReviewPage({
     <main className="py-10 sm:py-14">
       <Container width="prose">
       <Link
-        href={jobId ? `/jobs/${jobId}` : '/dashboard'}
+        href="/dashboard"
         className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 text-sm transition-colors"
       >
         <ArrowLeft className="size-4" aria-hidden />
-        {jobId ? 'Back to the role' : 'Back to your CVs'}
+        Back to your CVs
       </Link>
 
       <header className="animate-rise mt-6 flex flex-col gap-2">
         <h1 className="text-fluid-2xl font-semibold tracking-tight text-balance">
-          {job ? `Your CV, rewritten for ${job.title}` : 'Your tailored CV'}
+          Your tailored CV
         </h1>
         {/*
           One sentence, in numbers a person can hold in their head.
@@ -126,19 +117,6 @@ export default async function ReviewPage({
           promised.
         </p>
       </header>
-
-      {job ? (
-        <Card className="border-brand-500/25 bg-brand-500/5 mt-8">
-          <CardContent className="pt-6">
-            <SubmitApplication
-              jobId={job.id}
-              jobTitle={job.companyName}
-              tailoringId={tailoring.id}
-              blocked={report.accepted.length === 0}
-            />
-          </CardContent>
-        </Card>
-      ) : null}
 
       <div className="mt-8">
         <IntegrityReport

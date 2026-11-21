@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 
-import { requireSide } from '@/lib/guards';
+import { requireUser } from '@/lib/dal';
 import { readHeader } from '@/lib/domain/cv-header';
 import { buildInventory } from '@/lib/domain/inventory';
 import {
@@ -58,7 +58,7 @@ export async function uploadCv(
   _previous: UploadState,
   formData: FormData,
 ): Promise<UploadState> {
-  const user = await requireSide('candidate');
+  const user = await requireUser();
 
   const parsedInput = uploadSchema.safeParse({ file: formData.get('cv') });
   if (!parsedInput.success) {

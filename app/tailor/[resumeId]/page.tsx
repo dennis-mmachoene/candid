@@ -12,7 +12,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { requireSide } from '@/lib/guards';
+import { requireUser } from '@/lib/dal';
 import { resumeRepository } from '@/lib/infrastructure/supabase-repo';
 
 export const metadata = { title: 'Tailor to a job advert' };
@@ -36,7 +36,7 @@ export default async function TailorPage({
   params: Promise<{ resumeId: string }>;
 }) {
   const { resumeId } = await params;
-  await requireSide('candidate');
+  await requireUser();
 
   // RLS makes someone else's CV indistinguishable from one that does not
   // exist, which is the right answer: it leaks nothing about whether the id

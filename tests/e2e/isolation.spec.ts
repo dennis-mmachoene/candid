@@ -2,7 +2,6 @@ import { Document, Packer, Paragraph } from 'docx';
 import { createClient } from '@supabase/supabase-js';
 import { expect, test } from '@playwright/test';
 
-import { chooseSide } from './onboarding';
 import {
   deleteTestUser,
   readE2ECredentials,
@@ -64,7 +63,6 @@ test.describe('two accounts cannot see each other', () => {
 
   test('account A uploads a CV', async ({ page }) => {
     await signIn(page, credentials!);
-    await chooseSide(page, 'candidate');
     await page.goto('/dashboard');
 
     await page.setInputFiles('#cv', {
@@ -100,7 +98,6 @@ test.describe('two accounts cannot see each other', () => {
     const page = await context.newPage();
 
     await signIn(page, credentials!, '/dashboard', emailB);
-    await chooseSide(page, 'candidate');
     await page.goto('/dashboard');
 
     /*
@@ -148,19 +145,6 @@ test.describe('two accounts cannot see each other', () => {
 
     await signIn(page, credentials!, '/history', emailB);
     await expect(page.getByText(/nothing tailored yet/i)).toBeVisible();
-
-    await context.close();
-  });
-
-  test('account B’s applications list is empty', async ({ browser }) => {
-    const context = await browser.newContext();
-    const page = await context.newPage();
-
-    await signIn(page, credentials!, '/applications', emailB);
-    // Nothing of A's, and nothing of B's either, because B has applied to
-    // nothing. An application carries a CV, so this list is another place a
-    // leak would surface.
-    await expect(page.getByText('Ayanda')).toHaveCount(0);
 
     await context.close();
   });

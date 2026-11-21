@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 
-import { requireSide } from '@/lib/guards';
+import { requireUser } from '@/lib/dal';
 import {
   DatabaseError,
   resumeRepository,
@@ -54,7 +54,7 @@ export async function saveProfile(
   _previous: ProfileFormState,
   formData: FormData,
 ): Promise<ProfileFormState> {
-  const user = await requireSide('candidate');
+  const user = await requireUser();
 
   const input = profileSchema.safeParse({
     fullName: formData.get('fullName'),

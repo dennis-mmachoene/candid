@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { ArrowRight, FileText, Search, Upload } from 'lucide-react';
+import { ArrowRight, FileText, Upload } from 'lucide-react';
 
 import { DeleteResumeButton } from '@/components/delete-resume-button';
 
@@ -14,29 +14,23 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { requireSide } from '@/lib/guards';
+import { requireUser } from '@/lib/dal';
 import { resumeRepository } from '@/lib/infrastructure/supabase-repo';
 
 export const metadata = { title: 'Your CVs' };
 
 export default async function DashboardPage() {
   /*
-   * The gate, and it is two gates in one call.
+   * The gate. Signed out, and you are sent to the landing page to sign in.
    *
-   * Signed out, and you are sent to the landing page to sign in. Signed in
-   * without having said which side of the hire you are on, and you are sent
-   * to /onboarding. An employer, and you are sent to the roles you posted,
-   * because there is no CV here for you to upload.
-   *
-   * This page used to carry all of that itself, and it was the only page that
-   * carried any of it, which is why an employer could walk into the whole job
-   * seeker's half of the product by typing a URL. The rule now lives in
-   * lib/guards.ts and every page states which side it is for.
+   * This page used to carry a second check as well, for which side of the
+   * hire you were on. The employer side is gone, so there is one kind of
+   * account and the only question left is whether you are signed in.
    *
    * It is still true, and still worth saying, that losing this line would not
    * expose anybody's rows. Row-Level Security is underneath it.
    */
-  const user = await requireSide('candidate');
+  const user = await requireUser();
 
   // No user id passed and none needed: Row-Level Security scopes this to the
   // caller's own rows.
@@ -54,19 +48,17 @@ export default async function DashboardPage() {
           </h1>
           <p className="text-muted-foreground">
             {hasCvs
-              ? 'This is the CV every application is built from. Pick a role, and Candid will tailor it to that advert.'
+              ? 'This is the CV every application is built from. Paste an advert, and Candid will tailor it to that role.'
               : 'Upload your CV once. It becomes the master copy every application is built from.'}
           </p>
         </div>
 
-        {hasCvs ? (
-          <Button asChild>
-            <Link href="/jobs">
-              <Search className="size-4" aria-hidden />
-              Browse roles
-            </Link>
-          </Button>
-        ) : null}
+        {/*
+          There is no "browse roles" button, because there are no roles to
+          browse. The in-house job board is withdrawn. Tailoring starts from
+          a CV and a pasted advert, so the action lives on each CV card below
+          where the CV it applies to actually is.
+        */}
       </header>
 
       {/*
