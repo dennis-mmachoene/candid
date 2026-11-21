@@ -11,13 +11,13 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { requireSide } from '@/lib/guards';
+import { requireUser } from '@/lib/dal';
 import { resumeRepository } from '@/lib/infrastructure/supabase-repo';
 
 export const metadata = { title: 'Your profile' };
 
 export default async function ProfilePage() {
-  const user = await requireSide('candidate');
+  const user = await requireUser();
 
   const [header, resumes] = await Promise.all([
     resumeRepository.getProfileHeader(),

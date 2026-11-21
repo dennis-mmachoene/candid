@@ -105,16 +105,7 @@ test.describe('the gate', () => {
    * whether anyone remembered. Adding a route to the application means adding
    * it here, and that is the mechanism working rather than friction.
    */
-  for (const path of [
-    '/dashboard',
-    '/settings',
-    '/history',
-    '/jobs',
-    '/applications',
-    '/hiring',
-    '/onboarding',
-    '/profile',
-  ]) {
+  for (const path of ['/dashboard', '/settings', '/history', '/profile']) {
     test(`sends a signed-out visitor away from ${path}`, async ({ page }) => {
       await page.goto(path);
       await expect(page).toHaveURL(/\/\?signin=required/);
@@ -125,11 +116,6 @@ test.describe('the gate', () => {
     // A signed-out request for a real-looking id must be indistinguishable
     // from one for an invented id: both go to sign-in.
     await page.goto('/review/00000000-0000-0000-0000-000000000000');
-    await expect(page).toHaveURL(/\/\?signin=required/);
-  });
-
-  test('does not leak whether a job id exists', async ({ page }) => {
-    await page.goto('/jobs/00000000-0000-0000-0000-000000000000');
     await expect(page).toHaveURL(/\/\?signin=required/);
   });
 });

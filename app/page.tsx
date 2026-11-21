@@ -5,13 +5,13 @@ import {
   AlignLeft,
   ArrowRight,
   Ban,
-  Briefcase,
   Check,
   CircleAlert,
+  Download,
   FileCheck2,
+  FileText,
+  Repeat,
   ScanSearch,
-  Search,
-  Send,
   ShieldCheck,
   Upload,
   User,
@@ -38,9 +38,9 @@ const steps = [
     body: 'PDF or Word, once. Candid reads it, fills in your profile from it, and lists every skill it can find. That list is what everything after this is checked against.',
   },
   {
-    icon: Search,
-    title: 'Find a role',
-    body: 'Browse what employers have posted. Open one and read the requirements, because that list is what your CV gets compared against.',
+    icon: FileText,
+    title: 'Paste the advert',
+    body: 'Copy the advert from wherever you found it and paste it in. Include the requirements list, because that is what your CV gets compared against.',
   },
   {
     icon: ScanSearch,
@@ -48,9 +48,9 @@ const steps = [
     body: 'Every claim in the new version is traced back to your own CV. Anything that cannot be traced is blocked, and you are told which line of the advert it came from.',
   },
   {
-    icon: Send,
-    title: 'Apply',
-    body: 'You read the finished document before anyone else does, and press send yourself. The same document downloads as a PDF or a Word file.',
+    icon: Download,
+    title: 'Read it, then download it',
+    body: 'You see the finished document before anyone else does. It downloads as a PDF or a Word file, and you send it wherever the advert told you to.',
   },
 ];
 
@@ -85,8 +85,8 @@ const refusals = [
     body: 'This is what gets an offer withdrawn after a background check. Both are checked against your original CV.',
   },
   {
-    title: 'Send an application you have not read',
-    body: 'Nothing reaches an employer until you have seen the finished document and pressed send yourself.',
+    title: 'Hand over a document you have not read',
+    body: 'Nothing leaves Candid until you have seen the finished document and downloaded it yourself.',
   },
   {
     title: 'Keep your data when you leave',
@@ -94,28 +94,35 @@ const refusals = [
   },
 ];
 
-/** What each side of the product actually does, in the order people meet it. */
+/**
+ * Who this is for.
+ *
+ * Both cards are the same person at two different moments, which is the
+ * point: one master CV, many adverts. Candid used to carry an employer side
+ * and an in-house job board as well. Both are withdrawn. Nothing here is
+ * about the person doing the hiring.
+ */
 const audiences = [
   {
     icon: User,
-    title: 'If you are looking for work',
-    description: 'One CV, tailored per role, and a record of where it went.',
+    title: 'If you are starting out',
+    description: 'A short CV, and forty adverts that all want something slightly different.',
     points: [
       'Keep one master CV and tailor it for each advert you answer.',
-      'Apply with your CV as it stands, or with a version written for that role.',
-      'Track every application you have sent in one list.',
-      'See what the advert asked for that you cannot yet back up, and where to go and learn it.',
+      'See which of your coursework, projects and part-time work actually answers the advert.',
+      'Find out what the advert asked for that you cannot yet back up, and where to go and learn it.',
+      'Never send a claim you would not want to defend in the interview.',
     ],
   },
   {
-    icon: Briefcase,
-    title: 'If you are hiring',
-    description: 'Post a role, and read what comes back.',
+    icon: Repeat,
+    title: 'If you are changing direction',
+    description: 'Real experience, described in the wrong industry\u2019s words.',
     points: [
-      'Post a role with its requirements, and it appears on the board.',
-      'See everyone who applied, and which of them tailored their CV to your advert.',
-      'Download the exact document the applicant sent you, nothing rewritten afterwards.',
-      'Move an applicant through reviewing, shortlisted and hired.',
+      'Have what you have already done rewritten in the language the new field uses.',
+      'See the line of your own CV behind every rewritten sentence.',
+      'Keep the close calls under your control, so nothing overstates the move.',
+      'Build up a record of every version you sent and which advert it answered.',
     ],
   },
 ];
@@ -233,8 +240,8 @@ export default async function Home({
               <p className="text-fluid-base text-muted-foreground max-w-xl leading-relaxed text-pretty">
                 Applicant tracking systems reject good people for bad wording.
                 Candid rewrites what you have actually done in the language the
-                advert uses, shows you every change it made, and sends it to the
-                employer when you say so.
+                advert uses, shows you every change it made, and hands it back
+                to you as a PDF or a Word file.
               </p>
 
               {notice ? (
@@ -470,18 +477,19 @@ export default async function Home({
       </section>
 
       {/* ---------------------------------------------------------------- */}
-      {/* Both sides of the hire                                            */}
+      {/* Who it is for                                                     */}
       {/* ---------------------------------------------------------------- */}
       <section className="py-16 sm:py-20">
         <Container>
           <div className="flex max-w-2xl flex-col gap-3">
             <Eyebrow>Who it is for</Eyebrow>
             <h2 className="text-fluid-2xl font-semibold tracking-tight text-balance">
-              One place for both sides of the hire.
+              For the person applying.
             </h2>
             <p className="text-muted-foreground text-fluid-base text-pretty">
-              You choose which side you are on the first time you sign in, and
-              you only ever see that side.
+              Written for graduates answering their first adverts and for people
+              moving into a new field, because those are the two cases where the
+              right experience is there and the wrong words are on the page.
             </p>
           </div>
 

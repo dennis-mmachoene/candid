@@ -29,6 +29,32 @@ const nextConfig: NextConfig = {
     '172.20.10.*',
   ],
 
+  /**
+   * Stale links into the removed job board.
+   *
+   * Candid is a tool for one person and one document: upload a CV, tailor it
+   * to an advert, see what was traced and what was refused, export it. An
+   * in-house job board and an employer side were a second product bolted to
+   * the side of that, and nothing could verify that an employer worked
+   * anywhere they claimed, which made it a liability rather than a feature.
+   *
+   * The pages, the actions, the repository and the components are deleted.
+   * These redirects exist only so a link someone saved while the board was
+   * live lands somewhere useful instead of on a 404. The four tables are
+   * still in the database, because dropping them destroys rows and no code
+   * reads them any more.
+   */
+  async redirects() {
+    return [
+      { source: '/jobs', destination: '/dashboard', permanent: false },
+      { source: '/jobs/:path*', destination: '/dashboard', permanent: false },
+      { source: '/hiring', destination: '/dashboard', permanent: false },
+      { source: '/hiring/:path*', destination: '/dashboard', permanent: false },
+      { source: '/applications', destination: '/dashboard', permanent: false },
+      { source: '/onboarding', destination: '/dashboard', permanent: false },
+    ];
+  },
+
   async headers() {
     return [
       {

@@ -1,12 +1,11 @@
 import { Document, Packer, Paragraph } from 'docx';
 import { expect, test } from '@playwright/test';
 
-import { chooseSide } from './onboarding';
 import { deleteTestUser, readE2ECredentials, signIn } from './sign-in';
 
 /**
- * The happy path, end to end: sign in, answer which side you are on, upload a
- * real CV, tailor it, approve, download.
+ * The happy path, end to end: sign in, upload a real CV, tailor it, approve,
+ * download.
  *
  * It skips rather than fails when unconfigured, because a suite that goes red
  * on a laptop without secrets teaches people to ignore red suites.
@@ -36,64 +35,26 @@ test.describe('the happy path', () => {
     if (credentials) await deleteTestUser(credentials);
   });
 
-  test('a new account is asked which side it is on', async ({ page }) => {
-    await signIn(page, credentials!);
-
-    // A brand-new account must not reach the dashboard without answering.
-    await expect(page).toHaveURL(/\/onboarding/);
-    await expect(
-      page.getByRole('heading', { name: /which side are you on/i }),
-    ).toBeVisible();
-
-    // Both answers are offered, and neither is hidden behind a dropdown.
-    await expect(
-      page.getByRole('button', { name: /i am looking for work/i }),
-    ).toBeVisible();
-    await expect(
-      page.getByRole('button', { name: /i am hiring/i }),
-    ).toBeVisible();
-  });
-
-  test('the dashboard is unreachable until the question is answered', async ({
+  /*
+   * This replaces four tests about an onboarding screen that asked which side
+   * of the hire you were on.
+   *
+   * That screen is gone with the employer side, and the question it asked had
+   * one answer left. What is worth asserting now is the opposite of what those
+   * tests asserted: that a brand-new account meets no question at all and is
+   * put straight in front of the one thing the product does.
+   */
+  test('a new account lands on the dashboard, with nothing in the way', async ({
     page,
   }) => {
     await signIn(page, credentials!);
-    await page.goto('/dashboard');
-    await expect(page).toHaveURL(/\/onboarding/);
-  });
 
-  test('answering opens the application', async ({ page }) => {
-    await signIn(page, credentials!);
-    await chooseSide(page, 'candidate');
-
-    await page.goto('/dashboard');
+    await expect(page).toHaveURL(/\/dashboard/);
     await expect(page.getByRole('heading', { name: /welcome/i })).toBeVisible();
-  });
 
-  test('onboarding shows the current answer rather than flipping it', async ({
-    page,
-  }) => {
-    await signIn(page, credentials!);
-    await page.goto('/onboarding');
-
-    /*
-     * No redirect, on purpose. The first version of this sent an answered
-     * account to the dashboard, and the dashboard sends an unanswered one
-     * here: two pages each redirecting to the other loop the moment
-     * `getRole()` returns two different answers in a row, and it returns null
-     * on a failed query.
-     *
-     * What stops the screen being a silent flip is these two assertions. The
-     * side the account is already on is selected, and the button says what
-     * pressing it would do.
-     */
-    await expect(page).toHaveURL(/\/onboarding/);
-    await expect(
-      page.getByRole('button', { name: /i am looking for work/i }),
-    ).toHaveAttribute('aria-pressed', 'true');
-    await expect(
-      page.getByRole('button', { name: /switch sides/i }),
-    ).toBeVisible();
+    // The upload is the first thing offered, because an empty account has
+    // nothing else it can usefully do.
+    await expect(page.locator('#cv')).toBeAttached();
   });
 
   test('uploading a CV stores it as it stands', async ({ page }) => {
@@ -189,7 +150,6 @@ test.describe('tailoring and export', () => {
     test.setTimeout(120_000);
 
     await signIn(page, credentials!);
-    await chooseSide(page, 'candidate');
     await page.goto('/dashboard');
 
     await page.setInputFiles('#cv', {

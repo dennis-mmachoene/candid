@@ -4,12 +4,9 @@ import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
-  Briefcase,
   FileText,
   History,
   Menu,
-  Search,
-  Send,
   Settings,
   User,
   X,
@@ -25,9 +22,9 @@ import { Button } from '@/components/ui/button';
  * this and only the theme toggle stays out, because switching to dark mode at
  * night is the one thing people do without thinking.
  *
- * The links mirror the header exactly, including which role sees what. A phone
- * menu that offered a different set of pages from the desktop one would be a
- * second place to keep in step, and it would get forgotten.
+ * The links mirror the header exactly. A phone menu that offered a different
+ * set of pages from the desktop one would be a second place to keep in step,
+ * and it would get forgotten.
  *
  * Sign out is deliberately **not** in here. It is a form posting to a Server
  * Action, and burying a destructive-adjacent action behind a menu that also
@@ -35,35 +32,21 @@ import { Button } from '@/components/ui/button';
  */
 
 /**
- * Spelled out rather than imported from the job repository.
+ * The same four links as the header, in the same order.
  *
- * This is a Client Component, and the repository is infrastructure: a type-only
- * import would be erased at build time, but the import line itself is the kind
- * of thing that later grows a value import by accident. The database enum is
- * `('candidate', 'recruiter')` and migration 0005 is the single source of it.
+ * Kept as its own list rather than imported from the header, because the
+ * header is a Server Component and this is a Client Component. Four entries
+ * that must stay in step is a smaller risk than a client bundle reaching into
+ * a server module.
  */
-type Role = 'candidate' | 'recruiter' | null;
-
-const CANDIDATE_LINKS = [
-  { href: '/jobs', label: 'Jobs', icon: Search },
-  { href: '/applications', label: 'Applications', icon: Send },
+const LINKS = [
   { href: '/dashboard', label: 'My CV', icon: FileText },
   { href: '/profile', label: 'Profile', icon: User },
   { href: '/history', label: 'History', icon: History },
+  { href: '/settings', label: 'Settings', icon: Settings },
 ];
 
-const RECRUITER_LINKS = [{ href: '/hiring', label: 'Hiring', icon: Briefcase }];
-
-/*
-  Settings is the only page both sides share, and that is the whole point.
-
-  History used to sit here, which put "your tailored CVs" in an employer's
-  menu. They have none and cannot have any, so the link went to a page that
-  was empty by definition. It is a job seeker's link and now lives there.
-*/
-const SHARED_LINKS = [{ href: '/settings', label: 'Settings', icon: Settings }];
-
-export function MobileNav({ email, role }: { email: string; role: Role }) {
+export function MobileNav({ email }: { email: string }) {
   const [open, setOpen] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
@@ -89,11 +72,6 @@ export function MobileNav({ email, role }: { email: string; role: Role }) {
       document.removeEventListener('pointerdown', onPointerDown);
     };
   }, [open]);
-
-  const links = [
-    ...(role === 'recruiter' ? RECRUITER_LINKS : CANDIDATE_LINKS),
-    ...SHARED_LINKS,
-  ];
 
   return (
     <div ref={panelRef} className="relative sm:hidden">
@@ -122,7 +100,7 @@ export function MobileNav({ email, role }: { email: string; role: Role }) {
             {email}
           </p>
           <div className="bg-border my-1 h-px" />
-          {links.map((link) => (
+          {LINKS.map((link) => (
             <Link
               key={link.href}
               href={link.href}

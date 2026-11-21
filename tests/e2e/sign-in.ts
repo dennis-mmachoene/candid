@@ -188,10 +188,9 @@ async function sessionCookies(
 /**
  * Sign the test user in and land on `path`.
  *
- * Defaults to `/dashboard`, which a fresh account will be redirected away from
- * to `/onboarding` — exercising the gate rather than stepping around it. Use
- * `chooseSide` from `./onboarding` to answer that question when a spec needs
- * the account past it.
+ * Defaults to `/dashboard`. A fresh account goes straight there now: there is
+ * one kind of user, so there is no question to answer first and no detour to
+ * step around.
  */
 export async function signIn(
   page: Page,
@@ -216,15 +215,14 @@ export async function signIn(
 
   await page.goto(path);
   /*
-   * Any signed-in landing place counts, including the one the caller did not
-   * ask for. A fresh account requesting /dashboard is sent to /onboarding, and
-   * answering that question lands on /jobs or /hiring, so all of them have to
-   * be here or this wait would time out on a correct redirect.
+   * Every signed-in landing place, so a caller asking for one of them does
+   * not time out. The list was longer while an employer had somewhere else to
+   * be sent; now the only redirect left is the one to sign in, which this
+   * deliberately does not match.
    */
-  await page.waitForURL(
-    /\/(onboarding|dashboard|settings|history|jobs|applications|hiring)/,
-    { timeout: 20_000 },
-  );
+  await page.waitForURL(/\/(dashboard|settings|history|profile|review|tailor)/, {
+    timeout: 20_000,
+  });
 }
 
 /**
